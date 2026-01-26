@@ -172,6 +172,7 @@ const menuRouteSuffixes = [
   "/automation",
   "/settings",
   "/todulist", // 新增 TodoList 页面
+  "/clash", // Clash 订阅管理
 ];
 
 export default function DashboardLayout({
@@ -270,6 +271,7 @@ export default function DashboardLayout({
   const menuItems = [
     ...(t("dashboard.menu", { returnObjects: true }) as string[]),
     lang === "zh" ? "📋 待办清单" : "📋 Todo List",
+    lang === "zh" ? "🔰 Clash 订阅" : "🔰 Clash Subscribe",
   ];
 
   const menuItemConfigs = menuItems.map((label, index) => ({

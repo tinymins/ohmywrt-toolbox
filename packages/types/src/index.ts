@@ -55,3 +55,26 @@ export type {
   DeleteTestRequirementInput,
   TestRequirementListQuery
 } from "./test-requirement";
+
+export {
+  ClashGroupSchema,
+  ClashRuleProviderSchema,
+  ClashRuleProvidersListSchema,
+  ClashSubscribeSchema,
+  ClashSubscribeWithUserSchema,
+  CreateClashSubscribeInputSchema,
+  UpdateClashSubscribeInputSchema,
+  DeleteClashSubscribeInputSchema,
+  ClashRuleTestInputSchema
+} from "./clash";
+export type {
+  ClashGroup,
+  ClashRuleProvider,
+  ClashRuleProvidersList,
+  ClashSubscribe,
+  ClashSubscribeWithUser,
+  CreateClashSubscribeInput,
+  UpdateClashSubscribeInput,
+  DeleteClashSubscribeInput,
+  ClashRuleTestInput
+} from "./clash";

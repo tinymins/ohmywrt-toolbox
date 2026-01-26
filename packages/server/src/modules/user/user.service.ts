@@ -14,6 +14,13 @@ export const toUserOutput = (user: typeof users.$inferSelect) => ({
 });
 
 export class UserService {
+	/** 获取所有用户（用于授权选择） */
+	async listAll() {
+		return db
+			.select({ id: users.id, name: users.name, email: users.email })
+			.from(users);
+	}
+
 	async getById(userId: string) {
 		const [user] = await db
 			.select()

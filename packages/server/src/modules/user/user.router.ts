@@ -10,6 +10,15 @@ import { userService, toUserOutput } from "./user.service";
 
 export const userProfileOutput = UserSchema;
 
+// 简化的用户列表项 schema
+export const UserListItemSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	email: z.string()
+});
+
+export const UserListOutputSchema = z.array(UserListItemSchema);
+
 export const userUpdateInput = z.object({
 	name: z.string().min(1).optional(),
 	email: z.string().email().optional(),
@@ -28,6 +37,18 @@ export class UserRouter {
 	constructor() {
 		this.logger.log("UserRouter registered");
 	}
+
+	/** 获取用户列表（用于授权选择） */
+	@Query({ output: UserListOutputSchema })
+	@UseMiddlewares(requireUser)
+	async list(@Ctx() ctx: Context) {
+		const users = await userService.listAll();
+		// 过滤掉当前用户
+		return users
+			.filter(u => u.id !== ctx.userId)
+			.map(u => ({ id: u.id, name: u.name, email: u.email }));
+	}
+
 	@Query({ output: userProfileOutput })
 	@UseMiddlewares(requireUser)
 	async getProfile(@Ctx() ctx: Context) {

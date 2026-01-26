@@ -24,6 +24,8 @@ import {
   AutomationPage,
   SettingsPage,
   TodoListPage,
+  ClashSubscribePage,
+  ClashRedirect,
   LoginPage,
   RegisterPage,
   NotFoundPage,
@@ -72,6 +74,8 @@ function AppContent() {
           <Route element={<ProtectedRoute isAuthed={isAuthed} />}>
             {/* 重定向到默认工作空间 */}
             <Route path="/dashboard" element={<DashboardIndexRedirect />} />
+            {/* Clash 全局快捷路由 */}
+            <Route path="/dashboard/clash" element={<ClashRedirect />} />
 
             <Route
               path="/dashboard/:workspace"
@@ -100,6 +104,7 @@ function AppContent() {
               <Route path="automation" element={<AutomationPage lang={lang} />} />
               <Route path="settings" element={<SettingsPage lang={lang} />} />
               <Route path="todulist" element={<TodoListPage lang={lang} />} />
+              <Route path="clash" element={<ClashSubscribePage lang={lang} />} />
               <Route path="*" element={<DashboardNotFoundPage />} />
             </Route>
           </Route>

@@ -10,5 +10,7 @@ export { default as ReportsPage } from "./ReportsPage";
 export { default as AutomationPage } from "./AutomationPage";
 export { default as SettingsPage } from "./SettingsPage";
 export { default as TodoListPage } from "./TodoListPage";
+export { default as ClashSubscribePage } from "./ClashSubscribePage";
+export { default as ClashRedirect } from "./ClashRedirect";
 export { default as DashboardNotFoundPage } from "./DashboardNotFoundPage";
 export { default as WorkspaceNotFoundPage } from "./WorkspaceNotFoundPage";
