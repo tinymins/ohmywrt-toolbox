@@ -3,6 +3,7 @@ import type { Response } from "express";
 import * as yaml from "yaml";
 import { clashSubscribeService } from "./clash.service";
 import { convertClashToSingbox } from "./lib/converter";
+import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 import { DEFAULT_RULE_PROVIDERS, DEFAULT_GROUPS, SB_DEFAULT_GROUPS } from "./lib/config";
 import type { ClashGroup, ClashRuleProvidersList } from "@acme/types";
 import type { Singbox, SingBoxRule } from "./lib/types";
@@ -43,6 +44,10 @@ export class ClashPublicController {
             try {
               const response = await fetch(url);
               const text = await response.text();
+              // 支持 Base64 编码的订阅格式
+              if (isBase64Subscription(text)) {
+                return { proxies: parseBase64Subscription(text) };
+              }
               return yaml.parse(text);
             } catch (e) {
               this.logger.warn(`Failed to fetch subscription: ${url}`, e);
@@ -171,6 +176,10 @@ ${yaml.stringify(data)}`);
             try {
               const response = await fetch(url);
               const text = await response.text();
+              // 支持 Base64 编码的订阅格式
+              if (isBase64Subscription(text)) {
+                return { proxies: parseBase64Subscription(text) };
+              }
               return yaml.parse(text);
             } catch (e) {
               this.logger.warn(`Failed to fetch subscription: ${url}`, e);
