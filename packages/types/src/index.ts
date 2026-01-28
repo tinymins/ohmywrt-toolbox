@@ -65,7 +65,10 @@ export {
   CreateClashSubscribeInputSchema,
   UpdateClashSubscribeInputSchema,
   DeleteClashSubscribeInputSchema,
-  ClashRuleTestInputSchema
+  ClashRuleTestInputSchema,
+  ProxyPreviewNodeSchema,
+  ProxyPreviewInputSchema,
+  ProxyPreviewOutputSchema
 } from "./clash";
 export type {
   ClashGroup,
@@ -76,5 +79,8 @@ export type {
   CreateClashSubscribeInput,
   UpdateClashSubscribeInput,
   DeleteClashSubscribeInput,
-  ClashRuleTestInput
+  ClashRuleTestInput,
+  ProxyPreviewNode,
+  ProxyPreviewInput,
+  ProxyPreviewOutput
 } from "./clash";

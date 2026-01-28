@@ -9,7 +9,9 @@ import {
   CreateClashSubscribeInputSchema,
   UpdateClashSubscribeInputSchema,
   DeleteClashSubscribeInputSchema,
-  ClashRuleTestInputSchema
+  ClashRuleTestInputSchema,
+  ProxyPreviewInputSchema,
+  ProxyPreviewOutputSchema
 } from "@acme/types";
 
 // 简化的用户 schema
@@ -115,5 +117,16 @@ export class ClashRouter {
   async testRule(input: z.infer<typeof ClashRuleTestInputSchema>) {
     const result = await clashRuleService.testRule(input.url);
     return { result };
+  }
+
+  /** 预览订阅中的节点信息 */
+  @UseMiddlewares(requireUser)
+  @Query({
+    input: ProxyPreviewInputSchema,
+    output: ProxyPreviewOutputSchema
+  })
+  async previewNodes(input: z.infer<typeof ProxyPreviewInputSchema>, @Ctx() ctx: Context) {
+    const nodes = await clashSubscribeService.previewNodes(input.id, ctx.userId!);
+    return { nodes };
   }
 }

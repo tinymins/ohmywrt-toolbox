@@ -1,9 +1,10 @@
 import { useState, useRef } from "react";
 import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin } from "antd";
-import { LinkOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined } from "@ant-design/icons";
+import { LinkOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
 import ClashSubscribeModal, { type ClashSubscribeModalRef } from "./ClashSubscribeModal";
+import ProxyPreviewModal, { type ProxyPreviewModalRef } from "./ProxyPreviewModal";
 
 const { Text } = Typography;
 
@@ -28,6 +29,7 @@ interface ClashSubscribeWithUser {
 
 export default function ClashSubscribeList() {
   const modalRef = useRef<ClashSubscribeModalRef>(null);
+  const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const { data: list, isLoading, refetch } = trpc.clash.list.useQuery();
@@ -60,6 +62,7 @@ export default function ClashSubscribeList() {
     <div className="p-6">
       {contextHolder}
       <ClashSubscribeModal ref={modalRef} onSuccess={refetch} />
+      <ProxyPreviewModal ref={previewModalRef} />
 
       <div className="flex justify-between items-center mb-4">
         <Typography.Title level={3} className="!mb-0">
@@ -158,9 +161,17 @@ export default function ClashSubscribeList() {
             {
               title: "操作",
               align: "center",
-              width: 120,
+              width: 200,
               render: (_, record) => (
                 <Space>
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<EyeOutlined />}
+                    onClick={() => previewModalRef.current?.open(record.id, record.remark)}
+                  >
+                    预览
+                  </Button>
                   <Button
                     type="link"
                     size="small"

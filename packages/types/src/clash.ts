@@ -121,3 +121,39 @@ export const ClashRuleTestInputSchema = z.object({
 });
 
 export type ClashRuleTestInput = z.infer<typeof ClashRuleTestInputSchema>;
+
+// ============================================
+// 节点预览
+// ============================================
+
+/** 预览节点的基本信息 */
+export const ProxyPreviewNodeSchema = z.object({
+  /** 节点名称 */
+  name: z.string(),
+  /** 代理协议类型 (vmess, vless, ss, trojan, hysteria2 等) */
+  type: z.string(),
+  /** 服务器地址 */
+  server: z.string(),
+  /** 端口 */
+  port: z.number(),
+  /** 来源索引（订阅源的序号，从 1 开始） */
+  sourceIndex: z.number(),
+  /** 来源地址（订阅 URL） */
+  sourceUrl: z.string(),
+  /** 完整的代理配置（用于展示详细信息） */
+  raw: z.record(z.string(), z.unknown())
+});
+
+export type ProxyPreviewNode = z.infer<typeof ProxyPreviewNodeSchema>;
+
+export const ProxyPreviewInputSchema = z.object({
+  id: z.string()
+});
+
+export type ProxyPreviewInput = z.infer<typeof ProxyPreviewInputSchema>;
+
+export const ProxyPreviewOutputSchema = z.object({
+  nodes: z.array(ProxyPreviewNodeSchema)
+});
+
+export type ProxyPreviewOutput = z.infer<typeof ProxyPreviewOutputSchema>;

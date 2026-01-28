@@ -2,10 +2,13 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import WebSocket from "ws";
 import net from "node:net";
+import * as yaml from "yaml";
+import { parse as parseJsonc } from "jsonc-parser";
 import { db } from "../../db/client";
 import { clashSubscribes, users } from "../../db/schema";
-import type { CreateClashSubscribeInput, UpdateClashSubscribeInput } from "@acme/types";
+import type { CreateClashSubscribeInput, UpdateClashSubscribeInput, ProxyPreviewNode } from "@acme/types";
 import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS } from "./lib/config";
+import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 
 type ClashSubscribeRow = typeof clashSubscribes.$inferSelect;
 type UserRow = Pick<typeof users.$inferSelect, "id" | "name" | "email">;
@@ -229,6 +232,98 @@ export class ClashSubscribeService {
   /** 为节点名称添加国旗图标 */
   appendIcon(name: string): string {
     return appendIcon(name);
+  }
+
+  /** 安全解析 JSONC 字符串 */
+  private safeParseJsonc<T>(jsonc: string | null, defaultValue: T): T {
+    if (!jsonc) return defaultValue;
+    try {
+      return parseJsonc(jsonc) ?? defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  /** 预览订阅中的节点信息 */
+  async previewNodes(id: string, userId: string): Promise<ProxyPreviewNode[]> {
+    const subscribe = await this.getById(id);
+    if (!subscribe) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "订阅不存在" });
+    }
+
+    // 检查权限：是创建者或被授权用户
+    if (subscribe.userId !== userId && !subscribe.authorizedUserIds.includes(userId)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "无权访问此订阅" });
+    }
+
+    const nodes: ProxyPreviewNode[] = [];
+
+    // 1. 解析附加的服务器配置（从 JSONC 字符串解析）
+    const servers = this.safeParseJsonc<unknown[]>(subscribe.servers, []);
+    for (const item of servers) {
+      let proxy: any;
+      if (typeof item === "string") {
+        proxy = yaml.parse(item);
+      } else {
+        proxy = item;
+      }
+      if (proxy && proxy.name) {
+        nodes.push({
+          name: this.appendIcon(proxy.name),
+          type: proxy.type || "unknown",
+          server: proxy.server || "",
+          port: proxy.port || 0,
+          sourceIndex: 0,
+          sourceUrl: "手动添加",
+          raw: proxy
+        });
+      }
+    }
+
+    // 2. 获取远程订阅（从 JSONC 字符串解析）
+    const subscribeUrls = this.safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const filters = this.safeParseJsonc<string[]>(subscribe.filter, []);
+
+    for (let i = 0; i < subscribeUrls.length; i++) {
+      const url = subscribeUrls[i];
+      if (typeof url !== "string" || !url) continue;
+
+      try {
+        const response = await fetch(url);
+        const text = await response.text();
+        let proxies: any[] = [];
+
+        // 支持 Base64 编码的订阅格式
+        if (isBase64Subscription(text)) {
+          proxies = parseBase64Subscription(text);
+        } else {
+          const parsed = yaml.parse(text);
+          proxies = parsed?.proxies ?? [];
+        }
+
+        // 应用过滤规则
+        const filtered = proxies.filter((p: any) =>
+          !filters.some((f) => p.name && p.name.includes(f))
+        );
+
+        for (const proxy of filtered) {
+          nodes.push({
+            name: this.appendIcon(proxy.name || ""),
+            type: proxy.type || "unknown",
+            server: proxy.server || "",
+            port: proxy.port || 0,
+            sourceIndex: i + 1,
+            sourceUrl: url,
+            raw: proxy
+          });
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch subscription for preview: ${url}`, e);
+        // 继续处理其他订阅源
+      }
+    }
+
+    return nodes;
   }
 }
 
