@@ -29,7 +29,18 @@ import {
  * 将 Clash 配置转换为 Sing-box outbounds
  */
 export function convertClashToSingbox(input: string | object): SingboxOutbounds {
-  const clash: Clash = ClashSchema.parse(typeof input === "string" ? yaml.parse(input) : input);
+  let clash: Clash;
+  try {
+    clash = ClashSchema.parse(typeof input === "string" ? yaml.parse(input) : input);
+  } catch (e) {
+    // 如果验证失败，尝试直接使用 proxies 数组
+    const rawData = typeof input === "string" ? yaml.parse(input) : input;
+    if (rawData?.proxies && Array.isArray(rawData.proxies)) {
+      clash = { proxies: rawData.proxies };
+    } else {
+      return [];
+    }
+  }
 
   const outbounds: SingboxOutbounds = [];
 
@@ -78,7 +89,7 @@ export function convertClashToSingbox(input: string | object): SingboxOutbounds 
 
 const convertVmessOrVLESSTransport = (
   proxy: ClashProxyBaseVmessOrVLESS
-): SingboxOutboundCommonVmessOrVLESSTransport | null => {
+): SingboxOutboundCommonVmessOrVLESSTransport | undefined => {
   if (proxy["http-opts"] !== undefined) {
     const transport: SingboxOutboundCommonVmessOrVLESSTransport = {
       type: "http"
@@ -136,7 +147,8 @@ const convertVmessOrVLESSTransport = (
     }
     return transport;
   }
-  return null;
+  // 无 transport 选项时返回 undefined，表示使用默认 TCP
+  return undefined;
 };
 
 const convertHttp = (proxy: ClashProxyHttp): SingboxOutboundHttp => {
@@ -390,12 +402,8 @@ const convertTUIC = (proxy: ClashProxyTUIC): SingboxOutboundTUIC => {
   return outbound;
 };
 
-const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess | null => {
+const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess => {
   const transport = convertVmessOrVLESSTransport(proxy);
-
-  if (transport === null) {
-    return null;
-  }
 
   const outbound: SingboxOutboundVmess = {
     type: "vmess",
@@ -430,12 +438,8 @@ const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess | null => {
   return outbound;
 };
 
-const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS | null => {
+const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS => {
   const transport = convertVmessOrVLESSTransport(proxy);
-
-  if (transport === null) {
-    return null;
-  }
 
   const outbound: SingboxOutboundVLESS = {
     type: "vless",

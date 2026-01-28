@@ -330,7 +330,7 @@ export const SingboxOutboundVmessSchema = SingboxOutboundSchema.extend({
   security: z.optional(z.enum(["auto", "none", "zero", "aes-128-gcm", "chacha20-poly1305"])),
   alter_id: z.optional(z.number()),
   tls: z.optional(SingboxOutboundCommonTlsSchema),
-  transport: SingboxOutboundCommonVmessOrVLESSTransportSchema
+  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema)
 });
 
 export const SingboxOutboundVLESSSchema = SingboxOutboundSchema.extend({
@@ -338,7 +338,7 @@ export const SingboxOutboundVLESSSchema = SingboxOutboundSchema.extend({
   uuid: z.string(),
   flow: z.optional(z.enum(["xtls-rprx-vision", "xtls-rprx-vision-udp443"])),
   tls: z.optional(SingboxOutboundCommonTlsSchema),
-  transport: SingboxOutboundCommonVmessOrVLESSTransportSchema
+  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema)
 });
 
 export const SingboxOutboundsSchema = z.array(z.discriminatedUnion("type", [
