@@ -426,6 +426,7 @@ ${yaml.stringify(data)}`);
     // 更新最后访问时间
     await clashSubscribeService.updateLastAccessTime(subscribe.id);
 
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.send(JSON.stringify(data, null, 2));
   }
 
