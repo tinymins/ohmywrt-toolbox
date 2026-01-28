@@ -1,7 +1,61 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
 import { Modal, Form, Input, Select, Segmented, Spin, message } from "antd";
+import Editor, { loader } from "@monaco-editor/react";
+import { parse as parseJsonc } from "jsonc-parser";
 import { trpc } from "../../../lib/trpc";
 import type { CreateClashSubscribeInput, UpdateClashSubscribeInput } from "@acme/types";
+
+// 配置 Monaco CDN 源（和 classic 项目一致）
+loader.config({ paths: { vs: "https://g.alicdn.com/code/lib/monaco-editor/0.47.0/min/vs" } });
+
+// JSONC 编辑器组件，支持 // 和 /* */ 注释
+interface JsoncEditorProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+}
+
+const JsoncEditor = ({ value, onChange }: JsoncEditorProps) => {
+  return (
+    <div className="border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+      <Editor
+        height={300}
+        language="json"
+        value={value || ""}
+        theme="vs-dark"
+        onChange={(val) => onChange?.(val || "")}
+        options={{
+          automaticLayout: true,
+          selectOnLineNumbers: true,
+          fontSize: 14,
+          fontFamily: "Menlo, Monaco, 'Courier New', monospace",
+          wordWrap: "on",
+          renderControlCharacters: true,
+          renderWhitespace: "all",
+          scrollBeyondLastLine: false,
+          minimap: { enabled: false },
+          tabSize: 2
+        }}
+        beforeMount={(monaco) => {
+          // 配置 JSON 语言允许注释和尾随逗号
+          monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+            validate: true,
+            allowComments: true,
+            trailingCommas: "ignore"
+          });
+          monaco.editor.defineTheme("vs-dark", {
+            base: "vs-dark",
+            inherit: true,
+            rules: [],
+            colors: {
+              "editor.background": "#141414"
+            }
+          });
+        }}
+      />
+    </div>
+  );
+};
 
 export interface ClashSubscribeModalRef {
   open: (id?: string) => void;
@@ -132,10 +186,10 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
     try {
       const values = await form.validateFields();
 
-      // 解析 JSON 字段
+      // 解析 JSONC 字段（支持注释）
       const parseJsonField = (field: string, defaultValue: any) => {
         try {
-          return values[field] ? JSON.parse(values[field]) : defaultValue;
+          return values[field] ? parseJsonc(values[field]) : defaultValue;
         } catch {
           messageApi.error(`${field} JSON 格式错误`);
           throw new Error(`${field} JSON 格式错误`);
@@ -208,85 +262,61 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
             {/* 订阅地址 */}
             <div style={{ display: activeTab === "subscribeUrl" ? "block" : "none" }}>
               <Form.Item
-                label="订阅地址 (JSON 数组)"
+                label="订阅地址 (JSON 数组，支持注释)"
                 name="subscribeUrl"
                 rules={[{ required: true, message: "请输入订阅地址" }]}
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='["https://example.com/subscribe"]'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='["https://example.com/subscribe"]' />
               </Form.Item>
             </div>
 
             {/* 规则列表 */}
             <div style={{ display: activeTab === "ruleList" ? "block" : "none" }}>
               <Form.Item
-                label="规则列表 (JSON 对象)"
+                label="规则列表 (JSON 对象，支持注释)"
                 name="ruleList"
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='{"分组名": [{"name": "规则名", "url": "规则地址"}]}'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='{"分组名": [{"name": "规则名", "url": "规则地址"}]}' />
               </Form.Item>
             </div>
 
             {/* 分组 */}
             <div style={{ display: activeTab === "group" ? "block" : "none" }}>
               <Form.Item
-                label="分组配置 (JSON 数组)"
+                label="分组配置 (JSON 数组，支持注释)"
                 name="group"
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='[{"name": "分组名", "type": "select", "proxies": ["节点1"]}]'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='[{"name": "分组名", "type": "select", "proxies": ["节点1"]}]' />
               </Form.Item>
             </div>
 
             {/* 过滤器 */}
             <div style={{ display: activeTab === "filter" ? "block" : "none" }}>
               <Form.Item
-                label="节点过滤器 (JSON 数组)"
+                label="节点过滤器 (JSON 数组，支持注释)"
                 name="filter"
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='["关键词1", "关键词2"]'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='["关键词1", "关键词2"]' />
               </Form.Item>
             </div>
 
             {/* 自定义配置 */}
             <div style={{ display: activeTab === "customConfig" ? "block" : "none" }}>
               <Form.Item
-                label="自定义规则 (JSON 数组)"
+                label="自定义规则 (JSON 数组，支持注释)"
                 name="customConfig"
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='["DOMAIN,example.com,DIRECT"]'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='["DOMAIN,example.com,DIRECT"]' />
               </Form.Item>
             </div>
 
             {/* 额外服务器 */}
             <div style={{ display: activeTab === "servers" ? "block" : "none" }}>
               <Form.Item
-                label="额外服务器 (JSON 数组)"
+                label="额外服务器 (JSON 数组，支持注释)"
                 name="servers"
               >
-                <Input.TextArea
-                  rows={15}
-                  placeholder='[{"name": "服务器名", "type": "ss", "server": "1.2.3.4", "port": 443}]'
-                  className="font-mono"
-                />
+                <JsoncEditor placeholder='[{"name": "服务器名", "type": "ss", "server": "1.2.3.4", "port": 443}]' />
               </Form.Item>
             </div>
           </Form>
