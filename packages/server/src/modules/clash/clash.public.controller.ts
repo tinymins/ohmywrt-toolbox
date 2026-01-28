@@ -215,9 +215,15 @@ ${yaml.stringify(data)}`);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
     // 从请求获取完整的 origin URL，支持反向代理场景
     const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
-    const forwardedHost = req.headers["x-forwarded-host"] as string | undefined;
+    const forwardedPort = req.headers["x-forwarded-port"] as string | undefined;
     const protocol = forwardedProto || (req.secure ? "https" : "http");
-    const host = forwardedHost || req.get("host") || "localhost:4000";
+    const hostHeader = req.get("host") || "localhost:4000";
+    // 如果有 X-Forwarded-Port 且不是默认端口，则替换/追加端口
+    let host = hostHeader;
+    if (forwardedPort && forwardedPort !== "80" && forwardedPort !== "443") {
+      // 移除原有端口（如果有），添加转发的端口
+      host = hostHeader.split(":")[0] + ":" + forwardedPort;
+    }
     const publicServerUrl = `${protocol}://${host}`;
 
     const select = groups.map((item) => {
