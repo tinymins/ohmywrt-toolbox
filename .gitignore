@@ -47,6 +47,9 @@ prisma/dev.db-journal
 # Docker
 .dockerignore
 
+# Deploy config
+scripts/.env
+
 
 # Server
 packages/server/src/trpc/@generated/app-router.ts
