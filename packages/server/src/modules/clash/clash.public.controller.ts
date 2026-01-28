@@ -76,7 +76,8 @@ export class ClashPublicController {
     // 构建规则
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
-    const ruleProvidersList = (subscribe.ruleList as ClashRuleProvidersList | null) ?? DEFAULT_RULE_PROVIDERS;
+    const rawRuleList = subscribe.ruleList as ClashRuleProvidersList | null;
+    const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
 
     for (const [key, items] of Object.entries(ruleProvidersList)) {
       for (const item of items) {
@@ -91,7 +92,8 @@ export class ClashPublicController {
       }
     }
 
-    const groups = (subscribe.group as ClashGroup[] | null) ?? DEFAULT_GROUPS;
+    const rawGroups = subscribe.group as ClashGroup[] | null;
+    const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : DEFAULT_GROUPS;
     const customConfig = (subscribe.customConfig as string[] | null) ?? [];
 
     const rules = [
@@ -207,8 +209,10 @@ ${yaml.stringify(data)}`);
 
     // 构建规则提供者
     const ruleProviders: any[] = [];
-    const ruleProvidersList = (subscribe.ruleList as ClashRuleProvidersList | null) ?? DEFAULT_RULE_PROVIDERS;
-    const groups = (subscribe.group as ClashGroup[] | null) ?? SB_DEFAULT_GROUPS;
+    const rawRuleList = subscribe.ruleList as ClashRuleProvidersList | null;
+    const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
+    const rawGroups = subscribe.group as ClashGroup[] | null;
+    const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
     const publicServerUrl = process.env.PUBLIC_SERVER_URL || "http://localhost:4000";
 
     const select = groups.map((item) => {
@@ -302,7 +306,7 @@ ${yaml.stringify(data)}`);
       ],
       route: {
         rules: [
-          { outbound: "dns-out", inbound: ["dns-in"], protocol: ["dns"] },
+          { outbound: "dns-out", inbound: ["dns-in"], protocol: "dns" },
           { outbound: "🚀 直接连接", rule_set: ["geoip-cn", "geosite-cn"], ip_is_private: true }
         ],
         rule_set: [
@@ -411,7 +415,7 @@ ${yaml.stringify(data)}`);
     // 更新最后访问时间
     await clashSubscribeService.updateLastAccessTime(subscribe.id);
 
-    res.json(data);
+    res.send(JSON.stringify(data, null, 2));
   }
 
   /** 将 Clash 规则转换为 Sing-box 格式 */
