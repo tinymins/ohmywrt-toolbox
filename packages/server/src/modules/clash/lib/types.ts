@@ -379,7 +379,7 @@ export const SingBoxRuleSchema = z.object({
   ip_version: z.number().optional(),
   network: z.array(z.string()).optional(),
   auth_user: z.array(z.string()).optional(),
-  protocol: z.array(z.string()).optional(),
+  protocol: z.union([z.string(), z.array(z.string())]).optional(),
   domain: z.union([z.string(), z.array(z.string())]).optional(),
   domain_suffix: z.union([z.string(), z.array(z.string())]).optional(),
   domain_keyword: z.union([z.string(), z.array(z.string())]).optional(),
