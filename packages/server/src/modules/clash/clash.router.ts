@@ -19,27 +19,19 @@ const SimpleUserSchema = z.object({
   email: z.string()
 });
 
-// 订阅输出 schema
+// 订阅输出 schema（JSONC 字符串）
 export const ClashSubscribeOutputSchema = z.object({
   id: z.string(),
   userId: z.string(),
   url: z.string(),
   remark: z.string().nullable(),
-  subscribeUrl: z.array(z.string()),
-  ruleList: z.record(z.string(), z.array(z.object({
-    name: z.string(),
-    url: z.string(),
-    type: z.string().optional()
-  }))),
-  group: z.array(z.object({
-    name: z.string(),
-    type: z.string(),
-    proxies: z.array(z.string()),
-    readonly: z.boolean().optional()
-  })),
-  filter: z.array(z.string()),
-  servers: z.array(z.unknown()),
-  customConfig: z.array(z.unknown()),
+  // 这些字段现在是 JSONC 字符串
+  subscribeUrl: z.string().nullable(),
+  ruleList: z.string().nullable(),
+  group: z.string().nullable(),
+  filter: z.string().nullable(),
+  servers: z.string().nullable(),
+  customConfig: z.string().nullable(),
   authorizedUserIds: z.array(z.string()),
   lastAccessAt: z.string().nullable(),
   createdAt: z.string(),

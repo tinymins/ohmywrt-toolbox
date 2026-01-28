@@ -42,12 +42,13 @@ export const ClashSubscribeSchema = z.object({
   userId: z.string(),
   url: z.string(),
   remark: z.string().nullable(),
-  subscribeUrl: z.array(z.string()),
-  ruleList: ClashRuleProvidersListSchema,
-  group: z.array(ClashGroupSchema),
-  filter: z.array(z.string()),
-  servers: z.array(z.unknown()),
-  customConfig: z.array(z.unknown()),
+  // JSONC 字符串（前端编辑器直接显示）
+  subscribeUrl: z.string().nullable(),
+  ruleList: z.string().nullable(),
+  group: z.string().nullable(),
+  filter: z.string().nullable(),
+  servers: z.string().nullable(),
+  customConfig: z.string().nullable(),
   authorizedUserIds: z.array(z.string()),
   lastAccessAt: z.string().nullable(),
   createdAt: z.string(),
@@ -75,17 +76,17 @@ export const ClashSubscribeWithUserSchema = ClashSubscribeSchema.extend({
 export type ClashSubscribeWithUser = z.infer<typeof ClashSubscribeWithUserSchema>;
 
 // ============================================
-// 创建/更新订阅输入
+// 创建/更新订阅输入（JSONC 字符串）
 // ============================================
 
 export const CreateClashSubscribeInputSchema = z.object({
   remark: z.string().nullable().optional(),
-  subscribeUrl: z.array(z.string()).optional().default([]),
-  ruleList: ClashRuleProvidersListSchema.optional().default({}),
-  group: z.array(ClashGroupSchema).optional().default([]),
-  filter: z.array(z.string()).optional().default([]),
-  servers: z.array(z.unknown()).optional().default([]),
-  customConfig: z.array(z.unknown()).optional().default([]),
+  subscribeUrl: z.string().nullable().optional(),
+  ruleList: z.string().nullable().optional(),
+  group: z.string().nullable().optional(),
+  filter: z.string().nullable().optional(),
+  servers: z.string().nullable().optional(),
+  customConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional().default([])
 });
 
@@ -94,12 +95,12 @@ export type CreateClashSubscribeInput = z.infer<typeof CreateClashSubscribeInput
 export const UpdateClashSubscribeInputSchema = z.object({
   id: z.string(),
   remark: z.string().nullable().optional(),
-  subscribeUrl: z.array(z.string()).optional(),
-  ruleList: ClashRuleProvidersListSchema.optional(),
-  group: z.array(ClashGroupSchema).optional(),
-  filter: z.array(z.string()).optional(),
-  servers: z.array(z.unknown()).optional(),
-  customConfig: z.array(z.unknown()).optional(),
+  subscribeUrl: z.string().nullable().optional(),
+  ruleList: z.string().nullable().optional(),
+  group: z.string().nullable().optional(),
+  filter: z.string().nullable().optional(),
+  servers: z.string().nullable().optional(),
+  customConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional()
 });
 

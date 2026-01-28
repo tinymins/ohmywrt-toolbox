@@ -4,19 +4,24 @@ import WebSocket from "ws";
 import net from "node:net";
 import { db } from "../../db/client";
 import { clashSubscribes, users } from "../../db/schema";
-import type { ClashGroup, ClashRuleProvidersList, CreateClashSubscribeInput, UpdateClashSubscribeInput } from "@acme/types";
+import type { CreateClashSubscribeInput, UpdateClashSubscribeInput } from "@acme/types";
 import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS } from "./lib/config";
 
 type ClashSubscribeRow = typeof clashSubscribes.$inferSelect;
 type UserRow = Pick<typeof users.$inferSelect, "id" | "name" | "email">;
 
-export interface ClashSubscribeWithUser extends Omit<ClashSubscribeRow, "subscribeUrl" | "ruleList" | "group" | "filter" | "servers" | "customConfig" | "authorizedUserIds" | "lastAccessAt" | "createdAt" | "updatedAt"> {
-  subscribeUrl: string[];
-  ruleList: ClashRuleProvidersList;
-  group: ClashGroup[];
-  filter: string[];
-  servers: unknown[];
-  customConfig: unknown[];
+export interface ClashSubscribeWithUser {
+  id: string;
+  userId: string;
+  url: string;
+  remark: string | null;
+  // JSONC 字符串（前端编辑器直接显示）
+  subscribeUrl: string | null;
+  ruleList: string | null;
+  group: string | null;
+  filter: string | null;
+  servers: string | null;
+  customConfig: string | null;
   authorizedUserIds: string[];
   lastAccessAt: string | null;
   createdAt: string;
@@ -35,12 +40,12 @@ const toClashSubscribeOutput = (
   userId: row.userId,
   url: row.url,
   remark: row.remark,
-  subscribeUrl: (row.subscribeUrl as string[] | null) ?? [],
-  ruleList: (row.ruleList as ClashRuleProvidersList | null) ?? {},
-  group: (row.group as ClashGroup[] | null) ?? [],
-  filter: (row.filter as string[] | null) ?? [],
-  servers: (row.servers as unknown[] | null) ?? [],
-  customConfig: (row.customConfig as unknown[] | null) ?? [],
+  subscribeUrl: row.subscribeUrl,
+  ruleList: row.ruleList,
+  group: row.group,
+  filter: row.filter,
+  servers: row.servers,
+  customConfig: row.customConfig,
   authorizedUserIds: (row.authorizedUserIds as string[] | null) ?? [],
   lastAccessAt: row.lastAccessAt?.toISOString() ?? null,
   createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
@@ -145,12 +150,12 @@ export class ClashSubscribeService {
       .values({
         userId,
         remark: input.remark ?? null,
-        subscribeUrl: input.subscribeUrl ?? [],
-        ruleList: input.ruleList ?? DEFAULT_RULE_PROVIDERS,
-        group: input.group ?? DEFAULT_GROUPS,
-        filter: input.filter ?? [],
-        servers: input.servers ?? [],
-        customConfig: input.customConfig ?? [],
+        subscribeUrl: input.subscribeUrl ?? null,
+        ruleList: input.ruleList ?? null,
+        group: input.group ?? null,
+        filter: input.filter ?? null,
+        servers: input.servers ?? null,
+        customConfig: input.customConfig ?? null,
         authorizedUserIds: input.authorizedUserIds ?? []
       })
       .returning();

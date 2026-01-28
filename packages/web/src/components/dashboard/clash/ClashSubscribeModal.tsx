@@ -167,16 +167,16 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
     }
   }));
 
-  // 当获取到数据时更新表单
+  // 当获取到数据时更新表单（直接用原始字符串）
   if (existingData && loading) {
     form.setFieldsValue({
       remark: existingData.remark ?? "",
-      subscribeUrl: JSON.stringify(existingData.subscribeUrl, null, 2),
-      ruleList: JSON.stringify(existingData.ruleList, null, 2),
-      group: JSON.stringify(existingData.group, null, 2),
-      filter: JSON.stringify(existingData.filter, null, 2),
-      customConfig: JSON.stringify(existingData.customConfig, null, 2),
-      servers: JSON.stringify(existingData.servers, null, 2),
+      subscribeUrl: existingData.subscribeUrl ?? "",
+      ruleList: existingData.ruleList ?? "",
+      group: existingData.group ?? "",
+      filter: existingData.filter ?? "",
+      customConfig: existingData.customConfig ?? "",
+      servers: existingData.servers ?? "",
       authorizedUserIds: existingData.authorizedUserIds
     });
     setLoading(false);
@@ -186,24 +186,35 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
     try {
       const values = await form.validateFields();
 
-      // 解析 JSONC 字段（支持注释）
-      const parseJsonField = (field: string, defaultValue: any) => {
+      // 验证 JSONC 格式是否正确
+      const validateJsonc = (field: string) => {
+        if (!values[field]) return true;
         try {
-          return values[field] ? parseJsonc(values[field]) : defaultValue;
+          parseJsonc(values[field]);
+          return true;
         } catch {
           messageApi.error(`${field} JSON 格式错误`);
-          throw new Error(`${field} JSON 格式错误`);
+          return false;
         }
       };
 
+      // 验证所有 JSONC 字段
+      const fields = ["subscribeUrl", "ruleList", "group", "filter", "customConfig", "servers"];
+      for (const field of fields) {
+        if (!validateJsonc(field)) {
+          throw new Error(`${field} JSON 格式错误`);
+        }
+      }
+
+      // 直接发送原始字符串（包含注释）
       const data = {
         remark: values.remark || null,
-        subscribeUrl: parseJsonField("subscribeUrl", []),
-        ruleList: parseJsonField("ruleList", {}),
-        group: parseJsonField("group", []),
-        filter: parseJsonField("filter", []),
-        customConfig: parseJsonField("customConfig", []),
-        servers: parseJsonField("servers", []),
+        subscribeUrl: values.subscribeUrl || null,
+        ruleList: values.ruleList || null,
+        group: values.group || null,
+        filter: values.filter || null,
+        customConfig: values.customConfig || null,
+        servers: values.servers || null,
         authorizedUserIds: values.authorizedUserIds ?? []
       };
 

@@ -1,12 +1,23 @@
 import { Controller, Get, Param, Query, Req, Res, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
 import type { Request, Response } from "express";
 import * as yaml from "yaml";
+import { parse as parseJsonc } from "jsonc-parser";
 import { clashSubscribeService } from "./clash.service";
 import { convertClashToSingbox } from "./lib/converter";
 import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 import { DEFAULT_RULE_PROVIDERS, DEFAULT_GROUPS, SB_DEFAULT_GROUPS } from "./lib/config";
 import type { ClashGroup, ClashRuleProvidersList } from "@acme/types";
 import type { Singbox, SingBoxRule } from "./lib/types";
+
+/** 安全解析 JSONC 字符串 */
+const safeParseJsonc = <T>(jsonc: string | null, defaultValue: T): T => {
+  if (!jsonc) return defaultValue;
+  try {
+    return parseJsonc(jsonc) ?? defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
 
 @Controller("public")
 export class ClashPublicController {
@@ -22,8 +33,8 @@ export class ClashPublicController {
 
     const proxies: any[] = [];
 
-    // 解析附加的服务器配置
-    const servers = (subscribe.servers as unknown[] | null) ?? [];
+    // 解析附加的服务器配置（从 JSONC 字符串解析）
+    const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
     for (const item of servers) {
       if (typeof item === "string") {
         proxies.push(yaml.parse(item));
@@ -32,9 +43,9 @@ export class ClashPublicController {
       }
     }
 
-    // 获取远程订阅
-    const subscribeUrls = (subscribe.subscribeUrl as string[] | null) ?? [];
-    const filters = (subscribe.filter as string[] | null) ?? [];
+    // 获取远程订阅（从 JSONC 字符串解析）
+    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
 
     if (subscribeUrls.length > 0) {
       const results = await Promise.all(
@@ -73,10 +84,10 @@ export class ClashPublicController {
 
     const nodes = proxies.map((item) => item.name).filter(Boolean);
 
-    // 构建规则
+    // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
-    const rawRuleList = subscribe.ruleList as ClashRuleProvidersList | null;
+    const rawRuleList = safeParseJsonc<ClashRuleProvidersList>(subscribe.ruleList, {});
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
 
     for (const [key, items] of Object.entries(ruleProvidersList)) {
@@ -92,9 +103,9 @@ export class ClashPublicController {
       }
     }
 
-    const rawGroups = subscribe.group as ClashGroup[] | null;
+    const rawGroups = safeParseJsonc<ClashGroup[]>(subscribe.group, []);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : DEFAULT_GROUPS;
-    const customConfig = (subscribe.customConfig as string[] | null) ?? [];
+    const customConfig = safeParseJsonc<string[]>(subscribe.customConfig, []);
 
     const rules = [
       ...customConfig.filter((item) => typeof item === "string"),
@@ -156,8 +167,8 @@ ${yaml.stringify(data)}`);
 
     const proxies: any[] = [];
 
-    // 解析附加的服务器配置
-    const servers = (subscribe.servers as unknown[] | null) ?? [];
+    // 解析附加的服务器配置（从 JSONC 字符串解析）
+    const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
     for (const item of servers) {
       if (typeof item === "string") {
         proxies.push(yaml.parse(item));
@@ -166,9 +177,9 @@ ${yaml.stringify(data)}`);
       }
     }
 
-    // 获取远程订阅
-    const subscribeUrls = (subscribe.subscribeUrl as string[] | null) ?? [];
-    const filters = (subscribe.filter as string[] | null) ?? [];
+    // 获取远程订阅（从 JSONC 字符串解析）
+    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
 
     if (subscribeUrls.length > 0) {
       const results = await Promise.all(
@@ -207,11 +218,11 @@ ${yaml.stringify(data)}`);
 
     const nodes = proxies.map((item) => item.name).filter(Boolean);
 
-    // 构建规则提供者
+    // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];
-    const rawRuleList = subscribe.ruleList as ClashRuleProvidersList | null;
+    const rawRuleList = safeParseJsonc<ClashRuleProvidersList>(subscribe.ruleList, {});
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
-    const rawGroups = subscribe.group as ClashGroup[] | null;
+    const rawGroups = safeParseJsonc<ClashGroup[]>(subscribe.group, []);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
     // 从请求获取完整的 origin URL，支持反向代理场景
     const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
@@ -376,8 +387,8 @@ ${yaml.stringify(data)}`);
       }
     };
 
-    // 处理自定义规则
-    const customConfig = (subscribe.customConfig as unknown[] | null) ?? [];
+    // 处理自定义规则（从 JSONC 字符串解析）
+    const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
     if (customConfig.length && data.route?.rules) {
       for (const item of customConfig) {
         if (typeof item === "string") {

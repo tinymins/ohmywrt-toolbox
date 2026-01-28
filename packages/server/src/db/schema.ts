@@ -95,18 +95,18 @@ export const clashSubscribes = pgTable("clash_subscribes", {
   userId: uuid("user_id").references(() => users.id).notNull(),
   url: text("url").notNull().unique().$defaultFn(() => crypto.randomUUID()),
   remark: text("remark"),
-  // 订阅地址
-  subscribeUrl: jsonb("subscribe_url").$type<string[]>().default([]),
-  // 规则列表
-  ruleList: jsonb("rule_list").$type<Record<string, { name: string; url: string; type?: string }[]>>().default({}),
-  // 分组
-  group: jsonb("group").$type<{ name: string; type: string; proxies: string[]; readonly?: boolean }[]>().default([]),
-  // 节点过滤器
-  filter: jsonb("filter").$type<string[]>().default([]),
-  // 附加的单节点列表
-  servers: jsonb("servers").$type<unknown[]>().default([]),
-  // 自定义配置
-  customConfig: jsonb("custom_config").$type<unknown[]>().default([]),
+  // 订阅地址 (JSONC 字符串)
+  subscribeUrl: text("subscribe_url"),
+  // 规则列表 (JSONC 字符串)
+  ruleList: text("rule_list"),
+  // 分组 (JSONC 字符串)
+  group: text("group"),
+  // 节点过滤器 (JSONC 字符串)
+  filter: text("filter"),
+  // 附加的单节点列表 (JSONC 字符串)
+  servers: text("servers"),
+  // 自定义配置 (JSONC 字符串)
+  customConfig: text("custom_config"),
   // 授权用户ID列表
   authorizedUserIds: jsonb("authorized_user_ids").$type<string[]>().default([]),
   // 最后访问时间
