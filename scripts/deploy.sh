@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# apps 一键部署脚本
+# ohmywrt-toolbox 一键部署脚本
 # =============================================================================
 
 set -e
@@ -145,7 +145,7 @@ build_images() {
 # 导出镜像
 export_images() {
     log_info "导出镜像到 ${LOCAL_TMP}/${IMAGE_FILE}..."
-    docker save apps-server:latest apps-web:latest \
+    docker save ohmywrt-toolbox-server:latest ohmywrt-toolbox-web:latest \
         -o "${LOCAL_TMP}/${IMAGE_FILE}"
 
     local size=$(du -h "${LOCAL_TMP}/${IMAGE_FILE}" | cut -f1)
@@ -220,7 +220,7 @@ EOF
 # 执行数据库迁移
 run_migration() {
     log_info "执行数据库迁移..."
-    ssh "$SERVER" "docker exec apps-server npx drizzle-kit push"
+    ssh "$SERVER" "docker exec ohmywrt-toolbox-server npx drizzle-kit push"
     log_success "数据库迁移完成"
 }
 
@@ -266,7 +266,7 @@ check_server_env_updates() {
 # 执行种子数据
 run_seed() {
     log_info "执行种子数据..."
-    ssh "$SERVER" "docker exec apps-server npx tsx src/seed.ts"
+    ssh "$SERVER" "docker exec ohmywrt-toolbox-server npx tsx src/seed.ts"
     log_success "种子数据执行完成"
 }
 
