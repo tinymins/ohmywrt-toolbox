@@ -2,7 +2,7 @@ services:
   # PostgreSQL 数据库
   db:
     image: postgres:16
-    container_name: apps-postgres
+    container_name: ohmywrt-toolbox-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -21,8 +21,8 @@ services:
 
   # 后端服务
   server:
-    image: apps-server:latest
-    container_name: apps-server
+    image: ohmywrt-toolbox-server:latest
+    container_name: ohmywrt-toolbox-server
     build:
       context: .
       dockerfile: packages/server/Dockerfile
@@ -41,8 +41,8 @@ services:
 
   # 前端服务
   web:
-    image: apps-web:latest
-    container_name: apps-web
+    image: ohmywrt-toolbox-web:latest
+    container_name: ohmywrt-toolbox-web
     build:
       context: .
       dockerfile: packages/web/Dockerfile

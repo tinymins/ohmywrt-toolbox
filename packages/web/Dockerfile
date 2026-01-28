@@ -69,6 +69,15 @@ server {
         proxy_cache_bypass \$http_upgrade;
     }
 
+    # 代理 /public 公开端点到后端服务
+    location /public {
+        proxy_pass http://server:4000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+
     # 处理 React Router 的客户端路由
     location / {
         try_files \$uri \$uri/ /index.html;

@@ -7,8 +7,8 @@
 .DEFAULT_GOAL := help
 
 # 镜像名称
-SERVER_IMAGE := apps-server
-WEB_IMAGE := apps-web
+SERVER_IMAGE := ohmywrt-toolbox-server
+WEB_IMAGE := ohmywrt-toolbox-web
 COMPOSE_FILE := docker-compose.yml
 
 # 颜色输出
