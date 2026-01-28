@@ -23,9 +23,12 @@ const safeParseJsonc = <T>(jsonc: string | null, defaultValue: T): T => {
 export class ClashPublicController {
   private readonly logger = new Logger(ClashPublicController.name);
 
-  /** 生成 Clash 订阅配置 (YAML) */
-  @Get("clash/subscribe/:uuid")
-  async getClashConfig(@Param("uuid") uuid: string, @Res() res: Response) {
+  /**
+   * 获取订阅的代理列表（公共逻辑）
+   * @param uuid 订阅 UUID
+   * @param excludeTypes 要排除的代理类型（如 Sing-box 不支持 SSR）
+   */
+  private async fetchProxies(uuid: string, excludeTypes: string[] = []) {
     const subscribe = await clashSubscribeService.getByUrl(uuid);
     if (!subscribe) {
       throw new NotFoundException("订阅不存在");
@@ -69,9 +72,13 @@ export class ClashPublicController {
 
       for (const item of results) {
         if (item?.proxies) {
-          const filtered = item.proxies.filter((p: any) =>
+          let filtered = item.proxies.filter((p: any) =>
             !filters.some((f) => p.name && p.name.includes(f))
           );
+          // 排除指定类型
+          if (excludeTypes.length > 0) {
+            filtered = filtered.filter((p: any) => !excludeTypes.includes(p.type));
+          }
           proxies.push(...filtered);
         }
       }
@@ -83,6 +90,14 @@ export class ClashPublicController {
     }
 
     const nodes = proxies.map((item) => item.name).filter(Boolean);
+
+    return { subscribe, proxies, nodes };
+  }
+
+  /** 生成 Clash 订阅配置 (YAML) */
+  @Get("clash/subscribe/:uuid")
+  async getClashConfig(@Param("uuid") uuid: string, @Res() res: Response) {
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
 
     // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
@@ -160,63 +175,7 @@ ${yaml.stringify(data)}`);
   /** 生成 Sing-box 订阅配置 (JSON) */
   @Get("sb/subscribe/:uuid")
   async getSingboxConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
-    const subscribe = await clashSubscribeService.getByUrl(uuid);
-    if (!subscribe) {
-      throw new NotFoundException("订阅不存在");
-    }
-
-    const proxies: any[] = [];
-
-    // 解析附加的服务器配置（从 JSONC 字符串解析）
-    const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
-    for (const item of servers) {
-      if (typeof item === "string") {
-        proxies.push(yaml.parse(item));
-      } else {
-        proxies.push(item);
-      }
-    }
-
-    // 获取远程订阅（从 JSONC 字符串解析）
-    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
-    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
-
-    if (subscribeUrls.length > 0) {
-      const results = await Promise.all(
-        subscribeUrls
-          .filter((url) => typeof url === "string" && url)
-          .map(async (url) => {
-            try {
-              const response = await fetch(url);
-              const text = await response.text();
-              // 支持 Base64 编码的订阅格式
-              if (isBase64Subscription(text)) {
-                return { proxies: parseBase64Subscription(text) };
-              }
-              return yaml.parse(text);
-            } catch (e) {
-              this.logger.warn(`Failed to fetch subscription: ${url}`, e);
-              return null;
-            }
-          })
-      );
-
-      for (const item of results) {
-        if (item?.proxies) {
-          const filtered = item.proxies
-            .filter((p: any) => !filters.some((f) => p.name && p.name.includes(f)))
-            .filter((p: any) => p.type !== "ssr"); // Sing-box 不支持 SSR
-          proxies.push(...filtered);
-        }
-      }
-    }
-
-    // 添加国旗图标
-    for (const proxy of proxies) {
-      proxy.name = clashSubscribeService.appendIcon(proxy.name);
-    }
-
-    const nodes = proxies.map((item) => item.name).filter(Boolean);
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, ["ssr"]);
 
     // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];
