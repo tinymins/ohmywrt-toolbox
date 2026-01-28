@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db/client";
-import { users } from "./db/schema";
+import { users, workspaces, workspaceMembers } from "./db/schema";
 
 const seedUsers = [
   {
@@ -78,7 +78,25 @@ async function seed() {
       .where(eq(users.email, user.email));
 
     if (existing.length === 0) {
-      await db.insert(users).values(user);
+      const [createdUser] = await db.insert(users).values(user).returning();
+
+      // 为每个用户创建默认工作空间
+      const workspaceSlug = `${user.name.toLowerCase()}-workspace`;
+      const workspaceName = `${user.name}的空间站`;
+
+      const [createdWorkspace] = await db.insert(workspaces).values({
+        slug: workspaceSlug,
+        name: workspaceName,
+        description: "默认工作空间",
+        ownerId: createdUser.id
+      }).returning();
+
+      // 将用户添加为工作空间成员
+      await db.insert(workspaceMembers).values({
+        workspaceId: createdWorkspace.id,
+        userId: createdUser.id,
+        role: "owner"
+      });
     } else if (!existing[0].name) {
       await db
         .update(users)
