@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Query, Res, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
-import type { Response } from "express";
+import { Controller, Get, Param, Query, Req, Res, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
+import type { Request, Response } from "express";
 import * as yaml from "yaml";
 import { clashSubscribeService } from "./clash.service";
 import { convertClashToSingbox } from "./lib/converter";
@@ -148,7 +148,7 @@ ${yaml.stringify(data)}`);
 
   /** 生成 Sing-box 订阅配置 (JSON) */
   @Get("sb/subscribe/:uuid")
-  async getSingboxConfig(@Param("uuid") uuid: string, @Res() res: Response) {
+  async getSingboxConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
     const subscribe = await clashSubscribeService.getByUrl(uuid);
     if (!subscribe) {
       throw new NotFoundException("订阅不存在");
@@ -213,7 +213,8 @@ ${yaml.stringify(data)}`);
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
     const rawGroups = subscribe.group as ClashGroup[] | null;
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
-    const publicServerUrl = process.env.PUBLIC_SERVER_URL || "http://localhost:4000";
+    const protocol = req.secure || req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
+    const publicServerUrl = `${protocol}://${req.get("host")}`;
 
     const select = groups.map((item) => {
       const outbounds = item.readonly ? item.proxies : [...item.proxies, ...nodes];
