@@ -213,8 +213,12 @@ ${yaml.stringify(data)}`);
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
     const rawGroups = subscribe.group as ClashGroup[] | null;
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
-    const protocol = req.secure || req.headers["x-forwarded-proto"] === "https" ? "https" : "http";
-    const publicServerUrl = `${protocol}://${req.get("host")}`;
+    // 从请求获取完整的 origin URL，支持反向代理场景
+    const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
+    const forwardedHost = req.headers["x-forwarded-host"] as string | undefined;
+    const protocol = forwardedProto || (req.secure ? "https" : "http");
+    const host = forwardedHost || req.get("host") || "localhost:4000";
+    const publicServerUrl = `${protocol}://${host}`;
 
     const select = groups.map((item) => {
       const outbounds = item.readonly ? item.proxies : [...item.proxies, ...nodes];
