@@ -1,4 +1,4 @@
-import { boolean, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -109,8 +109,27 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
   customConfig: text("custom_config"),
   // 授权用户ID列表
   authorizedUserIds: jsonb("authorized_user_ids").$type<string[]>().default([]),
+  // 缓存的节点数量（每次 fetch 订阅时更新）
+  cachedNodeCount: integer("cached_node_count").default(0),
   // 最后访问时间
   lastAccessAt: timestamp("last_access_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+});
+
+// ============================================
+// 代理订阅访问日志表
+// ============================================
+export const proxyAccessLogs = pgTable("proxy_access_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  subscribeId: uuid("subscribe_id").references(() => proxySubscribes.id, { onDelete: "cascade" }).notNull(),
+  // 访问类型：clash, sing-box
+  accessType: text("access_type").notNull(),
+  // 访问者 IP
+  ip: text("ip"),
+  // User-Agent
+  userAgent: text("user_agent"),
+  // 节点数量
+  nodeCount: integer("node_count").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
 });

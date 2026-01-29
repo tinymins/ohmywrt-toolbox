@@ -464,6 +464,7 @@ export const zh = {
         actions: "操作"
       },
       actions: {
+        stats: "统计",
         preview: "预览节点",
         edit: "编辑",
         delete: "删除"

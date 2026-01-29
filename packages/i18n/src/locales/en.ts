@@ -454,6 +454,7 @@ export const en: TranslationSchema = {
         actions: "Actions"
       },
       actions: {
+        stats: "Statistics",
         preview: "Preview Nodes",
         edit: "Edit",
         delete: "Delete"

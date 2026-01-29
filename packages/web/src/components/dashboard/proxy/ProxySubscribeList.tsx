@@ -1,11 +1,12 @@
 import { useState, useRef } from "react";
 import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip } from "antd";
-import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
+import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, BarChartOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
 import ProxySubscribeModal, { type ProxySubscribeModalRef } from "./ProxySubscribeModal";
 import ProxyPreviewModal, { type ProxyPreviewModalRef } from "./ProxyPreviewModal";
+import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
 
 const { Text } = Typography;
 
@@ -32,6 +33,7 @@ export default function ProxySubscribeList() {
   const { t } = useTranslation();
   const modalRef = useRef<ProxySubscribeModalRef>(null);
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
+  const statsModalRef = useRef<ProxyStatsModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
   const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
@@ -65,6 +67,7 @@ export default function ProxySubscribeList() {
       {contextHolder}
       <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
+      <ProxyStatsModal ref={statsModalRef} />
 
       <div className="flex justify-between items-center mb-4">
         <Typography.Title level={3} className="!mb-0">
@@ -166,10 +169,18 @@ export default function ProxySubscribeList() {
             {
               title: t("proxy.columns.actions"),
               align: "center",
-              width: 120,
+              width: 160,
               fixed: "right",
               render: (_, record) => (
                 <Space size="middle">
+                  <Tooltip title={t("proxy.actions.stats")}>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<BarChartOutlined />}
+                      onClick={() => statsModalRef.current?.open(record.id, record.remark)}
+                    />
+                  </Tooltip>
                   <Tooltip title={t("proxy.actions.preview")}>
                     <Button
                       type="link"

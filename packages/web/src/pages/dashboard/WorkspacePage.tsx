@@ -16,29 +16,23 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
   const lang = i18n.language as "zh" | "en";
 
   // 获取 Proxy 订阅列表
-  const { data: proxyList, isLoading } = trpc.proxy.list.useQuery(undefined, {
+  const { data: proxyList, isLoading: isListLoading } = trpc.proxy.list.useQuery(undefined, {
     enabled: Boolean(user),
   });
 
-  // 计算统计数据
-  const subscriptionCount = proxyList?.length ?? 0;
-  const totalNodes = proxyList?.reduce((sum, sub) => {
-    // servers 是 JSONC 字符串，需要解析
-    try {
-      const servers = sub.servers ? JSON.parse(sub.servers) : [];
-      return sum + (Array.isArray(servers) ? servers.length : 0);
-    } catch {
-      return sum;
-    }
-  }, 0) ?? 0;
-  const recentlyAccessed = proxyList?.filter(sub => {
-    if (!sub.lastAccessAt) return false;
-    const accessTime = new Date(sub.lastAccessAt).getTime();
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    return accessTime > oneDayAgo;
-  }).length ?? 0;
+  // 获取用户整体统计（真实数据）
+  const { data: userStats, isLoading: isStatsLoading } = trpc.proxy.getUserStats.useQuery(undefined, {
+    enabled: Boolean(user),
+  });
 
-  const statsData = [subscriptionCount, totalNodes, recentlyAccessed];
+  const isLoading = isListLoading || isStatsLoading;
+
+  // 使用真实统计数据
+  const statsData = [
+    userStats?.totalSubscriptions ?? 0,
+    userStats?.totalNodes ?? 0,
+    userStats?.todayRequests ?? 0
+  ];
 
   // 快速操作
   const quickActions = [
@@ -114,7 +108,7 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
             <div className="flex justify-center py-8">
               <Spin />
             </div>
-          ) : subscriptionCount === 0 ? (
+          ) : (userStats?.totalSubscriptions ?? 0) === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-slate-500">
               <CloudServerOutlined className="text-4xl mb-2" />
               <p>{lang === "zh" ? "暂无订阅" : "No subscriptions yet"}</p>

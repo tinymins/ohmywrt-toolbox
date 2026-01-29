@@ -129,4 +129,42 @@ export class ProxyRouter {
     const nodes = await proxySubscribeService.previewNodes(input.id, ctx.userId!);
     return { nodes };
   }
+
+  /** 获取订阅统计信息 */
+  @UseMiddlewares(requireUser)
+  @Query({
+    input: z.object({ id: z.string() }),
+    output: z.object({
+      totalAccess: z.number(),
+      todayAccess: z.number(),
+      cachedNodeCount: z.number(),
+      lastAccessAt: z.string().nullable(),
+      accessByType: z.array(z.object({
+        type: z.string(),
+        count: z.number()
+      })),
+      recentAccess: z.array(z.object({
+        createdAt: z.string(),
+        accessType: z.string(),
+        ip: z.string().nullable(),
+        nodeCount: z.number()
+      }))
+    })
+  })
+  async getStats(input: { id: string }, @Ctx() ctx: Context) {
+    return proxySubscribeService.getStats(input.id, ctx.userId!);
+  }
+
+  /** 获取用户整体统计 */
+  @UseMiddlewares(requireUser)
+  @Query({
+    output: z.object({
+      totalSubscriptions: z.number(),
+      totalNodes: z.number(),
+      todayRequests: z.number()
+    })
+  })
+  async getUserStats(@Ctx() ctx: Context) {
+    return proxySubscribeService.getUserStats(ctx.userId!);
+  }
 }

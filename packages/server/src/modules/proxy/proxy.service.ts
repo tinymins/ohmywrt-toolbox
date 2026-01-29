@@ -1,11 +1,11 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql, gte, count } from "drizzle-orm";
 import WebSocket from "ws";
 import net from "node:net";
 import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
 import { db } from "../../db/client";
-import { proxySubscribes, users } from "../../db/schema";
+import { proxySubscribes, proxyAccessLogs, users } from "../../db/schema";
 import type { CreateProxySubscribeInput, UpdateProxySubscribeInput, ProxyPreviewNode } from "@acme/types";
 import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS } from "./lib/config";
 import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
@@ -221,12 +221,145 @@ export class ProxySubscribeService {
       .where(eq(proxySubscribes.id, id));
   }
 
-  /** 更新最后访问时间 */
-  async updateLastAccessTime(id: string): Promise<void> {
+  /** 更新最后访问时间和缓存节点数 */
+  async updateAccessInfo(id: string, nodeCount: number, accessType: string, ip?: string, userAgent?: string): Promise<void> {
+    // 更新订阅表
     await db
       .update(proxySubscribes)
-      .set({ lastAccessAt: new Date() })
+      .set({
+        lastAccessAt: new Date(),
+        cachedNodeCount: nodeCount
+      })
       .where(eq(proxySubscribes.id, id));
+
+    // 记录访问日志
+    await db
+      .insert(proxyAccessLogs)
+      .values({
+        subscribeId: id,
+        accessType,
+        ip,
+        userAgent,
+        nodeCount
+      });
+  }
+
+  /** 获取订阅统计信息 */
+  async getStats(id: string, userId: string): Promise<{
+    totalAccess: number;
+    todayAccess: number;
+    cachedNodeCount: number;
+    lastAccessAt: string | null;
+    accessByType: { type: string; count: number }[];
+    recentAccess: { createdAt: string; accessType: string; ip: string | null; nodeCount: number }[];
+  }> {
+    const subscribe = await this.getById(id);
+    if (!subscribe) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "订阅不存在" });
+    }
+
+    // 检查权限
+    if (subscribe.userId !== userId && !subscribe.authorizedUserIds.includes(userId)) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "无权访问此订阅" });
+    }
+
+    // 获取原始订阅数据以获取 cachedNodeCount
+    const [rawSubscribe] = await db
+      .select()
+      .from(proxySubscribes)
+      .where(eq(proxySubscribes.id, id))
+      .limit(1);
+
+    // 获取总访问次数
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(proxyAccessLogs)
+      .where(eq(proxyAccessLogs.subscribeId, id));
+
+    // 获取今日访问次数
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const [todayResult] = await db
+      .select({ count: count() })
+      .from(proxyAccessLogs)
+      .where(and(
+        eq(proxyAccessLogs.subscribeId, id),
+        gte(proxyAccessLogs.createdAt, today)
+      ));
+
+    // 获取按类型统计
+    const accessByType = await db
+      .select({
+        type: proxyAccessLogs.accessType,
+        count: count()
+      })
+      .from(proxyAccessLogs)
+      .where(eq(proxyAccessLogs.subscribeId, id))
+      .groupBy(proxyAccessLogs.accessType);
+
+    // 获取最近10条访问记录
+    const recentAccess = await db
+      .select({
+        createdAt: proxyAccessLogs.createdAt,
+        accessType: proxyAccessLogs.accessType,
+        ip: proxyAccessLogs.ip,
+        nodeCount: proxyAccessLogs.nodeCount
+      })
+      .from(proxyAccessLogs)
+      .where(eq(proxyAccessLogs.subscribeId, id))
+      .orderBy(sql`${proxyAccessLogs.createdAt} DESC`)
+      .limit(10);
+
+    return {
+      totalAccess: totalResult?.count ?? 0,
+      todayAccess: todayResult?.count ?? 0,
+      cachedNodeCount: rawSubscribe?.cachedNodeCount ?? 0,
+      lastAccessAt: subscribe.lastAccessAt,
+      accessByType: accessByType.map(item => ({
+        type: item.type,
+        count: Number(item.count)
+      })),
+      recentAccess: recentAccess.map(item => ({
+        createdAt: item.createdAt?.toISOString() ?? new Date().toISOString(),
+        accessType: item.accessType,
+        ip: item.ip,
+        nodeCount: item.nodeCount ?? 0
+      }))
+    };
+  }
+
+  /** 获取用户的整体统计 */
+  async getUserStats(userId: string): Promise<{
+    totalSubscriptions: number;
+    totalNodes: number;
+    todayRequests: number;
+  }> {
+    // 获取用户可见的所有订阅
+    const subscriptions = await this.listByUser(userId);
+    const subscribeIds = subscriptions.map(s => s.id);
+
+    // 计算总节点数（从缓存中）
+    const [nodesResult] = await db
+      .select({ total: sql<number>`COALESCE(SUM(cached_node_count), 0)` })
+      .from(proxySubscribes)
+      .where(inArray(proxySubscribes.id, subscribeIds.length > 0 ? subscribeIds : ['__none__']));
+
+    // 计算今日请求数
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const [todayResult] = await db
+      .select({ count: count() })
+      .from(proxyAccessLogs)
+      .where(and(
+        inArray(proxyAccessLogs.subscribeId, subscribeIds.length > 0 ? subscribeIds : ['__none__']),
+        gte(proxyAccessLogs.createdAt, today)
+      ));
+
+    return {
+      totalSubscriptions: subscriptions.length,
+      totalNodes: Number(nodesResult?.total ?? 0),
+      todayRequests: todayResult?.count ?? 0
+    };
   }
 
   /** 为节点名称添加国旗图标 */

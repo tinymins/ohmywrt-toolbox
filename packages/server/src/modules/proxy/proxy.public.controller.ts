@@ -96,7 +96,7 @@ export class ProxyPublicController {
 
   /** 生成 Clash 订阅配置 (YAML) */
   @Get("proxy/clash/:uuid")
-  async getClashConfig(@Param("uuid") uuid: string, @Res() res: Response) {
+  async getClashConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
     const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
 
     // 构建规则（从 JSONC 字符串解析）
@@ -161,8 +161,20 @@ export class ProxyPublicController {
       }
     };
 
-    // 更新最后访问时间
-    await proxySubscribeService.updateLastAccessTime(subscribe.id);
+    // 获取客户端信息
+    const clientIp = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+      || req.socket?.remoteAddress
+      || undefined;
+    const userAgent = req.get("user-agent") || undefined;
+
+    // 更新访问信息和记录日志
+    await proxySubscribeService.updateAccessInfo(
+      subscribe.id,
+      proxies.length,
+      "clash",
+      clientIp,
+      userAgent
+    );
 
     res.setHeader("content-type", "text/plain; charset=utf-8");
     res.send(`
@@ -393,8 +405,20 @@ ${yaml.stringify(data)}`);
       }
     }
 
-    // 更新最后访问时间
-    await proxySubscribeService.updateLastAccessTime(subscribe.id);
+    // 获取客户端信息
+    const clientIp = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
+      || req.socket?.remoteAddress
+      || undefined;
+    const userAgent = req.get("user-agent") || undefined;
+
+    // 更新访问信息和记录日志
+    await proxySubscribeService.updateAccessInfo(
+      subscribe.id,
+      proxies.length,
+      "sing-box",
+      clientIp,
+      userAgent
+    );
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.send(JSON.stringify(data, null, 2));
