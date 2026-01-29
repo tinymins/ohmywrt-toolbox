@@ -87,7 +87,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width={700}
+      width={800}
       destroyOnClose
     >
       <Spin spinning={isLoading}>
@@ -96,7 +96,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
             {/* 统计卡片 */}
             <Row gutter={16}>
               <Col span={6}>
-                <Card size="small" className="text-center">
+                <Card size="small" className="text-center h-full">
                   <Statistic
                     title={lang === "zh" ? "总访问次数" : "Total Access"}
                     value={stats.totalAccess}
@@ -105,7 +105,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                 </Card>
               </Col>
               <Col span={6}>
-                <Card size="small" className="text-center">
+                <Card size="small" className="text-center h-full">
                   <Statistic
                     title={lang === "zh" ? "今日访问" : "Today"}
                     value={stats.todayAccess}
@@ -115,7 +115,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                 </Card>
               </Col>
               <Col span={6}>
-                <Card size="small" className="text-center">
+                <Card size="small" className="text-center h-full">
                   <Statistic
                     title={lang === "zh" ? "活跃节点" : "Active Nodes"}
                     value={stats.cachedNodeCount}
@@ -125,7 +125,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                 </Card>
               </Col>
               <Col span={6}>
-                <Card size="small" className="text-center">
+                <Card size="small" className="text-center h-full">
                   <Statistic
                     title={lang === "zh" ? "最后访问" : "Last Access"}
                     value={stats.lastAccessAt ? dayjs(stats.lastAccessAt).fromNow() : "-"}
