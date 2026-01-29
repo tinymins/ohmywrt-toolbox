@@ -41,12 +41,9 @@ export class UserRouter {
 	/** 获取用户列表（用于授权选择） */
 	@Query({ output: UserListOutputSchema })
 	@UseMiddlewares(requireUser)
-	async list(@Ctx() ctx: Context) {
+	async list() {
 		const users = await userService.listAll();
-		// 过滤掉当前用户
-		return users
-			.filter(u => u.id !== ctx.userId)
-			.map(u => ({ id: u.id, name: u.name, email: u.email }));
+		return users.map(u => ({ id: u.id, name: u.name, email: u.email }));
 	}
 
 	@Query({ output: userProfileOutput })
