@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip } from "antd";
-import { LinkOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
+import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
 import ClashSubscribeModal, { type ClashSubscribeModalRef } from "./ClashSubscribeModal";
@@ -110,13 +110,15 @@ export default function ClashSubscribeList() {
                     value={url}
                     onClick={(e) => e.currentTarget.select()}
                     addonAfter={
-                      <Space size={4}>
+                      <Space size={12}>
                         <CopyOutlined
-                          className="cursor-pointer hover:text-blue-500"
+                          className="cursor-pointer"
+                          style={{ color: "#3b82f6" }}
                           onClick={() => handleCopyUrl(url)}
                         />
-                        <LinkOutlined
-                          className="cursor-pointer hover:text-blue-500"
+                        <ExportOutlined
+                          className="cursor-pointer"
+                          style={{ color: "#22c55e" }}
                           onClick={() => window.open(url)}
                         />
                       </Space>
@@ -136,13 +138,15 @@ export default function ClashSubscribeList() {
                     value={url}
                     onClick={(e) => e.currentTarget.select()}
                     addonAfter={
-                      <Space size={4}>
+                      <Space size={12}>
                         <CopyOutlined
-                          className="cursor-pointer hover:text-blue-500"
+                          className="cursor-pointer"
+                          style={{ color: "#3b82f6" }}
                           onClick={() => handleCopyUrl(url)}
                         />
-                        <LinkOutlined
-                          className="cursor-pointer hover:text-blue-500"
+                        <ExportOutlined
+                          className="cursor-pointer"
+                          style={{ color: "#22c55e" }}
                           onClick={() => window.open(url)}
                         />
                       </Space>
