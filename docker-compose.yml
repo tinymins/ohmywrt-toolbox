@@ -30,6 +30,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-apps_db}
       NODE_ENV: production
       PORT: 4000
+      PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
     ports:
       - "${SERVER_PORT:-4000}:4000"
     depends_on:

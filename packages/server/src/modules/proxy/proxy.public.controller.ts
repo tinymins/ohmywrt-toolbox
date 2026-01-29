@@ -195,18 +195,19 @@ ${yaml.stringify(data)}`);
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
-    // 从请求获取完整的 origin URL，支持反向代理场景
-    const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
-    const forwardedPort = req.headers["x-forwarded-port"] as string | undefined;
-    const protocol = forwardedProto || (req.secure ? "https" : "http");
-    const hostHeader = req.get("host") || "localhost:4000";
-    // 如果有 X-Forwarded-Port 且不是默认端口，则替换/追加端口
-    let host = hostHeader;
-    if (forwardedPort && forwardedPort !== "80" && forwardedPort !== "443") {
-      // 移除原有端口（如果有），添加转发的端口
-      host = hostHeader.split(":")[0] + ":" + forwardedPort;
+    // 从环境变量获取公网服务器地址，或从请求自动检测
+    let publicServerUrl = process.env.PUBLIC_SERVER_URL;
+    if (!publicServerUrl) {
+      const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
+      const forwardedPort = req.headers["x-forwarded-port"] as string | undefined;
+      const hostHeader = req.get("host") || "localhost:4000";
+      let host = hostHeader;
+      if (forwardedPort && forwardedPort !== "80" && forwardedPort !== "443") {
+        host = hostHeader.split(":")[0] + ":" + forwardedPort;
+      }
+      const protocol = forwardedProto || (req.secure ? "https" : "http");
+      publicServerUrl = `${protocol}://${host}`;
     }
-    const publicServerUrl = `${protocol}://${host}`;
 
     const select = groups.map((item) => {
       const outbounds = item.readonly ? item.proxies : [...item.proxies, ...nodes];
