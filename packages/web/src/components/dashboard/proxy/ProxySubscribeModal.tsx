@@ -102,6 +102,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
   // 获取默认配置
   const { data: defaults } = trpc.proxy.getDefaults.useQuery();
 
+  // tRPC utils for cache invalidation
+  const utils = trpc.useUtils();
+
   const { data: existingData, isLoading: isLoadingData } = trpc.proxy.getById.useQuery(
     { id: id! },
     { enabled: !!id }
@@ -121,6 +124,10 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
   const updateMutation = trpc.proxy.update.useMutation({
     onSuccess: () => {
       messageApi.success(t("proxy.updateSuccess"));
+      // 使 getById 缓存失效，下次打开时重新获取
+      if (id) {
+        utils.proxy.getById.invalidate({ id });
+      }
       setOpen(false);
       onSuccess();
     },
