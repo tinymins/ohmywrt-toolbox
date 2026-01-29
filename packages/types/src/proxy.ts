@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 // ============================================
-// Clash 代理组定义
+// 代理组定义
 // ============================================
 
-export const ClashGroupSchema = z.object({
+export const ProxyGroupSchema = z.object({
   name: z.string(),
   type: z.string(),
   proxies: z.array(z.string()),
@@ -12,32 +12,32 @@ export const ClashGroupSchema = z.object({
   readonly: z.boolean().optional()
 });
 
-export type ClashGroup = z.infer<typeof ClashGroupSchema>;
+export type ProxyGroup = z.infer<typeof ProxyGroupSchema>;
 
 // ============================================
-// Clash 规则提供者
+// 规则提供者
 // ============================================
 
-export const ClashRuleProviderSchema = z.object({
+export const ProxyRuleProviderSchema = z.object({
   name: z.string(),
   url: z.string(),
   type: z.string().optional()
 });
 
-export type ClashRuleProvider = z.infer<typeof ClashRuleProviderSchema>;
+export type ProxyRuleProvider = z.infer<typeof ProxyRuleProviderSchema>;
 
-export const ClashRuleProvidersListSchema = z.record(
+export const ProxyRuleProvidersListSchema = z.record(
   z.string(),
-  z.array(ClashRuleProviderSchema)
+  z.array(ProxyRuleProviderSchema)
 );
 
-export type ClashRuleProvidersList = z.infer<typeof ClashRuleProvidersListSchema>;
+export type ProxyRuleProvidersList = z.infer<typeof ProxyRuleProvidersListSchema>;
 
 // ============================================
-// Clash 订阅
+// 代理订阅
 // ============================================
 
-export const ClashSubscribeSchema = z.object({
+export const ProxySubscribeSchema = z.object({
   id: z.string(),
   userId: z.string(),
   url: z.string(),
@@ -55,10 +55,10 @@ export const ClashSubscribeSchema = z.object({
   updatedAt: z.string()
 });
 
-export type ClashSubscribe = z.infer<typeof ClashSubscribeSchema>;
+export type ProxySubscribe = z.infer<typeof ProxySubscribeSchema>;
 
 // 用于 API 返回的完整订阅对象，包含用户信息
-export const ClashSubscribeWithUserSchema = ClashSubscribeSchema.extend({
+export const ProxySubscribeWithUserSchema = ProxySubscribeSchema.extend({
   user: z.object({
     id: z.string(),
     name: z.string(),
@@ -73,13 +73,13 @@ export const ClashSubscribeWithUserSchema = ClashSubscribeSchema.extend({
   )
 });
 
-export type ClashSubscribeWithUser = z.infer<typeof ClashSubscribeWithUserSchema>;
+export type ProxySubscribeWithUser = z.infer<typeof ProxySubscribeWithUserSchema>;
 
 // ============================================
 // 创建/更新订阅输入（JSONC 字符串）
 // ============================================
 
-export const CreateClashSubscribeInputSchema = z.object({
+export const CreateProxySubscribeInputSchema = z.object({
   remark: z.string().nullable().optional(),
   subscribeUrl: z.string().nullable().optional(),
   ruleList: z.string().nullable().optional(),
@@ -90,9 +90,9 @@ export const CreateClashSubscribeInputSchema = z.object({
   authorizedUserIds: z.array(z.string()).optional().default([])
 });
 
-export type CreateClashSubscribeInput = z.infer<typeof CreateClashSubscribeInputSchema>;
+export type CreateProxySubscribeInput = z.infer<typeof CreateProxySubscribeInputSchema>;
 
-export const UpdateClashSubscribeInputSchema = z.object({
+export const UpdateProxySubscribeInputSchema = z.object({
   id: z.string(),
   remark: z.string().nullable().optional(),
   subscribeUrl: z.string().nullable().optional(),
@@ -104,23 +104,23 @@ export const UpdateClashSubscribeInputSchema = z.object({
   authorizedUserIds: z.array(z.string()).optional()
 });
 
-export type UpdateClashSubscribeInput = z.infer<typeof UpdateClashSubscribeInputSchema>;
+export type UpdateProxySubscribeInput = z.infer<typeof UpdateProxySubscribeInputSchema>;
 
-export const DeleteClashSubscribeInputSchema = z.object({
+export const DeleteProxySubscribeInputSchema = z.object({
   id: z.string()
 });
 
-export type DeleteClashSubscribeInput = z.infer<typeof DeleteClashSubscribeInputSchema>;
+export type DeleteProxySubscribeInput = z.infer<typeof DeleteProxySubscribeInputSchema>;
 
 // ============================================
 // 规则测试
 // ============================================
 
-export const ClashRuleTestInputSchema = z.object({
+export const ProxyRuleTestInputSchema = z.object({
   url: z.string()
 });
 
-export type ClashRuleTestInput = z.infer<typeof ClashRuleTestInputSchema>;
+export type ProxyRuleTestInput = z.infer<typeof ProxyRuleTestInputSchema>;
 
 // ============================================
 // 节点预览

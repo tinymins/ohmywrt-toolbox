@@ -1,7 +1,7 @@
 // Import all module routers to register them
 import "./admin";
 import "./auth";
-import "./clash";
+import "./proxy";
 import "./hello";
 import "./network";
 import "./test-requirement";

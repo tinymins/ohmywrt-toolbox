@@ -88,9 +88,9 @@ export const testRequirements = pgTable("test_requirements", {
 });
 
 // ============================================
-// Clash 订阅表
+// 代理订阅表（Clash、Sing-box 等）
 // ============================================
-export const clashSubscribes = pgTable("clash_subscribes", {
+export const proxySubscribes = pgTable("proxy_subscribes", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id).notNull(),
   url: text("url").notNull().unique().$defaultFn(() => crypto.randomUUID()),

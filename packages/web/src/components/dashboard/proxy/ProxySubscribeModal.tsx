@@ -3,7 +3,7 @@ import { Modal, Form, Input, Select, Segmented, Spin, message } from "antd";
 import Editor, { loader } from "@monaco-editor/react";
 import { parse as parseJsonc } from "jsonc-parser";
 import { trpc } from "../../../lib/trpc";
-import type { CreateClashSubscribeInput, UpdateClashSubscribeInput } from "@acme/types";
+import type { CreateProxySubscribeInput, UpdateProxySubscribeInput } from "@acme/types";
 
 // 配置 Monaco CDN 源（和 classic 项目一致）
 loader.config({ paths: { vs: "https://g.alicdn.com/code/lib/monaco-editor/0.47.0/min/vs" } });
@@ -57,7 +57,7 @@ const JsoncEditor = ({ value, onChange }: JsoncEditorProps) => {
   );
 };
 
-export interface ClashSubscribeModalRef {
+export interface ProxySubscribeModalRef {
   open: (id?: string) => void;
 }
 
@@ -106,7 +106,7 @@ const TABS = [
   { label: "额外服务器", value: "servers" }
 ];
 
-const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSuccess }, ref) => {
+const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSuccess }, ref) => {
   const [open, setOpen] = useState(false);
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -117,12 +117,12 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
   // 获取用户列表
   const { data: userList } = trpc.user.list.useQuery();
 
-  const { data: existingData, isLoading: isLoadingData } = trpc.clash.getById.useQuery(
+  const { data: existingData, isLoading: isLoadingData } = trpc.proxy.getById.useQuery(
     { id: id! },
     { enabled: !!id }
   );
 
-  const createMutation = trpc.clash.create.useMutation({
+  const createMutation = trpc.proxy.create.useMutation({
     onSuccess: () => {
       messageApi.success("创建成功");
       setOpen(false);
@@ -133,7 +133,7 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
     }
   });
 
-  const updateMutation = trpc.clash.update.useMutation({
+  const updateMutation = trpc.proxy.update.useMutation({
     onSuccess: () => {
       messageApi.success("更新成功");
       setOpen(false);
@@ -219,9 +219,9 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
       };
 
       if (id) {
-        await updateMutation.mutateAsync({ id, ...data } as UpdateClashSubscribeInput);
+        await updateMutation.mutateAsync({ id, ...data } as UpdateProxySubscribeInput);
       } else {
-        await createMutation.mutateAsync(data as CreateClashSubscribeInput);
+        await createMutation.mutateAsync(data as CreateProxySubscribeInput);
       }
     } catch (error) {
       // 表单验证失败或 JSON 解析失败
@@ -337,6 +337,6 @@ const ClashSubscribeModal = forwardRef<ClashSubscribeModalRef, Props>(({ onSucce
   );
 });
 
-ClashSubscribeModal.displayName = "ClashSubscribeModal";
+ProxySubscribeModal.displayName = "ProxySubscribeModal";
 
-export default ClashSubscribeModal;
+export default ProxySubscribeModal;

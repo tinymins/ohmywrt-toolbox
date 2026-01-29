@@ -1,6 +1,6 @@
-import type { ClashGroup, ClashRuleProvidersList } from "@acme/types";
+import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
 
-export const DEFAULT_GROUPS: ClashGroup[] = [
+export const DEFAULT_GROUPS: ProxyGroup[] = [
   { name: "🔰 国外流量", type: "select", proxies: ["🚀 直接连接"] },
   { name: "🏳️‍🌈 Google", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
   { name: "✈️ Telegram", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
@@ -35,14 +35,14 @@ const SINGBOX_KEYWORD_MAP: Record<string, string> = {
 const SINGBOX_EXCLUDED_GROUPS = new Set<string>(["🚀 直接连接"]);
 
 // Sing-box 输出沿用 Clash 分组，但需要调整内置关键字并禁用自循环 selector。
-export const SB_DEFAULT_GROUPS: ClashGroup[] = DEFAULT_GROUPS
+export const SB_DEFAULT_GROUPS: ProxyGroup[] = DEFAULT_GROUPS
   .filter((group) => !SINGBOX_EXCLUDED_GROUPS.has(group.name))
   .map((group) => ({
     ...group,
     proxies: group.proxies.map((proxy) => SINGBOX_KEYWORD_MAP[proxy] ?? proxy)
   }));
 
-export const DEFAULT_RULE_PROVIDERS: ClashRuleProvidersList = {
+export const DEFAULT_RULE_PROVIDERS: ProxyRuleProvidersList = {
   "🍎 苹果APNs": [
     { name: "AppleApns", url: "https://raw.githubusercontent.com/ohmywrt/clash-rule/refs/heads/master/AppleAPNs.yaml" }
   ],

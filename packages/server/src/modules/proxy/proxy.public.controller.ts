@@ -2,11 +2,11 @@ import { Controller, Get, Param, Query, Req, Res, BadRequestException, NotFoundE
 import type { Request, Response } from "express";
 import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
-import { clashSubscribeService } from "./clash.service";
+import { proxySubscribeService } from "./proxy.service";
 import { convertClashToSingbox } from "./lib/converter";
 import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 import { DEFAULT_RULE_PROVIDERS, DEFAULT_GROUPS, SB_DEFAULT_GROUPS } from "./lib/config";
-import type { ClashGroup, ClashRuleProvidersList } from "@acme/types";
+import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
 import type { Singbox, SingBoxRule } from "./lib/types";
 
 /** 安全解析 JSONC 字符串 */
@@ -20,8 +20,8 @@ const safeParseJsonc = <T>(jsonc: string | null, defaultValue: T): T => {
 };
 
 @Controller("public")
-export class ClashPublicController {
-  private readonly logger = new Logger(ClashPublicController.name);
+export class ProxyPublicController {
+  private readonly logger = new Logger(ProxyPublicController.name);
 
   /**
    * 获取订阅的代理列表（公共逻辑）
@@ -29,7 +29,7 @@ export class ClashPublicController {
    * @param excludeTypes 要排除的代理类型（如 Sing-box 不支持 SSR）
    */
   private async fetchProxies(uuid: string, excludeTypes: string[] = []) {
-    const subscribe = await clashSubscribeService.getByUrl(uuid);
+    const subscribe = await proxySubscribeService.getByUrl(uuid);
     if (!subscribe) {
       throw new NotFoundException("订阅不存在");
     }
@@ -86,7 +86,7 @@ export class ClashPublicController {
 
     // 添加国旗图标
     for (const proxy of proxies) {
-      proxy.name = clashSubscribeService.appendIcon(proxy.name);
+      proxy.name = proxySubscribeService.appendIcon(proxy.name);
     }
 
     const nodes = proxies.map((item) => item.name).filter(Boolean);
@@ -95,14 +95,14 @@ export class ClashPublicController {
   }
 
   /** 生成 Clash 订阅配置 (YAML) */
-  @Get("clash/subscribe/:uuid")
+  @Get("proxy/clash/:uuid")
   async getClashConfig(@Param("uuid") uuid: string, @Res() res: Response) {
     const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
 
     // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
-    const rawRuleList = safeParseJsonc<ClashRuleProvidersList>(subscribe.ruleList, {});
+    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(subscribe.ruleList, {});
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
 
     for (const [key, items] of Object.entries(ruleProvidersList)) {
@@ -118,7 +118,7 @@ export class ClashPublicController {
       }
     }
 
-    const rawGroups = safeParseJsonc<ClashGroup[]>(subscribe.group, []);
+    const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : DEFAULT_GROUPS;
     const customConfig = safeParseJsonc<string[]>(subscribe.customConfig, []);
 
@@ -162,7 +162,7 @@ export class ClashPublicController {
     };
 
     // 更新最后访问时间
-    await clashSubscribeService.updateLastAccessTime(subscribe.id);
+    await proxySubscribeService.updateLastAccessTime(subscribe.id);
 
     res.setHeader("content-type", "text/plain; charset=utf-8");
     res.send(`
@@ -173,15 +173,15 @@ ${yaml.stringify(data)}`);
   }
 
   /** 生成 Sing-box 订阅配置 (JSON) */
-  @Get("sb/subscribe/:uuid")
+  @Get("proxy/sing-box/:uuid")
   async getSingboxConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
     const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, ["ssr"]);
 
     // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];
-    const rawRuleList = safeParseJsonc<ClashRuleProvidersList>(subscribe.ruleList, {});
+    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(subscribe.ruleList, {});
     const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
-    const rawGroups = safeParseJsonc<ClashGroup[]>(subscribe.group, []);
+    const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
     // 从请求获取完整的 origin URL，支持反向代理场景
     const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
@@ -211,7 +211,7 @@ ${yaml.stringify(data)}`);
       for (const item of items) {
         ruleProviders.push({
           type: "remote",
-          url: `${publicServerUrl}/public/sb/convert/rule?url=${encodeURIComponent(item.url)}`,
+          url: `${publicServerUrl}/public/proxy/sing-box/convert/rule?url=${encodeURIComponent(item.url)}`,
           tag: item.name,
           format: "source",
           download_detour: "🚀 直接连接"
@@ -323,7 +323,7 @@ ${yaml.stringify(data)}`);
           {
             tag: "geoip-gfwblack",
             type: "remote",
-            url: `${publicServerUrl}/public/sb/convert/rule?url=${encodeURIComponent("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")}`,
+            url: `${publicServerUrl}/public/proxy/sing-box/convert/rule?url=${encodeURIComponent("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")}`,
             format: "source",
             download_detour: "🚀 直接连接"
           }
@@ -394,14 +394,14 @@ ${yaml.stringify(data)}`);
     }
 
     // 更新最后访问时间
-    await clashSubscribeService.updateLastAccessTime(subscribe.id);
+    await proxySubscribeService.updateLastAccessTime(subscribe.id);
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.send(JSON.stringify(data, null, 2));
   }
 
   /** 将 Clash 规则转换为 Sing-box 格式 */
-  @Get("sb/convert/rule")
+  @Get("proxy/sing-box/convert/rule")
   async convertRule(@Query("url") url: string, @Res() res: Response) {
     if (!url) {
       throw new BadRequestException("url is required");

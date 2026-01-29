@@ -188,7 +188,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
 
-  const { data, isLoading } = trpc.clash.previewNodes.useQuery(
+  const { data, isLoading } = trpc.proxy.previewNodes.useQuery(
     { id: subscribeId },
     { enabled: !!subscribeId && visible }
   );
@@ -325,17 +325,17 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
     }
   ];
 
-  const nodes = data?.nodes ?? [];
+  const nodes: ProxyNode[] = data?.nodes ?? [];
 
   // 统计节点数量
   const totalCount = nodes.length;
-  const filteredCount = nodes.filter((n) => n.filtered).length;
+  const filteredCount = nodes.filter((n: ProxyNode) => n.filtered).length;
   const activeCount = totalCount - filteredCount;
 
   // 统计各协议的节点数量（仅有效节点）
   const typeCounts = nodes
-    .filter((n) => !n.filtered)
-    .reduce<Record<string, number>>((acc, node) => {
+    .filter((n: ProxyNode) => !n.filtered)
+    .reduce<Record<string, number>>((acc: Record<string, number>, node: ProxyNode) => {
       acc[node.type] = (acc[node.type] || 0) + 1;
       return acc;
     }, {});
@@ -369,7 +369,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               </Text>
               {Object.entries(typeCounts).map(([type, count]) => (
                 <Tag key={type} color={typeColorMap[type] || "default"}>
-                  {type.toUpperCase()}: {count}
+                  {type.toUpperCase()}: {String(count)}
                 </Tag>
               ))}
             </div>

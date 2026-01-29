@@ -57,30 +57,30 @@ export type {
 } from "./test-requirement";
 
 export {
-  ClashGroupSchema,
-  ClashRuleProviderSchema,
-  ClashRuleProvidersListSchema,
-  ClashSubscribeSchema,
-  ClashSubscribeWithUserSchema,
-  CreateClashSubscribeInputSchema,
-  UpdateClashSubscribeInputSchema,
-  DeleteClashSubscribeInputSchema,
-  ClashRuleTestInputSchema,
+  ProxyGroupSchema,
+  ProxyRuleProviderSchema,
+  ProxyRuleProvidersListSchema,
+  ProxySubscribeSchema,
+  ProxySubscribeWithUserSchema,
+  CreateProxySubscribeInputSchema,
+  UpdateProxySubscribeInputSchema,
+  DeleteProxySubscribeInputSchema,
+  ProxyRuleTestInputSchema,
   ProxyPreviewNodeSchema,
   ProxyPreviewInputSchema,
   ProxyPreviewOutputSchema
-} from "./clash";
+} from "./proxy";
 export type {
-  ClashGroup,
-  ClashRuleProvider,
-  ClashRuleProvidersList,
-  ClashSubscribe,
-  ClashSubscribeWithUser,
-  CreateClashSubscribeInput,
-  UpdateClashSubscribeInput,
-  DeleteClashSubscribeInput,
-  ClashRuleTestInput,
+  ProxyGroup,
+  ProxyRuleProvider,
+  ProxyRuleProvidersList,
+  ProxySubscribe,
+  ProxySubscribeWithUser,
+  CreateProxySubscribeInput,
+  UpdateProxySubscribeInput,
+  DeleteProxySubscribeInput,
+  ProxyRuleTestInput,
   ProxyPreviewNode,
   ProxyPreviewInput,
   ProxyPreviewOutput
-} from "./clash";
+} from "./proxy";

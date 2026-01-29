@@ -3,13 +3,13 @@ import { z } from "zod";
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
-import { clashSubscribeService, clashRuleService } from "./clash.service";
+import { proxySubscribeService, proxyRuleService } from "./proxy.service";
 import {
-  ClashSubscribeWithUserSchema,
-  CreateClashSubscribeInputSchema,
-  UpdateClashSubscribeInputSchema,
-  DeleteClashSubscribeInputSchema,
-  ClashRuleTestInputSchema,
+  ProxySubscribeWithUserSchema,
+  CreateProxySubscribeInputSchema,
+  UpdateProxySubscribeInputSchema,
+  DeleteProxySubscribeInputSchema,
+  ProxyRuleTestInputSchema,
   ProxyPreviewInputSchema,
   ProxyPreviewOutputSchema
 } from "@acme/types";
@@ -22,7 +22,7 @@ const SimpleUserSchema = z.object({
 });
 
 // 订阅输出 schema（JSONC 字符串）
-export const ClashSubscribeOutputSchema = z.object({
+export const ProxySubscribeOutputSchema = z.object({
   id: z.string(),
   userId: z.string(),
   url: z.string(),
@@ -42,31 +42,31 @@ export const ClashSubscribeOutputSchema = z.object({
   authorizedUsers: z.array(SimpleUserSchema)
 });
 
-export const ClashSubscribeListOutputSchema = z.array(ClashSubscribeOutputSchema);
+export const ProxySubscribeListOutputSchema = z.array(ProxySubscribeOutputSchema);
 
-@Router({ alias: "clash" })
-export class ClashRouter {
-  private readonly logger = new Logger(ClashRouter.name);
+@Router({ alias: "proxy" })
+export class ProxyRouter {
+  private readonly logger = new Logger(ProxyRouter.name);
 
   constructor() {
-    this.logger.log("ClashRouter registered");
+    this.logger.log("ProxyRouter registered");
   }
 
   /** 获取当前用户可见的所有订阅 */
   @UseMiddlewares(requireUser)
-  @Query({ output: ClashSubscribeListOutputSchema })
+  @Query({ output: ProxySubscribeListOutputSchema })
   async list(@Ctx() ctx: Context) {
-    return clashSubscribeService.listByUser(ctx.userId!);
+    return proxySubscribeService.listByUser(ctx.userId!);
   }
 
   /** 根据 ID 获取订阅详情 */
   @UseMiddlewares(requireUser)
   @Query({
     input: z.object({ id: z.string() }),
-    output: ClashSubscribeOutputSchema.nullable()
+    output: ProxySubscribeOutputSchema.nullable()
   })
   async getById(input: { id: string }, @Ctx() ctx: Context) {
-    const subscribe = await clashSubscribeService.getById(input.id);
+    const subscribe = await proxySubscribeService.getById(input.id);
     if (!subscribe) return null;
 
     // 检查权限：是创建者或被授权用户
@@ -80,42 +80,42 @@ export class ClashRouter {
   /** 创建订阅 */
   @UseMiddlewares(requireUser)
   @Mutation({
-    input: CreateClashSubscribeInputSchema,
-    output: ClashSubscribeOutputSchema
+    input: CreateProxySubscribeInputSchema,
+    output: ProxySubscribeOutputSchema
   })
-  async create(input: z.infer<typeof CreateClashSubscribeInputSchema>, @Ctx() ctx: Context) {
-    return clashSubscribeService.create(ctx.userId!, input);
+  async create(input: z.infer<typeof CreateProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+    return proxySubscribeService.create(ctx.userId!, input);
   }
 
   /** 更新订阅 */
   @UseMiddlewares(requireUser)
   @Mutation({
-    input: UpdateClashSubscribeInputSchema,
-    output: ClashSubscribeOutputSchema
+    input: UpdateProxySubscribeInputSchema,
+    output: ProxySubscribeOutputSchema
   })
-  async update(input: z.infer<typeof UpdateClashSubscribeInputSchema>, @Ctx() ctx: Context) {
-    return clashSubscribeService.update(input.id, ctx.userId!, input);
+  async update(input: z.infer<typeof UpdateProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+    return proxySubscribeService.update(input.id, ctx.userId!, input);
   }
 
   /** 删除订阅 */
   @UseMiddlewares(requireUser)
   @Mutation({
-    input: DeleteClashSubscribeInputSchema,
+    input: DeleteProxySubscribeInputSchema,
     output: z.object({ success: z.boolean() })
   })
-  async delete(input: z.infer<typeof DeleteClashSubscribeInputSchema>, @Ctx() ctx: Context) {
-    await clashSubscribeService.delete(input.id, ctx.userId!);
+  async delete(input: z.infer<typeof DeleteProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+    await proxySubscribeService.delete(input.id, ctx.userId!);
     return { success: true };
   }
 
   /** 测试规则匹配 */
   @UseMiddlewares(requireUser)
   @Query({
-    input: ClashRuleTestInputSchema,
+    input: ProxyRuleTestInputSchema,
     output: z.object({ result: z.string() })
   })
-  async testRule(input: z.infer<typeof ClashRuleTestInputSchema>) {
-    const result = await clashRuleService.testRule(input.url);
+  async testRule(input: z.infer<typeof ProxyRuleTestInputSchema>) {
+    const result = await proxyRuleService.testRule(input.url);
     return { result };
   }
 
@@ -126,7 +126,7 @@ export class ClashRouter {
     output: ProxyPreviewOutputSchema
   })
   async previewNodes(input: z.infer<typeof ProxyPreviewInputSchema>, @Ctx() ctx: Context) {
-    const nodes = await clashSubscribeService.previewNodes(input.id, ctx.userId!);
+    const nodes = await proxySubscribeService.previewNodes(input.id, ctx.userId!);
     return { nodes };
   }
 }

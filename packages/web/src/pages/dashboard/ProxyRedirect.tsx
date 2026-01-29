@@ -4,17 +4,17 @@ import { Spin } from "antd";
 import { trpc } from "../../lib/trpc";
 
 /**
- * Clash 全局路由重定向
- * 访问 /dashboard/clash 时，自动重定向到用户默认 workspace 下的 clash 页面
+ * Proxy 全局路由重定向
+ * 访问 /dashboard/proxy 时，自动重定向到用户默认 workspace 下的 proxy 页面
  */
-export default function ClashRedirect() {
+export default function ProxyRedirect() {
   const navigate = useNavigate();
   const { data: workspaces, isLoading } = trpc.workspace.list.useQuery();
 
   useEffect(() => {
     if (workspaces && workspaces.length > 0) {
-      // 重定向到第一个 workspace 的 clash 页面
-      navigate(`/dashboard/${workspaces[0].slug}/clash`, { replace: true });
+      // 重定向到第一个 workspace 的 proxy 页面
+      navigate(`/dashboard/${workspaces[0].slug}/proxy`, { replace: true });
     }
   }, [workspaces, navigate]);
 

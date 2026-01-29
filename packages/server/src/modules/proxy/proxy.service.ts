@@ -5,15 +5,15 @@ import net from "node:net";
 import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
 import { db } from "../../db/client";
-import { clashSubscribes, users } from "../../db/schema";
-import type { CreateClashSubscribeInput, UpdateClashSubscribeInput, ProxyPreviewNode } from "@acme/types";
+import { proxySubscribes, users } from "../../db/schema";
+import type { CreateProxySubscribeInput, UpdateProxySubscribeInput, ProxyPreviewNode } from "@acme/types";
 import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS } from "./lib/config";
 import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 
-type ClashSubscribeRow = typeof clashSubscribes.$inferSelect;
+type ProxySubscribeRow = typeof proxySubscribes.$inferSelect;
 type UserRow = Pick<typeof users.$inferSelect, "id" | "name" | "email">;
 
-export interface ClashSubscribeWithUser {
+export interface ProxySubscribeWithUser {
   id: string;
   userId: string;
   url: string;
@@ -34,11 +34,11 @@ export interface ClashSubscribeWithUser {
 }
 
 /** 将数据库行转换为 API 输出 */
-const toClashSubscribeOutput = (
-  row: ClashSubscribeRow,
+const toProxySubscribeOutput = (
+  row: ProxySubscribeRow,
   user: UserRow,
   authorizedUsers: UserRow[] = []
-): ClashSubscribeWithUser => ({
+): ProxySubscribeWithUser => ({
   id: row.id,
   userId: row.userId,
   url: row.url,
@@ -57,21 +57,21 @@ const toClashSubscribeOutput = (
   authorizedUsers
 });
 
-export class ClashSubscribeService {
+export class ProxySubscribeService {
   /** 获取用户可见的所有订阅（创建的 + 被授权的） */
-  async listByUser(userId: string): Promise<ClashSubscribeWithUser[]> {
+  async listByUser(userId: string): Promise<ProxySubscribeWithUser[]> {
     // 获取所有订阅
     const allSubscribes = await db
       .select({
-        subscribe: clashSubscribes,
+        subscribe: proxySubscribes,
         user: {
           id: users.id,
           name: users.name,
           email: users.email
         }
       })
-      .from(clashSubscribes)
-      .leftJoin(users, eq(clashSubscribes.userId, users.id));
+      .from(proxySubscribes)
+      .leftJoin(users, eq(proxySubscribes.userId, users.id));
 
     // 过滤出用户创建的或被授权的订阅
     const filteredSubscribes = allSubscribes.filter((row) => {
@@ -81,7 +81,7 @@ export class ClashSubscribeService {
     });
 
     // 获取所有授权用户信息
-    const result: ClashSubscribeWithUser[] = [];
+    const result: ProxySubscribeWithUser[] = [];
     for (const row of filteredSubscribes) {
       const authorizedUserIds = (row.subscribe.authorizedUserIds as string[] | null) ?? [];
       let authorizedUsers: UserRow[] = [];
@@ -91,7 +91,7 @@ export class ClashSubscribeService {
           .from(users)
           .where(inArray(users.id, authorizedUserIds));
       }
-      result.push(toClashSubscribeOutput(
+      result.push(toProxySubscribeOutput(
         row.subscribe,
         row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
         authorizedUsers
@@ -102,19 +102,19 @@ export class ClashSubscribeService {
   }
 
   /** 根据 ID 获取订阅 */
-  async getById(id: string): Promise<ClashSubscribeWithUser | null> {
+  async getById(id: string): Promise<ProxySubscribeWithUser | null> {
     const [row] = await db
       .select({
-        subscribe: clashSubscribes,
+        subscribe: proxySubscribes,
         user: {
           id: users.id,
           name: users.name,
           email: users.email
         }
       })
-      .from(clashSubscribes)
-      .leftJoin(users, eq(clashSubscribes.userId, users.id))
-      .where(eq(clashSubscribes.id, id))
+      .from(proxySubscribes)
+      .leftJoin(users, eq(proxySubscribes.userId, users.id))
+      .where(eq(proxySubscribes.id, id))
       .limit(1);
 
     if (!row) return null;
@@ -128,7 +128,7 @@ export class ClashSubscribeService {
         .where(inArray(users.id, authorizedUserIds));
     }
 
-    return toClashSubscribeOutput(
+    return toProxySubscribeOutput(
       row.subscribe,
       row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
       authorizedUsers
@@ -136,20 +136,20 @@ export class ClashSubscribeService {
   }
 
   /** 根据 URL 获取订阅（用于公开端点） */
-  async getByUrl(url: string): Promise<ClashSubscribeRow | null> {
+  async getByUrl(url: string): Promise<ProxySubscribeRow | null> {
     const [row] = await db
       .select()
-      .from(clashSubscribes)
-      .where(eq(clashSubscribes.url, url))
+      .from(proxySubscribes)
+      .where(eq(proxySubscribes.url, url))
       .limit(1);
 
     return row ?? null;
   }
 
   /** 创建订阅 */
-  async create(userId: string, input: CreateClashSubscribeInput): Promise<ClashSubscribeWithUser> {
+  async create(userId: string, input: CreateProxySubscribeInput): Promise<ProxySubscribeWithUser> {
     const [created] = await db
-      .insert(clashSubscribes)
+      .insert(proxySubscribes)
       .values({
         userId,
         remark: input.remark ?? null,
@@ -171,7 +171,7 @@ export class ClashSubscribeService {
   }
 
   /** 更新订阅 */
-  async update(id: string, userId: string, input: UpdateClashSubscribeInput): Promise<ClashSubscribeWithUser> {
+  async update(id: string, userId: string, input: UpdateProxySubscribeInput): Promise<ProxySubscribeWithUser> {
     // 检查权限
     const existing = await this.getById(id);
     if (!existing) {
@@ -181,7 +181,7 @@ export class ClashSubscribeService {
       throw new TRPCError({ code: "FORBIDDEN", message: "无权修改此订阅" });
     }
 
-    const updateData: Partial<typeof clashSubscribes.$inferInsert> = {
+    const updateData: Partial<typeof proxySubscribes.$inferInsert> = {
       updatedAt: new Date()
     };
 
@@ -195,9 +195,9 @@ export class ClashSubscribeService {
     if (input.authorizedUserIds !== undefined) updateData.authorizedUserIds = input.authorizedUserIds;
 
     await db
-      .update(clashSubscribes)
+      .update(proxySubscribes)
       .set(updateData)
-      .where(eq(clashSubscribes.id, id));
+      .where(eq(proxySubscribes.id, id));
 
     const result = await this.getById(id);
     if (!result) {
@@ -217,16 +217,16 @@ export class ClashSubscribeService {
     }
 
     await db
-      .delete(clashSubscribes)
-      .where(eq(clashSubscribes.id, id));
+      .delete(proxySubscribes)
+      .where(eq(proxySubscribes.id, id));
   }
 
   /** 更新最后访问时间 */
   async updateLastAccessTime(id: string): Promise<void> {
     await db
-      .update(clashSubscribes)
+      .update(proxySubscribes)
       .set({ lastAccessAt: new Date() })
-      .where(eq(clashSubscribes.id, id));
+      .where(eq(proxySubscribes.id, id));
   }
 
   /** 为节点名称添加国旗图标 */
@@ -326,7 +326,7 @@ export class ClashSubscribeService {
   }
 }
 
-export class ClashRuleService {
+export class ProxyRuleService {
   /** 测试 URL 匹配的规则 */
   async testRule(url: string): Promise<string> {
     let u: URL;
@@ -374,5 +374,5 @@ export class ClashRuleService {
   }
 }
 
-export const clashSubscribeService = new ClashSubscribeService();
-export const clashRuleService = new ClashRuleService();
+export const proxySubscribeService = new ProxySubscribeService();
+export const proxyRuleService = new ProxyRuleService();

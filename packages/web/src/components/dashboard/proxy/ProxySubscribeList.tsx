@@ -3,12 +3,12 @@ import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Too
 import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
-import ClashSubscribeModal, { type ClashSubscribeModalRef } from "./ClashSubscribeModal";
+import ProxySubscribeModal, { type ProxySubscribeModalRef } from "./ProxySubscribeModal";
 import ProxyPreviewModal, { type ProxyPreviewModalRef } from "./ProxyPreviewModal";
 
 const { Text } = Typography;
 
-interface ClashSubscribeWithUser {
+interface ProxySubscribeWithUser {
   id: string;
   userId: string;
   url: string;
@@ -27,14 +27,14 @@ interface ClashSubscribeWithUser {
   authorizedUsers: { id: string; name: string; email: string }[];
 }
 
-export default function ClashSubscribeList() {
-  const modalRef = useRef<ClashSubscribeModalRef>(null);
+export default function ProxySubscribeList() {
+  const modalRef = useRef<ProxySubscribeModalRef>(null);
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
 
-  const { data: list, isLoading, refetch } = trpc.clash.list.useQuery();
+  const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
 
-  const deleteMutation = trpc.clash.delete.useMutation({
+  const deleteMutation = trpc.proxy.delete.useMutation({
     onSuccess: () => {
       messageApi.success("删除成功");
       refetch();
@@ -51,22 +51,22 @@ export default function ClashSubscribeList() {
   };
 
   const getClashUrl = (uuid: string) => {
-    return `${window.location.protocol}//${window.location.host}/public/clash/subscribe/${uuid}`;
+    return `${window.location.protocol}//${window.location.host}/public/proxy/clash/${uuid}`;
   };
 
   const getSingboxUrl = (uuid: string) => {
-    return `${window.location.protocol}//${window.location.host}/public/sb/subscribe/${uuid}`;
+    return `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/${uuid}`;
   };
 
   return (
     <div className="p-6">
       {contextHolder}
-      <ClashSubscribeModal ref={modalRef} onSuccess={refetch} />
+      <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
 
       <div className="flex justify-between items-center mb-4">
         <Typography.Title level={3} className="!mb-0">
-          Clash 订阅管理
+          代理订阅管理
         </Typography.Title>
         <Button
           type="primary"
@@ -78,7 +78,7 @@ export default function ClashSubscribeList() {
       </div>
 
       <Spin spinning={isLoading}>
-        <Table<ClashSubscribeWithUser>
+        <Table
           rowKey="id"
           size="small"
           bordered
