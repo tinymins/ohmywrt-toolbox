@@ -14,16 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import {
   WorkspacePage,
   DashboardIndexRedirect,
-  RequirementsPage,
-  TestRequirementsPage,
-  TestPlanPage,
-  TestDesignPage,
-  ExecutionPage,
-  DefectsPage,
-  ReportsPage,
-  AutomationPage,
   SettingsPage,
-  TodoListPage,
   ProxySubscribePage,
   ProxyRedirect,
   LoginPage,
@@ -94,17 +85,8 @@ function AppContent() {
               }
             >
               <Route index element={<WorkspacePage user={user} />} />
-              <Route path="requirements" element={<RequirementsPage lang={lang} />} />
-              <Route path="test-requirements" element={<TestRequirementsPage lang={lang} />} />
-              <Route path="test-plan" element={<TestPlanPage lang={lang} />} />
-              <Route path="test-design" element={<TestDesignPage lang={lang} />} />
-              <Route path="execution" element={<ExecutionPage lang={lang} />} />
-              <Route path="defects" element={<DefectsPage lang={lang} />} />
-              <Route path="reports" element={<ReportsPage lang={lang} />} />
-              <Route path="automation" element={<AutomationPage lang={lang} />} />
-              <Route path="settings" element={<SettingsPage lang={lang} />} />
-              <Route path="todulist" element={<TodoListPage lang={lang} />} />
               <Route path="proxy" element={<ProxySubscribePage lang={lang} />} />
+              <Route path="settings" element={<SettingsPage lang={lang} />} />
               <Route path="*" element={<DashboardNotFoundPage />} />
             </Route>
           </Route>

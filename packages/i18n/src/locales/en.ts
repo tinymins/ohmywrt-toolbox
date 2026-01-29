@@ -211,33 +211,22 @@ export const en: TranslationSchema = {
       loading: "Signing in..."
     },
     dashboard: {
-      title: "TestOps Command Center",
+      title: "Dashboard",
       welcome: "Welcome back",
-      stats: ["Requirement backlog", "Active test runs", "Release gates"],
+      stats: ["Total Subscriptions", "Active Nodes", "Requests Today"],
       promptTitle: "Please sign in",
-      promptBody: "Sign in to view your operational insights.",
+      promptBody: "Sign in to view your Proxy subscription overview.",
       toLogin: "Go to sign in",
       workspace: "Workspace",
-      insightTitle: "Quality insights",
-      insightDesc: "Auto-generated risk heatmaps, coverage, and gate recommendations.",
-      insightItems: ["Coverage 92%", "Regression risk 8%", "Blockers 3", "Pending 5"],
-      assistantTitle: "AI execution copilot",
-      assistantDesc: "Detect blockers, suggest fixes, and prioritize regression paths.",
+      insightTitle: "Proxy Overview",
+      insightDesc: "View your proxy subscription statistics.",
+      insightItems: ["Subscriptions 0", "Nodes 0", "Active 0", "Pending 0"],
+      assistantTitle: "Quick Actions",
+      assistantDesc: "Common operations quick access.",
       assistantItems: [
-        "Login flow anomaly detected; prioritize regression",
-        "Payment API coverage dropped by 12%",
-        "Mobile regression defect convergence up 20%"
-      ],
-      menu: [
-        "Workbench",
-        "Test Requirements",
-        "Test Plans",
-        "Test Design",
-        "Execution",
-        "Defects & Risk",
-        "Quality Reports",
-        "Automation Assets",
-        "Settings"
+        "Create new proxy subscription",
+        "Manage subscription rules",
+        "View subscription logs"
       ]
     },
     aiWorkflow: {

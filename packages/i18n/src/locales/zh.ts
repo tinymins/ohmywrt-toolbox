@@ -209,33 +209,22 @@ export const zh = {
       loading: "登录中..."
     },
     dashboard: {
-      title: "测试运营中心",
+      title: "控制台",
       welcome: "欢迎回来",
-      stats: ["需求池", "进行中测试", "发布门禁"],
+      stats: ["订阅总数", "活跃节点", "今日请求"],
       promptTitle: "请先登录",
-      promptBody: "登录后可查看测试运营数据与工作台。",
+      promptBody: "登录后可查看 Proxy 订阅概况。",
       toLogin: "去登录",
       workspace: "工作空间",
-      insightTitle: "质量洞察",
-      insightDesc: "自动生成风险热力图、覆盖率与发布门禁建议。",
-      insightItems: ["需求覆盖 92%", "回归风险 8%", "阻塞 3", "待确认 5"],
-      assistantTitle: "AI 执行助理",
-      assistantDesc: "自动识别阻塞项、给出修复建议并生成回归优先级。",
+      insightTitle: "Proxy 概况",
+      insightDesc: "查看你的代理订阅统计信息。",
+      insightItems: ["订阅数 0", "节点数 0", "活跃 0", "待更新 0"],
+      assistantTitle: "快速操作",
+      assistantDesc: "常用功能快捷入口。",
       assistantItems: [
-        "登录流程异常波动，建议优先回归",
-        "新版本支付接口覆盖不足 12%",
-        "移动端回归缺陷收敛度提升 20%"
-      ],
-      menu: [
-        "工作台",
-        "测试需求",
-        "测试计划",
-        "测试设计",
-        "执行中心",
-        "缺陷与风险",
-        "质量报告",
-        "自动化资产",
-        "系统设置"
+        "创建新的代理订阅",
+        "管理订阅规则",
+        "查看订阅日志"
       ]
     },
     aiWorkflow: {

@@ -1,15 +1,6 @@
 export { default as WorkspacePage } from "./WorkspacePage";
 export { default as DashboardIndexRedirect } from "./DashboardIndexRedirect";
-export { default as RequirementsPage } from "./RequirementsPage";
-export { default as TestRequirementsPage } from "./TestRequirementsPage";
-export { default as TestPlanPage } from "./TestPlanPage";
-export { default as TestDesignPage } from "./TestDesignPage";
-export { default as ExecutionPage } from "./ExecutionPage";
-export { default as DefectsPage } from "./DefectsPage";
-export { default as ReportsPage } from "./ReportsPage";
-export { default as AutomationPage } from "./AutomationPage";
 export { default as SettingsPage } from "./SettingsPage";
-export { default as TodoListPage } from "./TodoListPage";
 export { default as ProxySubscribePage } from "./ProxySubscribePage";
 export { default as ProxyRedirect } from "./ProxyRedirect";
 export { default as DashboardNotFoundPage } from "./DashboardNotFoundPage";

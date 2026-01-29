@@ -163,16 +163,8 @@ function WorkspaceSwitcher({
 // 菜单路由后缀（相对于 /dashboard/:workspace）
 const menuRouteSuffixes = [
   "", // 工作台
-  "/test-requirements", // 测试需求（改名自需求中心）
-  "/test-plan",
-  "/test-design",
-  "/execution",
-  "/defects",
-  "/reports",
-  "/automation",
-  "/settings",
-  "/todulist", // 新增 TodoList 页面
   "/proxy", // Proxy 订阅管理
+  "/settings", // 系统设置（放最后）
 ];
 
 export default function DashboardLayout({
@@ -269,9 +261,9 @@ export default function DashboardLayout({
   }, [workspace]);
 
   const menuItems = [
-    ...(t("dashboard.menu", { returnObjects: true }) as string[]),
-    lang === "zh" ? "📋 待办清单" : "📋 Todo List",
+    lang === "zh" ? "🏠 工作台" : "🏠 Workbench",
     lang === "zh" ? "🔰 代理订阅" : "🔰 Proxy Subscribe",
+    lang === "zh" ? "⚙️ 系统设置" : "⚙️ Settings",
   ];
 
   const menuItemConfigs = menuItems.map((label, index) => ({
