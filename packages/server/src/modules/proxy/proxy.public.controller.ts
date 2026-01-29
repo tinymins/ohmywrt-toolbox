@@ -453,7 +453,17 @@ ${yaml.stringify(data)}`);
 
     const arr = Array.isArray(object) ? object : object.payload;
     for (const line of arr || []) {
-      const [type, value] = (line as string).split(",");
+      const lineStr = String(line).trim();
+      if (!lineStr || lineStr.startsWith("#")) continue;
+
+      const parts = lineStr.split(",");
+      // 如果没有逗号，说明是纯域名格式，默认作为 DOMAIN 处理
+      if (parts.length === 1) {
+        json.rules[0].domain.push(parts[0]);
+        continue;
+      }
+
+      const [type, value] = parts;
       switch (type) {
         case "DOMAIN":
           json.rules[0].domain.push(value);
@@ -468,10 +478,22 @@ ${yaml.stringify(data)}`);
           json.rules[0].domain_regex.push(value);
           break;
         case "IP-CIDR":
+        case "IP-CIDR6":
           json.rules[0].ip_cidr.push(value);
           break;
         case "SRC-IP-CIDR":
           json.rules[0].source_ip_cidr.push(value);
+          break;
+        // 更多 Clash 规则类型支持
+        case "+":
+        case "HOST":
+          json.rules[0].domain.push(value);
+          break;
+        case "HOST-SUFFIX":
+          json.rules[0].domain_suffix.push(value);
+          break;
+        case "HOST-KEYWORD":
+          json.rules[0].domain_keyword.push(value);
           break;
       }
     }
