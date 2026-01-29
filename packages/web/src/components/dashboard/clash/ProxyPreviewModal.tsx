@@ -386,7 +386,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                 rowExpandable: () => true
               }}
               pagination={{
-                defaultPageSize: 50,
+                defaultPageSize: 500,
                 showSizeChanger: true,
                 pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
                 showTotal: (total) => `共 ${total} 条`
