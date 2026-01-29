@@ -1,9 +1,10 @@
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
 import { Modal, Spin, Table, Tag, Statistic, Row, Col, Card, Empty } from "antd";
 import { BarChartOutlined, CloudServerOutlined, ClockCircleOutlined, GlobalOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 import { trpc } from "../../../lib/trpc";
 
 dayjs.extend(relativeTime);
@@ -15,6 +16,12 @@ export interface ProxyStatsModalRef {
 const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language as "zh" | "en";
+
+  // 根据当前语言设置 dayjs locale
+  useEffect(() => {
+    dayjs.locale(lang === "zh" ? "zh-cn" : "en");
+  }, [lang]);
+
   const [visible, setVisible] = useState(false);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
