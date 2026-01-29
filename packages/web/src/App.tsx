@@ -3,7 +3,7 @@ import { Route, Routes, Navigate } from "react-router-dom";
 import { App as AntdApp } from "antd";
 import { TRPCClientError } from "@trpc/client";
 import { QueryClient } from "@tanstack/react-query";
-import { useAuth, useTheme, useLang } from "./hooks";
+import { useAuth, useThemeContext, useLang } from "./hooks";
 import type { User } from "@acme/types";
 import i18n from "./lib/i18n";
 import { saveUser } from "./lib/storage";
@@ -34,7 +34,7 @@ import {
 // Inner component that uses App.useApp() for message API
 function AppContent() {
   const { user, isAuthed, login, updateUser, logout } = useAuth();
-  const { theme, themeMode, setThemeMode } = useTheme();
+  const { theme, themeMode, setThemeMode } = useThemeContext();
   const { lang, langMode, setLangMode } = useLang();
 
   const handleLogin = (nextUser: User) => {
@@ -47,6 +47,7 @@ function AppContent() {
     }
   };
 
+  // Sync theme/lang from user settings only when user data changes (not on setter changes)
   useEffect(() => {
     if (user?.settings?.themeMode) {
       setThemeMode(user.settings.themeMode);
@@ -54,7 +55,8 @@ function AppContent() {
     if (user?.settings?.langMode) {
       setLangMode(user.settings.langMode);
     }
-  }, [user?.settings?.themeMode, user?.settings?.langMode, setLangMode, setThemeMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.settings?.themeMode, user?.settings?.langMode]);
 
   return (
     <Routes>

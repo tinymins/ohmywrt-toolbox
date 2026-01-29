@@ -10,7 +10,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import i18n from "./lib/i18n";
 import { trpc } from "./lib/trpc";
-import { useTheme } from "./hooks";
+import { ThemeProvider, useThemeContext } from "./hooks";
 
 const getWorkspaceFromPath = () => {
   if (typeof window === "undefined") return undefined;
@@ -43,7 +43,7 @@ if (!rootElement) {
 }
 
 function AppWrapper() {
-  const { theme } = useTheme();
+  const { theme } = useThemeContext();
 
   return (
     <StyleProvider>
@@ -67,7 +67,9 @@ ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <I18nextProvider i18n={i18n}>
       <BrowserRouter>
-        <AppWrapper />
+        <ThemeProvider>
+          <AppWrapper />
+        </ThemeProvider>
       </BrowserRouter>
     </I18nextProvider>
   </React.StrictMode>
