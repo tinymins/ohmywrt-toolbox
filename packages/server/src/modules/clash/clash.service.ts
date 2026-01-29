@@ -301,12 +301,9 @@ export class ClashSubscribeService {
           proxies = parsed?.proxies ?? [];
         }
 
-        // 应用过滤规则
-        const filtered = proxies.filter((p: any) =>
-          !filters.some((f) => p.name && p.name.includes(f))
-        );
-
-        for (const proxy of filtered) {
+        // 遍历所有节点，标记被过滤的
+        for (const proxy of proxies) {
+          const matchedFilter = filters.find((f) => proxy.name && proxy.name.includes(f));
           nodes.push({
             name: this.appendIcon(proxy.name || ""),
             type: proxy.type || "unknown",
@@ -314,7 +311,9 @@ export class ClashSubscribeService {
             port: proxy.port || 0,
             sourceIndex: i + 1,
             sourceUrl: url,
-            raw: proxy
+            raw: proxy,
+            filtered: !!matchedFilter,
+            filteredBy: matchedFilter
           });
         }
       } catch (e) {

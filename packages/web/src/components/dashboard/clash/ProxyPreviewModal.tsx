@@ -18,6 +18,8 @@ interface ProxyNode {
   sourceIndex: number;
   sourceUrl: string;
   raw: Record<string, unknown>;
+  filtered?: boolean;
+  filteredBy?: string;
 }
 
 /** 协议类型对应的颜色 */
@@ -216,15 +218,20 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             {index === 0 ? "手动" : `#${index}`}
           </Tag>
         </Tooltip>
-      )
+      ),
+      filters: [
+        { text: "有效节点", value: false },
+        { text: "已过滤", value: true }
+      ],
+      onFilter: (value, record) => record.filtered === value
     },
     {
       title: "协议",
       dataIndex: "type",
       width: 100,
       align: "center",
-      render: (type: string) => (
-        <Tag color={typeColorMap[type] || "default"}>
+      render: (type: string, record) => (
+        <Tag color={record.filtered ? "default" : (typeColorMap[type] || "default")}>
           {type.toUpperCase()}
         </Tag>
       ),
@@ -243,9 +250,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       title: "节点名称",
       dataIndex: "name",
       ellipsis: true,
-      render: (name: string) => (
-        <Tooltip title={name}>
-          <Text>{name}</Text>
+      render: (name: string, record) => (
+        <Tooltip title={record.filtered ? `${name}\n\n⚠️ 已被过滤规则「${record.filteredBy}」匹配` : name}>
+          <Text delete={record.filtered} type={record.filtered ? "secondary" : undefined}>
+            {name}
+          </Text>
         </Tooltip>
       )
     },
@@ -254,9 +263,13 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       dataIndex: "server",
       width: 200,
       ellipsis: true,
-      render: (server: string) => (
+      render: (server: string, record) => (
         <Tooltip title={server}>
-          <Text copyable={{ text: server }} className="font-mono text-xs">
+          <Text
+            copyable={{ text: server }}
+            className="font-mono text-xs"
+            type={record.filtered ? "secondary" : undefined}
+          >
             {server}
           </Text>
         </Tooltip>
@@ -267,8 +280,10 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       dataIndex: "port",
       width: 80,
       align: "center",
-      render: (port: number) => (
-        <Text className="font-mono text-xs">{port}</Text>
+      render: (port: number, record) => (
+        <Text className="font-mono text-xs" type={record.filtered ? "secondary" : undefined}>
+          {port}
+        </Text>
       )
     },
     {
@@ -292,11 +307,15 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       title: "密钥/UUID",
       dataIndex: "raw",
       width: 180,
-      render: (raw: Record<string, unknown>) => {
+      render: (raw: Record<string, unknown>, record) => {
         const secret = (raw?.uuid || raw?.password || raw?.["auth-str"]) as string | undefined;
         if (!secret) return <Text type="secondary">-</Text>;
         return (
-          <Text copyable={{ text: secret }} className="font-mono text-xs">
+          <Text
+            copyable={{ text: secret }}
+            className="font-mono text-xs"
+            type={record.filtered ? "secondary" : undefined}
+          >
             <Tooltip title="点击复制完整密钥">
               {secret.length > 16 ? `${secret.slice(0, 8)}...${secret.slice(-4)}` : secret}
             </Tooltip>
@@ -308,11 +327,18 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
   const nodes = data?.nodes ?? [];
 
-  // 统计各协议的节点数量
-  const typeCounts = nodes.reduce<Record<string, number>>((acc, node) => {
-    acc[node.type] = (acc[node.type] || 0) + 1;
-    return acc;
-  }, {});
+  // 统计节点数量
+  const totalCount = nodes.length;
+  const filteredCount = nodes.filter((n) => n.filtered).length;
+  const activeCount = totalCount - filteredCount;
+
+  // 统计各协议的节点数量（仅有效节点）
+  const typeCounts = nodes
+    .filter((n) => !n.filtered)
+    .reduce<Record<string, number>>((acc, node) => {
+      acc[node.type] = (acc[node.type] || 0) + 1;
+      return acc;
+    }, {});
 
   return (
     <Modal
@@ -336,7 +362,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
           <>
             {/* 统计信息 */}
             <div className="mb-4 px-4 flex items-center gap-2 flex-wrap">
-              <Text type="secondary">共 {nodes.length} 个节点（点击行展开查看详细配置）：</Text>
+              <Text type="secondary">
+                共 {totalCount} 个节点，有效 {activeCount} 个
+                {filteredCount > 0 && <span>，已过滤 <Text type="warning">{filteredCount}</Text> 个</span>}
+                （点击行展开详情）：
+              </Text>
               {Object.entries(typeCounts).map(([type, count]) => (
                 <Tag key={type} color={typeColorMap[type] || "default"}>
                   {type.toUpperCase()}: {count}
@@ -350,6 +380,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               bordered
               columns={columns}
               dataSource={nodes}
+              rowClassName={(record) => record.filtered ? "opacity-60" : ""}
               expandable={{
                 expandedRowRender: (record) => <ExpandedRow record={record} />,
                 rowExpandable: () => true

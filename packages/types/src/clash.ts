@@ -141,7 +141,11 @@ export const ProxyPreviewNodeSchema = z.object({
   /** 来源地址（订阅 URL） */
   sourceUrl: z.string(),
   /** 完整的代理配置（用于展示详细信息） */
-  raw: z.record(z.string(), z.unknown())
+  raw: z.record(z.string(), z.unknown()),
+  /** 是否被过滤规则过滤 */
+  filtered: z.boolean().optional(),
+  /** 匹配的过滤规则 */
+  filteredBy: z.string().optional()
 });
 
 export type ProxyPreviewNode = z.infer<typeof ProxyPreviewNodeSchema>;
