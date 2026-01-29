@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip } from "antd";
+import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip, Card } from "antd";
 import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, BarChartOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
@@ -9,6 +9,19 @@ import ProxyPreviewModal, { type ProxyPreviewModalRef } from "./ProxyPreviewModa
 import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
 
 const { Text } = Typography;
+
+// 检测是否为移动设备
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useState(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  });
+
+  return isMobile;
+};
 
 interface ProxySubscribeWithUser {
   id: string;
@@ -35,6 +48,7 @@ export default function ProxySubscribeList() {
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const statsModalRef = useRef<ProxyStatsModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const isMobile = useIsMobile();
 
   const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
 
@@ -63,27 +77,141 @@ export default function ProxySubscribeList() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {contextHolder}
       <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
       <ProxyStatsModal ref={statsModalRef} />
 
       <div className="flex justify-between items-center mb-4">
-        <Typography.Title level={3} className="!mb-0">
+        <Typography.Title level={4} className="!mb-0 !text-lg md:!text-xl">
           {t("proxy.title")}
         </Typography.Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => modalRef.current?.open()}
+          size={isMobile ? "middle" : "middle"}
         >
-          {t("proxy.newSubscribe")}
+          <span className="hidden sm:inline">{t("proxy.newSubscribe")}</span>
         </Button>
       </div>
 
       <Spin spinning={isLoading}>
-        <Table
+        {/* Mobile Card View */}
+        {isMobile ? (
+          <div className="space-y-4">
+            {(list ?? []).map((record) => (
+              <Card key={record.id} size="small" className="shadow-sm">
+                <div className="space-y-3">
+                  {/* Header: Creator & Remark */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Text strong>{record.remark || t("proxy.preview.unnamed")}</Text>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {record.user.name} · {dayjs(record.updatedAt).format("MM-DD HH:mm")}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clash URL */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Clash</div>
+                    <Input
+                      size="small"
+                      readOnly
+                      value={getClashUrl(record.url)}
+                      onClick={(e) => e.currentTarget.select()}
+                      addonAfter={
+                        <Space size={8}>
+                          <CopyOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#3b82f6" }}
+                            onClick={() => handleCopyUrl(getClashUrl(record.url))}
+                          />
+                          <ExportOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#22c55e" }}
+                            onClick={() => window.open(getClashUrl(record.url))}
+                          />
+                        </Space>
+                      }
+                    />
+                  </div>
+
+                  {/* Sing-box URL */}
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Sing-box</div>
+                    <Input
+                      size="small"
+                      readOnly
+                      value={getSingboxUrl(record.url)}
+                      onClick={(e) => e.currentTarget.select()}
+                      addonAfter={
+                        <Space size={8}>
+                          <CopyOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#3b82f6" }}
+                            onClick={() => handleCopyUrl(getSingboxUrl(record.url))}
+                          />
+                          <ExportOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#22c55e" }}
+                            onClick={() => window.open(getSingboxUrl(record.url))}
+                          />
+                        </Space>
+                      }
+                    />
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<BarChartOutlined />}
+                      onClick={() => statsModalRef.current?.open(record.id, record.remark)}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => previewModalRef.current?.open(record.id, record.remark)}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => modalRef.current?.open(record.id)}
+                    />
+                    <Popconfirm
+                      title={t("proxy.confirmDelete")}
+                      description={t("proxy.confirmDeleteDesc")}
+                      onConfirm={() => deleteMutation.mutate({ id: record.id })}
+                      okText={t("proxy.common.confirm")}
+                      cancelText={t("proxy.common.cancel")}
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        loading={deleteMutation.isPending}
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {(list ?? []).length === 0 && (
+              <div className="text-center text-gray-500 py-8">
+                {t("proxy.preview.noNodes")}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Desktop Table View */
+          <Table
           rowKey="id"
           size="small"
           bordered
@@ -218,7 +346,8 @@ export default function ProxySubscribeList() {
               )
             }
           ]}
-        />
+          />
+        )}
       </Spin>
     </div>
   );
