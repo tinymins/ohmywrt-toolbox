@@ -473,6 +473,7 @@ export const en: TranslationSchema = {
         remarkPlaceholder: "Subscription remark",
         authorizedUsers: "Authorized Users",
         authorizedUsersPlaceholder: "Select users to authorize (optional)",
+        authorizedUsersOwnerOnly: "Only the owner can modify authorized users",
         subscribeUrlLabel: "Subscribe URLs (JSON array, comments supported)",
         subscribeUrlRequired: "Please enter subscribe URL",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',

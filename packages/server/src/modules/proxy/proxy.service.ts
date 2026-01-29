@@ -177,7 +177,11 @@ export class ProxySubscribeService {
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "订阅不存在" });
     }
-    if (existing.userId !== userId) {
+
+    const isOwner = existing.userId === userId;
+    const isAuthorized = existing.authorizedUserIds.includes(userId);
+
+    if (!isOwner && !isAuthorized) {
       throw new TRPCError({ code: "FORBIDDEN", message: "无权修改此订阅" });
     }
 
@@ -192,7 +196,10 @@ export class ProxySubscribeService {
     if (input.filter !== undefined) updateData.filter = input.filter;
     if (input.servers !== undefined) updateData.servers = input.servers;
     if (input.customConfig !== undefined) updateData.customConfig = input.customConfig;
-    if (input.authorizedUserIds !== undefined) updateData.authorizedUserIds = input.authorizedUserIds;
+    // 只有创建者可以修改授权用户列表
+    if (input.authorizedUserIds !== undefined && isOwner) {
+      updateData.authorizedUserIds = input.authorizedUserIds;
+    }
 
     await db
       .update(proxySubscribes)

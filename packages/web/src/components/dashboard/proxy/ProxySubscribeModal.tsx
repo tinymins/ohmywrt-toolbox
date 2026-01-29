@@ -83,6 +83,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  const [isOwner, setIsOwner] = useState(true); // 是否是创建者
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -94,6 +95,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
 
   // 获取用户列表
   const { data: userList } = trpc.user.list.useQuery();
+
+  // 获取当前用户信息
+  const { data: currentUser } = trpc.user.getProfile.useQuery();
 
   // 获取默认配置
   const { data: defaults } = trpc.proxy.getDefaults.useQuery();
@@ -131,8 +135,10 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
       if (subscribeId) {
         setId(subscribeId);
         setLoading(true);
+        setIsOwner(true); // 先假设是创建者，加载数据后会更新
       } else {
         setId(null);
+        setIsOwner(true); // 新建时一定是创建者
         form.resetFields();
         form.setFieldsValue({
           subscribeUrl: JSON.stringify(["url1", "url2"], null, 2),
@@ -160,6 +166,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
       servers: existingData.servers ?? "",
       authorizedUserIds: existingData.authorizedUserIds
     });
+    // 判断当前用户是否是创建者
+    setIsOwner(existingData.userId === currentUser?.id);
     setLoading(false);
   }
 
@@ -250,13 +258,18 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
               <Form.Item label={t("proxy.form.remark")} name="remark">
                 <Input.TextArea rows={3} placeholder={t("proxy.form.remarkPlaceholder")} />
               </Form.Item>
-              <Form.Item label={t("proxy.form.authorizedUsers")} name="authorizedUserIds">
+              <Form.Item
+                label={t("proxy.form.authorizedUsers")}
+                name="authorizedUserIds"
+                tooltip={!isOwner ? t("proxy.form.authorizedUsersOwnerOnly") : undefined}
+              >
                 <Select
                   mode="multiple"
                   placeholder={t("proxy.form.authorizedUsersPlaceholder")}
                   options={userList?.map(u => ({ label: `${u.name} (${u.email})`, value: u.id })) ?? []}
                   optionFilterProp="label"
                   showSearch
+                  disabled={!isOwner}
                 />
               </Form.Item>
             </div>

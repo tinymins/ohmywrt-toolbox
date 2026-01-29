@@ -483,6 +483,7 @@ export const zh = {
         remarkPlaceholder: "订阅备注",
         authorizedUsers: "授权用户",
         authorizedUsersPlaceholder: "选择要授权的用户（可选）",
+        authorizedUsersOwnerOnly: "只有创建者可以修改授权用户",
         subscribeUrlLabel: "订阅地址 (JSON 数组，支持注释)",
         subscribeUrlRequired: "请输入订阅地址",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
