@@ -2,6 +2,7 @@ import { useState, useImperativeHandle, forwardRef } from "react";
 import { Modal, Form, Input, Select, Segmented, Spin, message } from "antd";
 import Editor, { loader } from "@monaco-editor/react";
 import { parse as parseJsonc } from "jsonc-parser";
+import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
 import type { CreateProxySubscribeInput, UpdateProxySubscribeInput } from "@acme/types";
 
@@ -97,22 +98,29 @@ const DEFAULT_RULE_PROVIDERS = {
 };
 
 const TABS = [
-  { label: "基础信息", value: "basic" },
-  { label: "订阅地址", value: "subscribeUrl" },
-  { label: "规则列表", value: "ruleList" },
-  { label: "分组", value: "group" },
-  { label: "过滤器", value: "filter" },
-  { label: "自定义配置", value: "customConfig" },
-  { label: "额外服务器", value: "servers" }
+  { label: "basic", value: "basic" },
+  { label: "subscribeUrl", value: "subscribeUrl" },
+  { label: "ruleList", value: "ruleList" },
+  { label: "group", value: "group" },
+  { label: "filter", value: "filter" },
+  { label: "customConfig", value: "customConfig" },
+  { label: "servers", value: "servers" }
 ];
 
 const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSuccess }, ref) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
+
+  // 获取 tabs 的本地化标签
+  const localizedTabs = TABS.map(tab => ({
+    ...tab,
+    label: t(`proxy.tabs.${tab.label}`)
+  }));
 
   // 获取用户列表
   const { data: userList } = trpc.user.list.useQuery();
@@ -124,23 +132,23 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
 
   const createMutation = trpc.proxy.create.useMutation({
     onSuccess: () => {
-      messageApi.success("创建成功");
+      messageApi.success(t("proxy.createSuccess"));
       setOpen(false);
       onSuccess();
     },
     onError: (error) => {
-      messageApi.error(error.message || "创建失败");
+      messageApi.error(error.message || t("proxy.createFailed"));
     }
   });
 
   const updateMutation = trpc.proxy.update.useMutation({
     onSuccess: () => {
-      messageApi.success("更新成功");
+      messageApi.success(t("proxy.updateSuccess"));
       setOpen(false);
       onSuccess();
     },
     onError: (error) => {
-      messageApi.error(error.message || "更新失败");
+      messageApi.error(error.message || t("proxy.updateFailed"));
     }
   });
 
@@ -193,7 +201,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
           parseJsonc(values[field]);
           return true;
         } catch {
-          messageApi.error(`${field} JSON 格式错误`);
+          messageApi.error(`${field} ${t("proxy.form.jsonFormatError")}`);
           return false;
         }
       };
@@ -202,7 +210,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
       const fields = ["subscribeUrl", "ruleList", "group", "filter", "customConfig", "servers"];
       for (const field of fields) {
         if (!validateJsonc(field)) {
-          throw new Error(`${field} JSON 格式错误`);
+          throw new Error(`${field} ${t("proxy.form.jsonFormatError")}`);
         }
       }
 
@@ -235,7 +243,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
     <>
       {contextHolder}
       <Modal
-        title={id ? "编辑订阅" : "新建订阅"}
+        title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
         open={open}
         onCancel={() => setOpen(false)}
         onOk={handleSubmit}
@@ -247,7 +255,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
           <div className="mb-4">
             <Segmented
               block
-              options={TABS}
+              options={localizedTabs}
               value={activeTab}
               onChange={(value) => setActiveTab(value as string)}
             />
@@ -256,13 +264,13 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
           <Form form={form} layout="vertical">
             {/* 基础信息 */}
             <div style={{ display: activeTab === "basic" ? "block" : "none" }}>
-              <Form.Item label="备注" name="remark">
-                <Input.TextArea rows={3} placeholder="订阅备注" />
+              <Form.Item label={t("proxy.form.remark")} name="remark">
+                <Input.TextArea rows={3} placeholder={t("proxy.form.remarkPlaceholder")} />
               </Form.Item>
-              <Form.Item label="授权用户" name="authorizedUserIds">
+              <Form.Item label={t("proxy.form.authorizedUsers")} name="authorizedUserIds">
                 <Select
                   mode="multiple"
-                  placeholder="选择要授权的用户（可选）"
+                  placeholder={t("proxy.form.authorizedUsersPlaceholder")}
                   options={userList?.map(u => ({ label: `${u.name} (${u.email})`, value: u.id })) ?? []}
                   optionFilterProp="label"
                   showSearch
@@ -273,61 +281,61 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
             {/* 订阅地址 */}
             <div style={{ display: activeTab === "subscribeUrl" ? "block" : "none" }}>
               <Form.Item
-                label="订阅地址 (JSON 数组，支持注释)"
+                label={t("proxy.form.subscribeUrlLabel")}
                 name="subscribeUrl"
-                rules={[{ required: true, message: "请输入订阅地址" }]}
+                rules={[{ required: true, message: t("proxy.form.subscribeUrlRequired") }]}
               >
-                <JsoncEditor placeholder='["https://example.com/subscribe"]' />
+                <JsoncEditor placeholder={t("proxy.form.subscribeUrlPlaceholder")} />
               </Form.Item>
             </div>
 
             {/* 规则列表 */}
             <div style={{ display: activeTab === "ruleList" ? "block" : "none" }}>
               <Form.Item
-                label="规则列表 (JSON 对象，支持注释)"
+                label={t("proxy.form.ruleListLabel")}
                 name="ruleList"
               >
-                <JsoncEditor placeholder='{"分组名": [{"name": "规则名", "url": "规则地址"}]}' />
+                <JsoncEditor placeholder={t("proxy.form.ruleListPlaceholder")} />
               </Form.Item>
             </div>
 
             {/* 分组 */}
             <div style={{ display: activeTab === "group" ? "block" : "none" }}>
               <Form.Item
-                label="分组配置 (JSON 数组，支持注释)"
+                label={t("proxy.form.groupLabel")}
                 name="group"
               >
-                <JsoncEditor placeholder='[{"name": "分组名", "type": "select", "proxies": ["节点1"]}]' />
+                <JsoncEditor placeholder={t("proxy.form.groupPlaceholder")} />
               </Form.Item>
             </div>
 
             {/* 过滤器 */}
             <div style={{ display: activeTab === "filter" ? "block" : "none" }}>
               <Form.Item
-                label="节点过滤器 (JSON 数组，支持注释)"
+                label={t("proxy.form.filterLabel")}
                 name="filter"
               >
-                <JsoncEditor placeholder='["关键词1", "关键词2"]' />
+                <JsoncEditor placeholder={t("proxy.form.filterPlaceholder")} />
               </Form.Item>
             </div>
 
             {/* 自定义配置 */}
             <div style={{ display: activeTab === "customConfig" ? "block" : "none" }}>
               <Form.Item
-                label="自定义规则 (JSON 数组，支持注释)"
+                label={t("proxy.form.customConfigLabel")}
                 name="customConfig"
               >
-                <JsoncEditor placeholder='["DOMAIN,example.com,DIRECT"]' />
+                <JsoncEditor placeholder={t("proxy.form.customConfigPlaceholder")} />
               </Form.Item>
             </div>
 
             {/* 额外服务器 */}
             <div style={{ display: activeTab === "servers" ? "block" : "none" }}>
               <Form.Item
-                label="额外服务器 (JSON 数组，支持注释)"
+                label={t("proxy.form.serversLabel")}
                 name="servers"
               >
-                <JsoncEditor placeholder='[{"name": "服务器名", "type": "ss", "server": "1.2.3.4", "port": 443}]' />
+                <JsoncEditor placeholder={t("proxy.form.serversPlaceholder")} />
               </Form.Item>
             </div>
           </Form>

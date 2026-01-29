@@ -2,6 +2,7 @@ import { useState, forwardRef, useImperativeHandle } from "react";
 import { Modal, Table, Tooltip, Tag, Typography, Spin, Empty, Descriptions } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EyeOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
 
 const { Text } = Typography;
@@ -104,15 +105,15 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
 };
 
 /** 格式化值显示 */
-const formatValue = (value: unknown): string => {
+const formatValue = (value: unknown, yesText = "Yes", noText = "No"): string => {
   if (value === undefined || value === null) return "-";
-  if (typeof value === "boolean") return value ? "是" : "否";
+  if (typeof value === "boolean") return value ? yesText : noText;
   if (typeof value === "object") return JSON.stringify(value, null, 2);
   return String(value);
 };
 
 /** 渲染展开行内容 */
-const ExpandedRow = ({ record }: { record: ProxyNode }) => {
+const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }: { record: ProxyNode; noDetailText: string; clickToCopyText: string; yesText: string; noText: string }) => {
   const fields = protocolFields[record.type] || [];
   const raw = record.raw || {};
 
@@ -127,7 +128,7 @@ const ExpandedRow = ({ record }: { record: ProxyNode }) => {
   if (fields.length === 0 && extraKeys.length === 0) {
     return (
       <div className="px-4 py-2 text-gray-500">
-        <Text type="secondary">暂无详细配置信息</Text>
+        <Text type="secondary">{noDetailText}</Text>
       </div>
     );
   }
@@ -146,19 +147,19 @@ const ExpandedRow = ({ record }: { record: ProxyNode }) => {
           return (
             <Descriptions.Item key={field.key} label={field.label}>
               {field.sensitive ? (
-                <Text copyable={{ text: formatValue(value) }} className="font-mono text-xs">
-                  <Tooltip title="点击复制">
+                <Text copyable={{ text: formatValue(value, yesText, noText) }} className="font-mono text-xs">
+                  <Tooltip title={clickToCopyText}>
                     {typeof value === "string" && value.length > 20
                       ? `${value.slice(0, 8)}...${value.slice(-8)}`
-                      : formatValue(value)}
+                      : formatValue(value, yesText, noText)}
                   </Tooltip>
                 </Text>
               ) : typeof value === "object" ? (
                 <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-h-24 overflow-auto">
-                  {formatValue(value)}
+                  {formatValue(value, yesText, noText)}
                 </pre>
               ) : (
-                <Text className="font-mono text-xs">{formatValue(value)}</Text>
+                <Text className="font-mono text-xs">{formatValue(value, yesText, noText)}</Text>
               )}
             </Descriptions.Item>
           );
@@ -184,6 +185,7 @@ const ExpandedRow = ({ record }: { record: ProxyNode }) => {
 };
 
 const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
@@ -196,7 +198,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   useImperativeHandle(ref, () => ({
     open: (id: string, remark?: string | null) => {
       setSubscribeId(id);
-      setSubscribeRemark(remark ?? "未命名订阅");
+      setSubscribeRemark(remark ?? t("proxy.preview.unnamed"));
       setVisible(true);
     }
   }));
@@ -208,25 +210,25 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
   const columns: ColumnsType<ProxyNode> = [
     {
-      title: "来源",
+      title: t("proxy.preview.source"),
       dataIndex: "sourceIndex",
       width: 80,
       align: "center",
       render: (index: number, record) => (
         <Tooltip title={record.sourceUrl} placement="top">
           <Tag color={index === 0 ? "default" : "blue"} className="cursor-help">
-            {index === 0 ? "手动" : `#${index}`}
+            {index === 0 ? t("proxy.preview.manual") : `#${index}`}
           </Tag>
         </Tooltip>
       ),
       filters: [
-        { text: "有效节点", value: false },
-        { text: "已过滤", value: true }
+        { text: t("proxy.preview.filters.validNodes"), value: false },
+        { text: t("proxy.preview.filters.filtered"), value: true }
       ],
       onFilter: (value, record) => record.filtered === value
     },
     {
-      title: "协议",
+      title: t("proxy.preview.protocol"),
       dataIndex: "type",
       width: 100,
       align: "center",
@@ -247,11 +249,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       onFilter: (value, record) => record.type === value
     },
     {
-      title: "节点名称",
+      title: t("proxy.preview.nodeName"),
       dataIndex: "name",
       ellipsis: true,
       render: (name: string, record) => (
-        <Tooltip title={record.filtered ? `${name}\n\n⚠️ 已被过滤规则「${record.filteredBy}」匹配` : name}>
+        <Tooltip title={record.filtered ? `${name}\n\n⚠️ ${t("proxy.preview.filteredBy", { rule: record.filteredBy })}` : name}>
           <Text delete={record.filtered} type={record.filtered ? "secondary" : undefined}>
             {name}
           </Text>
@@ -259,7 +261,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       )
     },
     {
-      title: "服务器",
+      title: t("proxy.preview.server"),
       dataIndex: "server",
       width: 200,
       ellipsis: true,
@@ -276,7 +278,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       )
     },
     {
-      title: "端口",
+      title: t("proxy.preview.port"),
       dataIndex: "port",
       width: 80,
       align: "center",
@@ -287,7 +289,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       )
     },
     {
-      title: "传输/TLS",
+      title: t("proxy.preview.transport"),
       dataIndex: "raw",
       width: 120,
       align: "center",
@@ -304,7 +306,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       }
     },
     {
-      title: "密钥/UUID",
+      title: t("proxy.preview.secret"),
       dataIndex: "raw",
       width: 180,
       render: (raw: Record<string, unknown>, record) => {
@@ -316,7 +318,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             className="font-mono text-xs"
             type={record.filtered ? "secondary" : undefined}
           >
-            <Tooltip title="点击复制完整密钥">
+            <Tooltip title={t("proxy.preview.clickToCopyFull")}>
               {secret.length > 16 ? `${secret.slice(0, 8)}...${secret.slice(-4)}` : secret}
             </Tooltip>
           </Text>
@@ -345,7 +347,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       title={
         <div className="flex items-center gap-2">
           <EyeOutlined />
-          <span>节点预览 - {subscribeRemark}</span>
+          <span>{t("proxy.preview.title")} - {subscribeRemark}</span>
         </div>
       }
       open={visible}
@@ -357,15 +359,15 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
     >
       <Spin spinning={isLoading}>
         {!isLoading && nodes.length === 0 ? (
-          <Empty description="未找到节点" />
+          <Empty description={t("proxy.preview.noNodes")} />
         ) : (
           <>
             {/* 统计信息 */}
             <div className="mb-4 px-4 flex items-center gap-2 flex-wrap">
               <Text type="secondary">
-                共 {totalCount} 个节点，有效 {activeCount} 个
-                {filteredCount > 0 && <span>，已过滤 <Text type="warning">{filteredCount}</Text> 个</span>}
-                （点击行展开详情）：
+                {t("proxy.preview.totalNodes", { total: totalCount, active: activeCount })}
+                {filteredCount > 0 && <span>, {t("proxy.preview.filtered")} <Text type="warning">{filteredCount}</Text></span>}
+                ({t("proxy.preview.clickToExpand")}):
               </Text>
               {Object.entries(typeCounts).map(([type, count]) => (
                 <Tag key={type} color={typeColorMap[type] || "default"}>
@@ -382,14 +384,22 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               dataSource={nodes}
               rowClassName={(record) => record.filtered ? "opacity-60" : ""}
               expandable={{
-                expandedRowRender: (record) => <ExpandedRow record={record} />,
+                expandedRowRender: (record) => (
+                  <ExpandedRow
+                    record={record}
+                    noDetailText={t("proxy.preview.noDetailInfo")}
+                    clickToCopyText={t("proxy.preview.clickToCopy")}
+                    yesText={t("proxy.common.confirm")}
+                    noText={t("proxy.common.cancel")}
+                  />
+                ),
                 rowExpandable: () => true
               }}
               pagination={{
                 defaultPageSize: 500,
                 showSizeChanger: true,
                 pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
-                showTotal: (total) => `共 ${total} 条`
+                showTotal: (total) => `${total}`
               }}
               scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
             />

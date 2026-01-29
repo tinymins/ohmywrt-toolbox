@@ -443,6 +443,90 @@ export const en: TranslationSchema = {
         deleteChildrenFirst: "Please delete all child requirements first"
       }
     },
+    proxy: {
+      title: "Proxy Subscription",
+      newSubscribe: "New Subscription",
+      editSubscribe: "Edit Subscription",
+      deleteSuccess: "Deleted successfully",
+      deleteFailed: "Delete failed",
+      createSuccess: "Created successfully",
+      createFailed: "Create failed",
+      updateSuccess: "Updated successfully",
+      updateFailed: "Update failed",
+      copiedToClipboard: "Copied to clipboard",
+      confirmDelete: "Confirm Delete",
+      confirmDeleteDesc: "Are you sure you want to delete this subscription?",
+      columns: {
+        creator: "Creator",
+        remark: "Remark",
+        clashUrl: "Clash Subscribe URL",
+        singboxUrl: "Sing-box Subscribe URL",
+        lastUpdate: "Last Update",
+        actions: "Actions"
+      },
+      actions: {
+        preview: "Preview Nodes",
+        edit: "Edit",
+        delete: "Delete"
+      },
+      tabs: {
+        basic: "Basic Info",
+        subscribeUrl: "Subscribe URL",
+        ruleList: "Rule List",
+        group: "Groups",
+        filter: "Filters",
+        customConfig: "Custom Config",
+        servers: "Extra Servers"
+      },
+      form: {
+        remark: "Remark",
+        remarkPlaceholder: "Subscription remark",
+        authorizedUsers: "Authorized Users",
+        authorizedUsersPlaceholder: "Select users to authorize (optional)",
+        subscribeUrlLabel: "Subscribe URLs (JSON array, comments supported)",
+        subscribeUrlRequired: "Please enter subscribe URL",
+        subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
+        ruleListLabel: "Rule List (JSON object, comments supported)",
+        ruleListPlaceholder: '{"GroupName": [{"name": "RuleName", "url": "RuleURL"}]}',
+        groupLabel: "Group Config (JSON array, comments supported)",
+        groupPlaceholder: '[{"name": "GroupName", "type": "select", "proxies": ["Node1"]}]',
+        filterLabel: "Node Filters (JSON array, comments supported)",
+        filterPlaceholder: '["keyword1", "keyword2"]',
+        customConfigLabel: "Custom Rules (JSON array, comments supported)",
+        customConfigPlaceholder: '["DOMAIN,example.com,DIRECT"]',
+        serversLabel: "Extra Servers (JSON array, comments supported)",
+        serversPlaceholder: '[{"name": "ServerName", "type": "ss", "server": "1.2.3.4", "port": 443}]',
+        jsonFormatError: "JSON format error"
+      },
+      preview: {
+        title: "Node Preview",
+        unnamed: "Unnamed Subscription",
+        noNodes: "No nodes found",
+        totalNodes: "Total {{total}} nodes, {{active}} active",
+        filtered: "Filtered",
+        clickToExpand: "Click row to expand details",
+        source: "Source",
+        manual: "Manual",
+        protocol: "Protocol",
+        nodeName: "Node Name",
+        server: "Server",
+        port: "Port",
+        transport: "Transport/TLS",
+        secret: "Secret/UUID",
+        clickToCopy: "Click to copy",
+        clickToCopyFull: "Click to copy full secret",
+        filteredBy: "Filtered by rule \"{{rule}}\"",
+        noDetailInfo: "No detailed configuration",
+        filters: {
+          validNodes: "Valid Nodes",
+          filtered: "Filtered"
+        }
+      },
+      common: {
+        confirm: "Confirm",
+        cancel: "Cancel"
+      }
+    },
     footer: {
       copyright: "© 2026 TestOps AI. All rights reserved.",
       tagline: "AI-first testing operations platform"

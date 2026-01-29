@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip } from "antd";
 import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
 import ProxySubscribeModal, { type ProxySubscribeModalRef } from "./ProxySubscribeModal";
@@ -28,6 +29,7 @@ interface ProxySubscribeWithUser {
 }
 
 export default function ProxySubscribeList() {
+  const { t } = useTranslation();
   const modalRef = useRef<ProxySubscribeModalRef>(null);
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
@@ -36,17 +38,17 @@ export default function ProxySubscribeList() {
 
   const deleteMutation = trpc.proxy.delete.useMutation({
     onSuccess: () => {
-      messageApi.success("删除成功");
+      messageApi.success(t("proxy.deleteSuccess"));
       refetch();
     },
     onError: (error) => {
-      messageApi.error(error.message || "删除失败");
+      messageApi.error(error.message || t("proxy.deleteFailed"));
     }
   });
 
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url).then(() => {
-      messageApi.success("已复制到剪贴板");
+      messageApi.success(t("proxy.copiedToClipboard"));
     });
   };
 
@@ -66,14 +68,14 @@ export default function ProxySubscribeList() {
 
       <div className="flex justify-between items-center mb-4">
         <Typography.Title level={3} className="!mb-0">
-          代理订阅管理
+          {t("proxy.title")}
         </Typography.Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => modalRef.current?.open()}
         >
-          新建订阅
+          {t("proxy.newSubscribe")}
         </Button>
       </div>
 
@@ -87,20 +89,20 @@ export default function ProxySubscribeList() {
           scroll={{ x: 800 }}
           columns={[
             {
-              title: "创建者",
+              title: t("proxy.columns.creator"),
               dataIndex: ["user", "name"],
               width: 100,
               ellipsis: true
             },
             {
-              title: "备注",
+              title: t("proxy.columns.remark"),
               dataIndex: "remark",
               width: 150,
               ellipsis: true,
               render: (text) => text || "-"
             },
             {
-              title: "Clash 订阅链接",
+              title: t("proxy.columns.clashUrl"),
               dataIndex: "url",
               render: (uuid: string) => {
                 const url = getClashUrl(uuid);
@@ -128,7 +130,7 @@ export default function ProxySubscribeList() {
               }
             },
             {
-              title: "Sing-box 订阅链接",
+              title: t("proxy.columns.singboxUrl"),
               dataIndex: "url",
               render: (uuid: string) => {
                 const url = getSingboxUrl(uuid);
@@ -156,19 +158,19 @@ export default function ProxySubscribeList() {
               }
             },
             {
-              title: "最后更新",
+              title: t("proxy.columns.lastUpdate"),
               dataIndex: "updatedAt",
               width: 160,
               render: (text: string) => dayjs(text).format("YYYY-MM-DD HH:mm:ss")
             },
             {
-              title: "操作",
+              title: t("proxy.columns.actions"),
               align: "center",
               width: 120,
               fixed: "right",
               render: (_, record) => (
                 <Space size="middle">
-                  <Tooltip title="预览节点">
+                  <Tooltip title={t("proxy.actions.preview")}>
                     <Button
                       type="link"
                       size="small"
@@ -176,7 +178,7 @@ export default function ProxySubscribeList() {
                       onClick={() => previewModalRef.current?.open(record.id, record.remark)}
                     />
                   </Tooltip>
-                  <Tooltip title="编辑">
+                  <Tooltip title={t("proxy.actions.edit")}>
                     <Button
                       type="link"
                       size="small"
@@ -185,13 +187,13 @@ export default function ProxySubscribeList() {
                     />
                   </Tooltip>
                   <Popconfirm
-                    title="确认删除"
-                    description="确定要删除这个订阅吗？"
+                    title={t("proxy.confirmDelete")}
+                    description={t("proxy.confirmDeleteDesc")}
                     onConfirm={() => deleteMutation.mutate({ id: record.id })}
-                    okText="确定"
-                    cancelText="取消"
+                    okText={t("proxy.common.confirm")}
+                    cancelText={t("proxy.common.cancel")}
                   >
-                    <Tooltip title="删除">
+                    <Tooltip title={t("proxy.actions.delete")}>
                       <Button
                         type="link"
                         danger

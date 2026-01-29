@@ -453,6 +453,90 @@ export const zh = {
           deleteChildrenFirst: "请先删除所有子需求"
         }
       },
+    proxy: {
+      title: "代理订阅管理",
+      newSubscribe: "新建订阅",
+      editSubscribe: "编辑订阅",
+      deleteSuccess: "删除成功",
+      deleteFailed: "删除失败",
+      createSuccess: "创建成功",
+      createFailed: "创建失败",
+      updateSuccess: "更新成功",
+      updateFailed: "更新失败",
+      copiedToClipboard: "已复制到剪贴板",
+      confirmDelete: "确认删除",
+      confirmDeleteDesc: "确定要删除这个订阅吗？",
+      columns: {
+        creator: "创建者",
+        remark: "备注",
+        clashUrl: "Clash 订阅链接",
+        singboxUrl: "Sing-box 订阅链接",
+        lastUpdate: "最后更新",
+        actions: "操作"
+      },
+      actions: {
+        preview: "预览节点",
+        edit: "编辑",
+        delete: "删除"
+      },
+      tabs: {
+        basic: "基础信息",
+        subscribeUrl: "订阅地址",
+        ruleList: "规则列表",
+        group: "分组",
+        filter: "过滤器",
+        customConfig: "自定义配置",
+        servers: "额外服务器"
+      },
+      form: {
+        remark: "备注",
+        remarkPlaceholder: "订阅备注",
+        authorizedUsers: "授权用户",
+        authorizedUsersPlaceholder: "选择要授权的用户（可选）",
+        subscribeUrlLabel: "订阅地址 (JSON 数组，支持注释)",
+        subscribeUrlRequired: "请输入订阅地址",
+        subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
+        ruleListLabel: "规则列表 (JSON 对象，支持注释)",
+        ruleListPlaceholder: '{"分组名": [{"name": "规则名", "url": "规则地址"}]}',
+        groupLabel: "分组配置 (JSON 数组，支持注释)",
+        groupPlaceholder: '[{"name": "分组名", "type": "select", "proxies": ["节点1"]}]',
+        filterLabel: "节点过滤器 (JSON 数组，支持注释)",
+        filterPlaceholder: '["关键词1", "关键词2"]',
+        customConfigLabel: "自定义规则 (JSON 数组，支持注释)",
+        customConfigPlaceholder: '["DOMAIN,example.com,DIRECT"]',
+        serversLabel: "额外服务器 (JSON 数组，支持注释)",
+        serversPlaceholder: '[{"name": "服务器名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
+        jsonFormatError: "JSON 格式错误"
+      },
+      preview: {
+        title: "节点预览",
+        unnamed: "未命名订阅",
+        noNodes: "未找到节点",
+        totalNodes: "共 {{total}} 个节点，有效 {{active}} 个",
+        filtered: "已过滤",
+        clickToExpand: "点击行展开详情",
+        source: "来源",
+        manual: "手动",
+        protocol: "协议",
+        nodeName: "节点名称",
+        server: "服务器",
+        port: "端口",
+        transport: "传输/TLS",
+        secret: "密钥/UUID",
+        clickToCopy: "点击复制",
+        clickToCopyFull: "点击复制完整密钥",
+        filteredBy: "已被过滤规则「{{rule}}」匹配",
+        noDetailInfo: "暂无详细配置信息",
+        filters: {
+          validNodes: "有效节点",
+          filtered: "已过滤"
+        }
+      },
+      common: {
+        confirm: "确定",
+        cancel: "取消"
+      }
+    },
     footer: {
       copyright: "© 2026 TestOps AI. All rights reserved.",
       tagline: "AI 驱动的测试全流程平台"
