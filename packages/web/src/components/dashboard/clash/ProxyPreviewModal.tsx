@@ -391,7 +391,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                 pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
                 showTotal: (total) => `共 ${total} 条`
               }}
-              scroll={{ y: "calc(100vh - 280px)" }}
+              scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
             />
           </>
         )}

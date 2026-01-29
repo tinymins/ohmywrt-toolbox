@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin } from "antd";
+import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip } from "antd";
 import { LinkOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
@@ -84,6 +84,7 @@ export default function ClashSubscribeList() {
           bordered
           pagination={false}
           dataSource={list ?? []}
+          scroll={{ x: 800 }}
           columns={[
             {
               title: "创建者",
@@ -101,7 +102,6 @@ export default function ClashSubscribeList() {
             {
               title: "Clash 订阅链接",
               dataIndex: "url",
-              width: 300,
               render: (uuid: string) => {
                 const url = getClashUrl(uuid);
                 return (
@@ -128,7 +128,6 @@ export default function ClashSubscribeList() {
             {
               title: "Sing-box 订阅链接",
               dataIndex: "url",
-              width: 300,
               render: (uuid: string) => {
                 const url = getSingboxUrl(uuid);
                 return (
@@ -161,25 +160,26 @@ export default function ClashSubscribeList() {
             {
               title: "操作",
               align: "center",
-              width: 200,
+              width: 120,
+              fixed: "right",
               render: (_, record) => (
-                <Space>
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<EyeOutlined />}
-                    onClick={() => previewModalRef.current?.open(record.id, record.remark)}
-                  >
-                    预览
-                  </Button>
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<EditOutlined />}
-                    onClick={() => modalRef.current?.open(record.id)}
-                  >
-                    编辑
-                  </Button>
+                <Space size="middle">
+                  <Tooltip title="预览节点">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<EyeOutlined />}
+                      onClick={() => previewModalRef.current?.open(record.id, record.remark)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="编辑">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => modalRef.current?.open(record.id)}
+                    />
+                  </Tooltip>
                   <Popconfirm
                     title="确认删除"
                     description="确定要删除这个订阅吗？"
@@ -187,15 +187,15 @@ export default function ClashSubscribeList() {
                     okText="确定"
                     cancelText="取消"
                   >
-                    <Button
-                      type="link"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      loading={deleteMutation.isPending}
-                    >
-                      删除
-                    </Button>
+                    <Tooltip title="删除">
+                      <Button
+                        type="link"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        loading={deleteMutation.isPending}
+                      />
+                    </Tooltip>
                   </Popconfirm>
                 </Space>
               )
