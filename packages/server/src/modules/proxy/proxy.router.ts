@@ -167,4 +167,18 @@ export class ProxyRouter {
   async getUserStats(@Ctx() ctx: Context) {
     return proxySubscribeService.getUserStats(ctx.userId!);
   }
+
+  /** 获取默认配置（用于前端恢复默认） */
+  @UseMiddlewares(requireUser)
+  @Query({
+    output: z.object({
+      ruleList: z.string(),
+      group: z.string(),
+      filter: z.string(),
+      customConfig: z.string()
+    })
+  })
+  async getDefaults() {
+    return proxySubscribeService.getDefaults();
+  }
 }

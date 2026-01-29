@@ -496,7 +496,10 @@ export const zh = {
         customConfigPlaceholder: '["DOMAIN,example.com,DIRECT"]',
         serversLabel: "额外服务器 (JSON 数组，支持注释)",
         serversPlaceholder: '[{"name": "服务器名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
-        jsonFormatError: "JSON 格式错误"
+        jsonFormatError: "JSON 格式错误",
+        resetToDefault: "恢复默认",
+        resetSuccess: "已恢复为默认配置",
+        resetFailed: "获取默认配置失败"
       },
       preview: {
         title: "节点预览",

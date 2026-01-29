@@ -110,6 +110,12 @@ export const DEFAULT_RULE_PROVIDERS: ProxyRuleProvidersList = {
   ]
 };
 
+/** 默认过滤器 */
+export const DEFAULT_FILTER: string[] = ["官网", "客服", "qq群"];
+
+/** 默认自定义规则 */
+export const DEFAULT_CUSTOM_CONFIG: string[] = [];
+
 /** 国旗映射表 */
 export const FLAG_MAP: Record<string, string> = {
   香港: "🇭🇰",

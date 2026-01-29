@@ -7,7 +7,7 @@ import { parse as parseJsonc } from "jsonc-parser";
 import { db } from "../../db/client";
 import { proxySubscribes, proxyAccessLogs, users } from "../../db/schema";
 import type { CreateProxySubscribeInput, UpdateProxySubscribeInput, ProxyPreviewNode } from "@acme/types";
-import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS } from "./lib/config";
+import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS, DEFAULT_FILTER, DEFAULT_CUSTOM_CONFIG } from "./lib/config";
 import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
 
 type ProxySubscribeRow = typeof proxySubscribes.$inferSelect;
@@ -359,6 +359,21 @@ export class ProxySubscribeService {
       totalSubscriptions: subscriptions.length,
       totalNodes: Number(nodesResult?.total ?? 0),
       todayRequests: todayResult?.count ?? 0
+    };
+  }
+
+  /** 获取默认配置（JSON 字符串格式） */
+  getDefaults(): {
+    ruleList: string;
+    group: string;
+    filter: string;
+    customConfig: string;
+  } {
+    return {
+      ruleList: JSON.stringify(DEFAULT_RULE_PROVIDERS, null, 2),
+      group: JSON.stringify(DEFAULT_GROUPS, null, 2),
+      filter: JSON.stringify(DEFAULT_FILTER, null, 2),
+      customConfig: JSON.stringify(DEFAULT_CUSTOM_CONFIG, null, 2)
     };
   }
 

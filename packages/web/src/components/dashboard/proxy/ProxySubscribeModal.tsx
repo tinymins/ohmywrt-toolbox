@@ -1,5 +1,6 @@
 import { useState, useImperativeHandle, forwardRef } from "react";
-import { Modal, Form, Input, Select, Segmented, Spin, message } from "antd";
+import { Modal, Form, Input, Select, Segmented, Spin, message, Button } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 import Editor, { loader } from "@monaco-editor/react";
 import { parse as parseJsonc } from "jsonc-parser";
 import { useTranslation } from "react-i18next";
@@ -66,37 +67,6 @@ interface Props {
   onSuccess: () => void;
 }
 
-// 默认分组配置
-const DEFAULT_GROUPS = [
-  { name: "🔰 国外流量", type: "select", proxies: ["🚀 直接连接"] },
-  { name: "🏳️‍🌈 Google", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "✈️ Telegram", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "🎬 Youtube", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "🎮 Steam", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "🤖 AI", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "🐙 GitHub", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"] },
-  { name: "🚀 直接连接", type: "select", proxies: ["DIRECT"], readonly: true },
-  { name: "⚓️ 其他流量", type: "select", proxies: ["🔰 国外流量", "🚀 直接连接"], readonly: true }
-];
-
-const DEFAULT_RULE_PROVIDERS = {
-  "🤖 AI": [
-    { name: "AI", url: "https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/AI%20Suite.yaml" }
-  ],
-  "🐙 GitHub": [
-    { name: "GitHub", url: "https://raw.githubusercontent.com/ohmywrt/clash-rule/refs/heads/master/github.yaml" }
-  ],
-  "🎮 Steam": [
-    { name: "Steam", url: "https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Steam.yaml" }
-  ],
-  "✈️ Telegram": [
-    { name: "Telegram", url: "https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Telegram.yaml" }
-  ],
-  "🏳️‍🌈 Google": [
-    { name: "GoogleCIDRv2", url: "https://vercel.williamchan.me/api/google-ips" }
-  ]
-};
-
 const TABS = [
   { label: "basic", value: "basic" },
   { label: "subscribeUrl", value: "subscribeUrl" },
@@ -124,6 +94,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
 
   // 获取用户列表
   const { data: userList } = trpc.user.list.useQuery();
+
+  // 获取默认配置
+  const { data: defaults } = trpc.proxy.getDefaults.useQuery();
 
   const { data: existingData, isLoading: isLoadingData } = trpc.proxy.getById.useQuery(
     { id: id! },
@@ -163,10 +136,10 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
         form.resetFields();
         form.setFieldsValue({
           subscribeUrl: JSON.stringify(["url1", "url2"], null, 2),
-          ruleList: JSON.stringify(DEFAULT_RULE_PROVIDERS, null, 2),
-          group: JSON.stringify(DEFAULT_GROUPS, null, 2),
-          filter: JSON.stringify(["官网", "客服", "qq群"], null, 2),
-          customConfig: JSON.stringify([], null, 2),
+          ruleList: defaults?.ruleList ?? "{}",
+          group: defaults?.group ?? "[]",
+          filter: defaults?.filter ?? "[]",
+          customConfig: defaults?.customConfig ?? "[]",
           servers: JSON.stringify([], null, 2)
         });
         setLoading(false);
@@ -239,6 +212,16 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
 
   const isPending = createMutation.isPending || updateMutation.isPending;
 
+  // 恢复默认配置的处理函数
+  const handleResetToDefault = (field: "ruleList" | "group" | "filter" | "customConfig") => {
+    if (!defaults) {
+      messageApi.error(t("proxy.form.resetFailed"));
+      return;
+    }
+    form.setFieldValue(field, defaults[field]);
+    messageApi.success(t("proxy.form.resetSuccess"));
+  };
+
   return (
     <>
       {contextHolder}
@@ -292,7 +275,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
             {/* 规则列表 */}
             <div style={{ display: activeTab === "ruleList" ? "block" : "none" }}>
               <Form.Item
-                label={t("proxy.form.ruleListLabel")}
+                label={
+                  <div className="flex items-center justify-between w-full">
+                    <span>{t("proxy.form.ruleListLabel")}</span>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ReloadOutlined />}
+                      onClick={() => handleResetToDefault("ruleList")}
+                    >
+                      {t("proxy.form.resetToDefault")}
+                    </Button>
+                  </div>
+                }
                 name="ruleList"
               >
                 <JsoncEditor placeholder={t("proxy.form.ruleListPlaceholder")} />
@@ -302,7 +297,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
             {/* 分组 */}
             <div style={{ display: activeTab === "group" ? "block" : "none" }}>
               <Form.Item
-                label={t("proxy.form.groupLabel")}
+                label={
+                  <div className="flex items-center justify-between w-full">
+                    <span>{t("proxy.form.groupLabel")}</span>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ReloadOutlined />}
+                      onClick={() => handleResetToDefault("group")}
+                    >
+                      {t("proxy.form.resetToDefault")}
+                    </Button>
+                  </div>
+                }
                 name="group"
               >
                 <JsoncEditor placeholder={t("proxy.form.groupPlaceholder")} />
@@ -312,7 +319,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
             {/* 过滤器 */}
             <div style={{ display: activeTab === "filter" ? "block" : "none" }}>
               <Form.Item
-                label={t("proxy.form.filterLabel")}
+                label={
+                  <div className="flex items-center justify-between w-full">
+                    <span>{t("proxy.form.filterLabel")}</span>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ReloadOutlined />}
+                      onClick={() => handleResetToDefault("filter")}
+                    >
+                      {t("proxy.form.resetToDefault")}
+                    </Button>
+                  </div>
+                }
                 name="filter"
               >
                 <JsoncEditor placeholder={t("proxy.form.filterPlaceholder")} />
@@ -322,7 +341,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(({ onSucce
             {/* 自定义配置 */}
             <div style={{ display: activeTab === "customConfig" ? "block" : "none" }}>
               <Form.Item
-                label={t("proxy.form.customConfigLabel")}
+                label={
+                  <div className="flex items-center justify-between w-full">
+                    <span>{t("proxy.form.customConfigLabel")}</span>
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<ReloadOutlined />}
+                      onClick={() => handleResetToDefault("customConfig")}
+                    >
+                      {t("proxy.form.resetToDefault")}
+                    </Button>
+                  </div>
+                }
                 name="customConfig"
               >
                 <JsoncEditor placeholder={t("proxy.form.customConfigPlaceholder")} />

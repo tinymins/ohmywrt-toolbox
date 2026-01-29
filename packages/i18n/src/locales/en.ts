@@ -486,7 +486,10 @@ export const en: TranslationSchema = {
         customConfigPlaceholder: '["DOMAIN,example.com,DIRECT"]',
         serversLabel: "Extra Servers (JSON array, comments supported)",
         serversPlaceholder: '[{"name": "ServerName", "type": "ss", "server": "1.2.3.4", "port": 443}]',
-        jsonFormatError: "JSON format error"
+        jsonFormatError: "JSON format error",
+        resetToDefault: "Reset to Default",
+        resetSuccess: "Reset to default configuration",
+        resetFailed: "Failed to get default configuration"
       },
       preview: {
         title: "Node Preview",
