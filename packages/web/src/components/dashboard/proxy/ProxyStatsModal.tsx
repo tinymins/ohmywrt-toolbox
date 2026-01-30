@@ -70,6 +70,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
     {
       title: "IP",
       dataIndex: "ip",
+      width: 140,
       ellipsis: true,
       render: (ip: string | null) => ip || "-"
     }
@@ -168,7 +169,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                   dataSource={stats.recentAccess}
                   columns={accessColumns}
                   rowKey="createdAt"
-                  scroll={{ y: 300 }}
+                  scroll={{ x: 500, y: 300 }}
                 />
               ) : (
                 <Empty
