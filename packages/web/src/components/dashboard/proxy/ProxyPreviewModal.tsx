@@ -1,11 +1,24 @@
-import { useState, forwardRef, useImperativeHandle } from "react";
-import { Modal, Table, Tooltip, Tag, Typography, Spin, Empty, Descriptions } from "antd";
+import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
+import { Modal, Table, Tooltip, Tag, Typography, Spin, Empty, Descriptions, Card } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EyeOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
 
 const { Text } = Typography;
+
+// 检测是否为移动设备
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return isMobile;
+};
 
 export interface ProxyPreviewModalRef {
   open: (subscribeId: string, remark?: string | null) => void;
@@ -186,6 +199,7 @@ const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }:
 
 const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const [visible, setVisible] = useState(false);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
@@ -342,67 +356,143 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       return acc;
     }, {});
 
+  // 移动端卡片视图
+  const MobileNodeCard = ({ node, index }: { node: ProxyNode; index: number }) => (
+    <Card
+      size="small"
+      className={`${node.filtered ? "opacity-60" : ""}`}
+      title={
+        <div className="flex items-center justify-between gap-2">
+          <Text
+            delete={node.filtered}
+            type={node.filtered ? "secondary" : undefined}
+            className="truncate flex-1"
+            title={node.name}
+          >
+            {node.name}
+          </Text>
+          <Tag color={node.filtered ? "default" : (typeColorMap[node.type] || "default")} className="!m-0 shrink-0">
+            {node.type.toUpperCase()}
+          </Tag>
+        </div>
+      }
+    >
+      <div className="space-y-2 text-xs">
+        <div className="flex justify-between">
+          <span className="text-gray-500">{t("proxy.preview.server")}:</span>
+          <Text copyable={{ text: node.server }} className="font-mono truncate max-w-[180px]" title={node.server}>
+            {node.server}
+          </Text>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">{t("proxy.preview.port")}:</span>
+          <span className="font-mono">{node.port}</span>
+        </div>
+        {node.raw?.network && (
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("proxy.preview.transport")}:</span>
+            <span>
+              <Tag className="!m-0">{String(node.raw.network).toUpperCase()}</Tag>
+              {node.raw?.tls && <Tag color="green" className="!m-0 !ml-1">TLS</Tag>}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <span className="text-gray-500">{t("proxy.preview.source")}:</span>
+          <Tag color={node.sourceIndex === 0 ? "default" : "blue"} className="!m-0">
+            {node.sourceIndex === 0 ? t("proxy.preview.manual") : `#${node.sourceIndex}`}
+          </Tag>
+        </div>
+        {node.filtered && node.filteredBy && (
+          <div className="text-orange-500 text-xs mt-1">
+            ⚠️ {t("proxy.preview.filteredBy", { rule: node.filteredBy })}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+
   return (
     <Modal
       title={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <EyeOutlined />
-          <span>{t("proxy.preview.title")} - {subscribeRemark}</span>
+          <span>{t("proxy.preview.title")}</span>
+          {!isMobile && <span>- {subscribeRemark}</span>}
         </div>
       }
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width="95vw"
-      style={{ top: 20, maxWidth: 1600 }}
-      styles={{ body: { padding: "16px 0" } }}
+      width={isMobile ? "100vw" : "95vw"}
+      style={isMobile ? { top: 0, left: 0, maxWidth: "100vw", margin: 0, padding: 0, paddingBottom: 0 } : { top: 20, maxWidth: 1600 }}
+      styles={{
+        body: { padding: isMobile ? "12px 8px" : "16px 0" },
+        wrapper: isMobile ? { overflow: "hidden" } : undefined
+      }}
+      className={isMobile ? "mobile-fullscreen-modal" : ""}
     >
       <Spin spinning={isLoading}>
         {!isLoading && nodes.length === 0 ? (
           <Empty description={t("proxy.preview.noNodes")} />
         ) : (
           <>
+            {/* 移动端显示订阅名称 */}
+            {isMobile && (
+              <div className="text-sm text-slate-500 mb-2">{subscribeRemark}</div>
+            )}
+
             {/* 统计信息 */}
-            <div className="mb-4 px-4 flex items-center gap-2 flex-wrap">
-              <Text type="secondary">
+            <div className="mb-4 px-2 md:px-4 flex items-center gap-2 flex-wrap">
+              <Text type="secondary" className="text-xs md:text-sm">
                 {t("proxy.preview.totalNodes", { total: totalCount, active: activeCount })}
                 {filteredCount > 0 && <span>, {t("proxy.preview.filtered")} <Text type="warning">{filteredCount}</Text></span>}
-                ({t("proxy.preview.clickToExpand")}):
+                {!isMobile && <>({t("proxy.preview.clickToExpand")}):</>}
               </Text>
               {Object.entries(typeCounts).map(([type, count]) => (
-                <Tag key={type} color={typeColorMap[type] || "default"}>
+                <Tag key={type} color={typeColorMap[type] || "default"} className="!text-xs">
                   {type.toUpperCase()}: {String(count)}
                 </Tag>
               ))}
             </div>
 
-            <Table<ProxyNode>
-              rowKey={(record, index) => `${record.sourceIndex}-${record.server}-${record.port}-${index}`}
-              size="small"
-              bordered
-              columns={columns}
-              dataSource={nodes}
-              rowClassName={(record) => record.filtered ? "opacity-60" : ""}
-              expandable={{
-                expandedRowRender: (record) => (
-                  <ExpandedRow
-                    record={record}
-                    noDetailText={t("proxy.preview.noDetailInfo")}
-                    clickToCopyText={t("proxy.preview.clickToCopy")}
-                    yesText={t("proxy.common.confirm")}
-                    noText={t("proxy.common.cancel")}
-                  />
-                ),
-                rowExpandable: () => true
-              }}
-              pagination={{
-                defaultPageSize: 500,
-                showSizeChanger: true,
-                pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
-                showTotal: (total) => `${total}`
-              }}
-              scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
-            />
+            {isMobile ? (
+              /* 移动端卡片列表 */
+              <div className="flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+                {nodes.map((node, index) => (
+                  <MobileNodeCard key={`${node.sourceIndex}-${node.server}-${node.port}-${index}`} node={node} index={index} />
+                ))}
+              </div>
+            ) : (
+              /* PC端表格 */
+              <Table<ProxyNode>
+                rowKey={(record, index) => `${record.sourceIndex}-${record.server}-${record.port}-${index}`}
+                size="small"
+                bordered
+                columns={columns}
+                dataSource={nodes}
+                rowClassName={(record) => record.filtered ? "opacity-60" : ""}
+                expandable={{
+                  expandedRowRender: (record) => (
+                    <ExpandedRow
+                      record={record}
+                      noDetailText={t("proxy.preview.noDetailInfo")}
+                      clickToCopyText={t("proxy.preview.clickToCopy")}
+                      yesText={t("proxy.common.confirm")}
+                      noText={t("proxy.common.cancel")}
+                    />
+                  ),
+                  rowExpandable: () => true
+                }}
+                pagination={{
+                  defaultPageSize: 500,
+                  showSizeChanger: true,
+                  pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
+                  showTotal: (total) => `${total}`
+                }}
+                scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
+              />
+            )}
           </>
         )}
       </Spin>
