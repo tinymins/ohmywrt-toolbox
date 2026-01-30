@@ -345,11 +345,20 @@ export class ProxySubscribeService {
     const subscriptions = await this.listByUser(userId);
     const subscribeIds = subscriptions.map(s => s.id);
 
+    // 如果没有订阅，直接返回 0
+    if (subscribeIds.length === 0) {
+      return {
+        totalSubscriptions: 0,
+        totalNodes: 0,
+        todayRequests: 0
+      };
+    }
+
     // 计算总节点数（从缓存中）
     const [nodesResult] = await db
       .select({ total: sql<number>`COALESCE(SUM(cached_node_count), 0)` })
       .from(proxySubscribes)
-      .where(inArray(proxySubscribes.id, subscribeIds.length > 0 ? subscribeIds : ['__none__']));
+      .where(inArray(proxySubscribes.id, subscribeIds));
 
     // 计算今日请求数
     const today = new Date();
@@ -358,7 +367,7 @@ export class ProxySubscribeService {
       .select({ count: count() })
       .from(proxyAccessLogs)
       .where(and(
-        inArray(proxyAccessLogs.subscribeId, subscribeIds.length > 0 ? subscribeIds : ['__none__']),
+        inArray(proxyAccessLogs.subscribeId, subscribeIds),
         gte(proxyAccessLogs.createdAt, today)
       ));
 
