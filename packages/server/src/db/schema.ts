@@ -54,6 +54,17 @@ export const todos = pgTable("todos", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
 });
 
+// 邀请码表
+export const invitationCodes = pgTable("invitation_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: text("code").notNull().unique(), // 邀请码
+  createdBy: uuid("created_by").references(() => users.id).notNull(), // 创建者（超管）
+  usedBy: uuid("used_by").references(() => users.id), // 使用者
+  usedAt: timestamp("used_at", { withTimezone: true }), // 使用时间
+  expiresAt: timestamp("expires_at", { withTimezone: true }), // 过期时间（可选）
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+});
+
 // 测试需求表
 export const testRequirements = pgTable("test_requirements", {
   id: uuid("id").defaultRandom().primaryKey(),

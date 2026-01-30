@@ -418,7 +418,9 @@ export const en: TranslationSchema = {
         invalidCredentials: "Invalid email or password",
         defaultWorkspaceNotFound: "Default workspace not found",
         emailAlreadyRegistered: "Email already registered",
-        registrationDisabled: "Registration is currently disabled"
+        registrationDisabled: "Registration is currently disabled",
+        invitationInvalid: "Invitation code is invalid or already used",
+        invitationExpired: "Invitation code has expired"
       },
       user: {
         notFound: "User not found",
@@ -478,7 +480,27 @@ export const en: TranslationSchema = {
       userPassword: "Password",
       userRoleSelect: "Select Role",
       addUserSuccess: "User created successfully",
-      emailExists: "This email is already registered"
+      emailExists: "This email is already registered",
+      invitationTab: "Invitations",
+      generateInvitation: "Generate Invitation Link",
+      invitationList: "Invitation Codes",
+      invitationCode: "Code",
+      invitationStatus: "Status",
+      invitationCreatedAt: "Created",
+      invitationExpiresAt: "Expires",
+      invitationUsedBy: "Used By",
+      invitationUsedAt: "Used At",
+      invitationStatusUnused: "Unused",
+      invitationStatusUsed: "Used",
+      invitationStatusExpired: "Expired",
+      invitationNeverExpire: "Never",
+      invitationCopied: "Invitation link copied to clipboard",
+      invitationGenerated: "Invitation link generated",
+      invitationDeleted: "Invitation code deleted",
+      copyInvitationLink: "Copy Link",
+      deleteInvitation: "Delete",
+      expiresInHours: "Expires in (hours)",
+      noExpiration: "No expiration"
     }
   }
 };

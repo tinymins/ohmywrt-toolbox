@@ -21,6 +21,10 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
   const registrationAllowed = registrationStatusQuery.data?.allowed ?? true;
   const isFirstUser = registrationStatusQuery.data?.isFirstUser ?? false;
 
+  // 获取邀请码参数
+  const invitationCode = searchParams.get("invite");
+  const hasValidInvitation = !!invitationCode;
+
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const error = (mode === "login" ? loginMutation.error : registerMutation.error)?.message;
   const { t, i18n } = useTranslation();
@@ -34,9 +38,14 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
   );
 
   useEffect(() => {
-    setMode(initialMode);
+    // 如果有邀请码，自动切换到注册模式
+    if (hasValidInvitation && initialMode === "login") {
+      setMode("register");
+    } else {
+      setMode(initialMode);
+    }
     form.resetFields();
-  }, [initialMode]);
+  }, [initialMode, hasValidInvitation]);
 
   // 如果正在检查注册状态，显示加载
   if (registrationStatusQuery.isLoading) {
@@ -56,13 +65,17 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
               {t("login.title")}
             </h1>
             <p className="text-slate-500 dark:text-slate-400">
-              {isFirstUser && mode === "register"
+              {hasValidInvitation && mode === "register"
                 ? lang === "zh"
-                  ? "创建第一个管理员账户"
-                  : "Create the first admin account"
-                : lang === "zh"
-                  ? "请登录您的账户"
-                  : "Please sign in to your account"}
+                  ? "您已收到邀请，请注册账户"
+                  : "You have been invited, please register"
+                : isFirstUser && mode === "register"
+                  ? lang === "zh"
+                    ? "创建第一个管理员账户"
+                    : "Create the first admin account"
+                  : lang === "zh"
+                    ? "请登录您的账户"
+                    : "Please sign in to your account"}
             </p>
           </div>
 
@@ -84,7 +97,8 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
               const result = await registerMutation.mutateAsync({
                 name: values.name?.trim(),
                 email: values.email,
-                password: values.password
+                password: values.password,
+                invitationCode: invitationCode ?? undefined
               });
               onLogin(result.user as User);
               navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
@@ -135,8 +149,8 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                     : "Register"}
             </Button>
 
-            {/* 只有允许注册时才显示切换按钮 */}
-            {registrationAllowed ? (
+            {/* 只有允许注册或有邀请码时才显示切换按钮 */}
+            {registrationAllowed || hasValidInvitation ? (
               <Button
                 type="link"
                 block
@@ -144,7 +158,9 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                   const nextMode = mode === "login" ? "register" : "login";
                   setMode(nextMode);
                   form.resetFields();
-                  navigate(nextMode === "login" ? `/login${redirectQuery}` : `/register${redirectQuery}`);
+                  // 保留邀请码参数
+                  const inviteParam = invitationCode ? `&invite=${invitationCode}` : "";
+                  navigate(nextMode === "login" ? `/login${redirectQuery}` : `/register${redirectQuery}${inviteParam}`);
                 }}
               >
                 {mode === "login"

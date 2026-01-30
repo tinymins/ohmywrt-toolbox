@@ -3,6 +3,7 @@ import {
   Button,
   Form,
   Input,
+  InputNumber,
   Modal,
   Select,
   Switch,
@@ -10,13 +11,14 @@ import {
   Tabs,
   Popconfirm,
   Space,
-  Tag
+  Tag,
+  Tooltip
 } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useTranslation } from "react-i18next";
 import { useMessage } from "../../hooks";
-import type { User, AdminUser, UserRole } from "@acme/types";
+import type { User, AdminUser, UserRole, InvitationCode } from "@acme/types";
 import type { Lang } from "../../lib/types";
 import { trpc } from "../../lib/trpc";
 
@@ -52,6 +54,13 @@ export default function SystemSettingsModal({
   const deleteUserMutation = trpc.admin.deleteUser.useMutation();
   const createUserMutation = trpc.admin.createUser.useMutation();
 
+  // 邀请码查询（仅超管）
+  const invitationsQuery = trpc.admin.listInvitationCodes.useQuery(undefined, {
+    enabled: open && isSuperAdmin
+  });
+  const generateInvitationMutation = trpc.admin.generateInvitationCode.useMutation();
+  const deleteInvitationMutation = trpc.admin.deleteInvitationCode.useMutation();
+
   // 重置密码模态框状态
   const [resetPasswordModal, setResetPasswordModal] = useState<{
     open: boolean;
@@ -68,6 +77,9 @@ export default function SystemSettingsModal({
     password: "",
     role: "user" as UserRole
   });
+
+  // 邀请码有效期设置
+  const [invitationExpiresHours, setInvitationExpiresHours] = useState<number | null>(null);
 
   const handleToggleRegistration = async (checked: boolean) => {
     await updateSettingsMutation.mutateAsync({ allowRegistration: checked });
@@ -123,6 +135,40 @@ export default function SystemSettingsModal({
         throw error;
       }
     }
+  };
+
+  // 邀请码处理函数
+  const handleGenerateInvitation = async () => {
+    const result = await generateInvitationMutation.mutateAsync({
+      expiresInHours: invitationExpiresHours ?? undefined
+    });
+    invitationsQuery.refetch();
+    // 自动复制到剪贴板
+    const inviteUrl = `${window.location.origin}/login?invite=${result.code}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    message.success(t("systemSettings.invitationGenerated"));
+  };
+
+  const handleCopyInvitationLink = async (code: string) => {
+    const inviteUrl = `${window.location.origin}/login?invite=${code}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    message.success(t("systemSettings.invitationCopied"));
+  };
+
+  const handleDeleteInvitation = async (codeId: string) => {
+    await deleteInvitationMutation.mutateAsync({ codeId });
+    invitationsQuery.refetch();
+    message.success(t("systemSettings.invitationDeleted"));
+  };
+
+  const getInvitationStatus = (invitation: InvitationCode) => {
+    if (invitation.usedBy) {
+      return <Tag color="default">{t("systemSettings.invitationStatusUsed")}</Tag>;
+    }
+    if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+      return <Tag color="red">{t("systemSettings.invitationStatusExpired")}</Tag>;
+    }
+    return <Tag color="green">{t("systemSettings.invitationStatusUnused")}</Tag>;
   };
 
   const getRoleTag = (role: UserRole) => {
@@ -249,6 +295,98 @@ export default function SystemSettingsModal({
     </div>
   );
 
+  const invitationColumns: ColumnsType<InvitationCode> = [
+    {
+      title: t("systemSettings.invitationCode"),
+      dataIndex: "code",
+      key: "code",
+      render: (code: string) => (
+        <Tooltip title={code}>
+          <code className="text-xs">{code.slice(0, 8)}...</code>
+        </Tooltip>
+      )
+    },
+    {
+      title: t("systemSettings.invitationStatus"),
+      key: "status",
+      render: (_, record) => getInvitationStatus(record)
+    },
+    {
+      title: t("systemSettings.invitationExpiresAt"),
+      dataIndex: "expiresAt",
+      key: "expiresAt",
+      render: (date: string | null) =>
+        date ? new Date(date).toLocaleString() : t("systemSettings.invitationNeverExpire")
+    },
+    {
+      title: t("systemSettings.invitationCreatedAt"),
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date: string) => new Date(date).toLocaleString()
+    },
+    {
+      title: t("systemSettings.userActions"),
+      key: "actions",
+      render: (_, record) => {
+        const isUsed = !!record.usedBy;
+        return (
+          <Space size="small">
+            <Button
+              size="small"
+              icon={<CopyOutlined />}
+              disabled={isUsed}
+              onClick={() => handleCopyInvitationLink(record.code)}
+            >
+              {t("systemSettings.copyInvitationLink")}
+            </Button>
+            <Popconfirm
+              title={t("systemSettings.confirmDelete")}
+              onConfirm={() => handleDeleteInvitation(record.id)}
+            >
+              <Button size="small" danger>
+                {t("systemSettings.deleteInvitation")}
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      }
+    }
+  ];
+
+  const invitationsTab = (
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <InputNumber
+          placeholder={t("systemSettings.expiresInHours")}
+          min={1}
+          value={invitationExpiresHours}
+          onChange={(v) => setInvitationExpiresHours(v)}
+          addonAfter={lang === "zh" ? "小时" : "hours"}
+          style={{ width: 180 }}
+        />
+        <span className="text-slate-500 text-sm">
+          {invitationExpiresHours ? "" : t("systemSettings.noExpiration")}
+        </span>
+        <Button
+          type="primary"
+          icon={<LinkOutlined />}
+          onClick={handleGenerateInvitation}
+          loading={generateInvitationMutation.isPending}
+        >
+          {t("systemSettings.generateInvitation")}
+        </Button>
+      </div>
+      <Table
+        columns={invitationColumns}
+        dataSource={invitationsQuery.data ?? []}
+        rowKey="id"
+        loading={invitationsQuery.isLoading}
+        size="small"
+        pagination={{ pageSize: 10 }}
+      />
+    </div>
+  );
+
   const tabItems = [
     {
       key: "general",
@@ -262,6 +400,11 @@ export default function SystemSettingsModal({
             key: "users",
             label: t("systemSettings.usersTab"),
             children: usersTab
+          },
+          {
+            key: "invitations",
+            label: t("systemSettings.invitationTab"),
+            children: invitationsTab
           }
         ]
       : [])

@@ -6,6 +6,7 @@ import { Ctx, Mutation, Query, Router } from "../../trpc/decorators";
 import type { Context } from "../../trpc/context";
 import { getMessage } from "../../i18n";
 import { authService, toUserOutput } from "./auth.service";
+import { adminService } from "../admin/admin.service";
 
 export const loginInput = z.object({
 	email: z.string().email(),
@@ -15,7 +16,8 @@ export const loginInput = z.object({
 export const registerInput = z.object({
 	name: z.string().min(1),
 	email: z.string().email(),
-	password: z.string().min(4)
+	password: z.string().min(4),
+	invitationCode: z.string().optional() // 邀请码（可选）
 });
 
 export const userOutput = UserSchema;
@@ -91,9 +93,24 @@ export class AuthRouter {
 
 	@Mutation({ input: registerInput, output: authOutput })
 	async register(input: z.infer<typeof registerInput>, @Ctx() ctx: Context) {
-		// 检查是否允许注册
+		// 验证邀请码（如果提供）
+		let validInvitation = false;
+		if (input.invitationCode) {
+			const result = await adminService.validateInvitationCode(input.invitationCode);
+			if (!result.valid) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: result.reason === "expired"
+						? getMessage(ctx.language, "errors.auth.invitationExpired")
+						: getMessage(ctx.language, "errors.auth.invitationInvalid")
+				});
+			}
+			validInvitation = true;
+		}
+
+		// 检查是否允许注册（邀请码有效时跳过此检查）
 		const isFirstUser = await authService.isFirstUser();
-		if (!isFirstUser) {
+		if (!isFirstUser && !validInvitation) {
 			const allowed = await authService.isRegistrationAllowed();
 			if (!allowed) {
 				throw new TRPCError({
@@ -112,6 +129,11 @@ export class AuthRouter {
 		}
 
 		const result = await authService.registerUser(input);
+
+		// 如果使用了邀请码，标记为已使用
+		if (input.invitationCode && validInvitation) {
+			await adminService.useInvitationCode(input.invitationCode, result.user.id);
+		}
 
 		const sessionId = await authService.createSession(result.user.id);
 		authService.setSessionCookie(ctx.res, sessionId);

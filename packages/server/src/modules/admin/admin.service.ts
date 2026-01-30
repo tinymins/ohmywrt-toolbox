@@ -1,8 +1,9 @@
-import { eq, sql, ne, desc, inArray } from "drizzle-orm";
+import { eq, sql, ne, desc, inArray, isNull, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
-import { users, systemSettings, sessions, workspaces, workspaceMembers, todos, testRequirements } from "../../db/schema";
+import { users, systemSettings, sessions, workspaces, workspaceMembers, todos, testRequirements, invitationCodes } from "../../db/schema";
 import type { UserRole } from "@acme/types";
+import { randomBytes } from "crypto";
 
 export class AdminService {
 	async getStats() {
@@ -286,6 +287,90 @@ export class AdminService {
 			lastLoginAt: null,
 			createdAt: result.createdAt?.toISOString() ?? new Date().toISOString()
 		};
+	}
+
+	// =========== 邀请码功能 ===========
+
+	/** 生成邀请码 */
+	async generateInvitationCode(createdBy: string, expiresInHours?: number) {
+		const code = randomBytes(16).toString("hex"); // 32位随机码
+		const expiresAt = expiresInHours
+			? new Date(Date.now() + expiresInHours * 60 * 60 * 1000)
+			: null;
+
+		const [created] = await db
+			.insert(invitationCodes)
+			.values({
+				code,
+				createdBy,
+				expiresAt
+			})
+			.returning();
+
+		return {
+			id: created.id,
+			code: created.code,
+			createdBy: created.createdBy,
+			usedBy: null,
+			usedAt: null,
+			expiresAt: created.expiresAt?.toISOString() ?? null,
+			createdAt: created.createdAt?.toISOString() ?? new Date().toISOString()
+		};
+	}
+
+	/** 验证邀请码是否有效 */
+	async validateInvitationCode(code: string) {
+		const [invitation] = await db
+			.select()
+			.from(invitationCodes)
+			.where(and(eq(invitationCodes.code, code), isNull(invitationCodes.usedBy)))
+			.limit(1);
+
+		if (!invitation) {
+			return { valid: false, reason: "invalid" as const };
+		}
+
+		// 检查是否过期
+		if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+			return { valid: false, reason: "expired" as const };
+		}
+
+		return { valid: true, invitation };
+	}
+
+	/** 使用邀请码（标记为已使用） */
+	async useInvitationCode(code: string, usedBy: string) {
+		await db
+			.update(invitationCodes)
+			.set({
+				usedBy,
+				usedAt: new Date()
+			})
+			.where(eq(invitationCodes.code, code));
+	}
+
+	/** 获取邀请码列表 */
+	async listInvitationCodes() {
+		const codes = await db
+			.select()
+			.from(invitationCodes)
+			.orderBy(desc(invitationCodes.createdAt));
+
+		return codes.map((c) => ({
+			id: c.id,
+			code: c.code,
+			createdBy: c.createdBy,
+			usedBy: c.usedBy ?? null,
+			usedAt: c.usedAt?.toISOString() ?? null,
+			expiresAt: c.expiresAt?.toISOString() ?? null,
+			createdAt: c.createdAt?.toISOString() ?? new Date().toISOString()
+		}));
+	}
+
+	/** 删除邀请码 */
+	async deleteInvitationCode(codeId: string) {
+		await db.delete(invitationCodes).where(eq(invitationCodes.id, codeId));
+		return { success: true };
 	}
 }
 

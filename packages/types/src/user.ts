@@ -68,3 +68,16 @@ export const CreateUserInputSchema = z.object({
 });
 
 export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
+
+// 邀请码 Schema
+export const InvitationCodeSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  createdBy: z.string(),
+  usedBy: z.string().nullable(),
+  usedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  createdAt: z.string()
+});
+
+export type InvitationCode = z.infer<typeof InvitationCodeSchema>;

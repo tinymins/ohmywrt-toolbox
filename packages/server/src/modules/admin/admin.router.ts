@@ -5,7 +5,8 @@ import {
 	AdminUserSchema,
 	UpdateUserRoleInputSchema,
 	ForceResetPasswordInputSchema,
-	CreateUserInputSchema
+	CreateUserInputSchema,
+	InvitationCodeSchema
 } from "@acme/types";
 import { Query, Mutation, Router, Ctx, UseMiddlewares } from "../../trpc/decorators";
 import { requireAdmin, requireSuperAdmin } from "../../trpc/middlewares";
@@ -89,5 +90,34 @@ export class AdminRouter {
 	@UseMiddlewares(requireSuperAdmin)
 	async createUser(input: z.infer<typeof CreateUserInputSchema>) {
 		return adminService.createUser(input);
+	}
+
+	// =========== 邀请码功能（superadmin only） ===========
+
+	/** 生成邀请码 */
+	@Mutation({
+		input: z.object({ expiresInHours: z.number().optional() }),
+		output: InvitationCodeSchema
+	})
+	@UseMiddlewares(requireSuperAdmin)
+	async generateInvitationCode(input: { expiresInHours?: number }, @Ctx() ctx: Context) {
+		return adminService.generateInvitationCode(ctx.userId!, input.expiresInHours);
+	}
+
+	/** 获取邀请码列表 */
+	@Query({ output: z.array(InvitationCodeSchema) })
+	@UseMiddlewares(requireSuperAdmin)
+	async listInvitationCodes() {
+		return adminService.listInvitationCodes();
+	}
+
+	/** 删除邀请码 */
+	@Mutation({
+		input: z.object({ codeId: z.string() }),
+		output: z.object({ success: z.boolean() })
+	})
+	@UseMiddlewares(requireSuperAdmin)
+	async deleteInvitationCode(input: { codeId: string }) {
+		return adminService.deleteInvitationCode(input.codeId);
 	}
 }

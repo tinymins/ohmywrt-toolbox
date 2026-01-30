@@ -7,7 +7,8 @@ export {
   AdminUserSchema,
   UpdateUserRoleInputSchema,
   ForceResetPasswordInputSchema,
-  CreateUserInputSchema
+  CreateUserInputSchema,
+  InvitationCodeSchema
 } from "./user";
 export type {
   User,
@@ -17,7 +18,8 @@ export type {
   AdminUser,
   UpdateUserRoleInput,
   ForceResetPasswordInput,
-  CreateUserInput
+  CreateUserInput,
+  InvitationCode
 } from "./user";
 
 export {

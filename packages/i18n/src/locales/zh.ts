@@ -428,7 +428,9 @@ export const zh = {
           invalidCredentials: "账号或密码错误",
           defaultWorkspaceNotFound: "未找到默认工作空间",
           emailAlreadyRegistered: "邮箱已注册",
-          registrationDisabled: "系统暂不开放注册"
+          registrationDisabled: "系统暂不开放注册",
+          invitationInvalid: "邀请码无效或已被使用",
+          invitationExpired: "邀请码已过期"
         },
         user: {
           notFound: "用户不存在",
@@ -488,7 +490,27 @@ export const zh = {
       userPassword: "密码",
       userRoleSelect: "选择角色",
       addUserSuccess: "用户创建成功",
-      emailExists: "该邮箱已被注册"
+      emailExists: "该邮箱已被注册",
+      invitationTab: "邀请注册",
+      generateInvitation: "生成邀请链接",
+      invitationList: "邀请码列表",
+      invitationCode: "邀请码",
+      invitationStatus: "状态",
+      invitationCreatedAt: "创建时间",
+      invitationExpiresAt: "过期时间",
+      invitationUsedBy: "使用者",
+      invitationUsedAt: "使用时间",
+      invitationStatusUnused: "未使用",
+      invitationStatusUsed: "已使用",
+      invitationStatusExpired: "已过期",
+      invitationNeverExpire: "永不过期",
+      invitationCopied: "邀请链接已复制到剪贴板",
+      invitationGenerated: "邀请链接已生成",
+      invitationDeleted: "邀请码已删除",
+      copyInvitationLink: "复制链接",
+      deleteInvitation: "删除",
+      expiresInHours: "有效期（小时）",
+      noExpiration: "不设置过期时间"
     }
   }
 };
