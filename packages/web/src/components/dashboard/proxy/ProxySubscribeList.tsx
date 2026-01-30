@@ -100,7 +100,7 @@ export default function ProxySubscribeList() {
       <Spin spinning={isLoading}>
         {/* Mobile Card View */}
         {isMobile ? (
-          <div className="space-y-4">
+          <div className="flex flex-col gap-6">
             {(list ?? []).map((record) => (
               <Card key={record.id} size="small" className="shadow-sm">
                 <div className="space-y-3">
@@ -167,19 +167,19 @@ export default function ProxySubscribeList() {
                   {/* Actions */}
                   <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                     <Button
-                      type="text"
+                      type="link"
                       size="small"
                       icon={<BarChartOutlined />}
                       onClick={() => statsModalRef.current?.open(record.id, record.remark)}
                     />
                     <Button
-                      type="text"
+                      type="link"
                       size="small"
                       icon={<EyeOutlined />}
                       onClick={() => previewModalRef.current?.open(record.id, record.remark)}
                     />
                     <Button
-                      type="text"
+                      type="link"
                       size="small"
                       icon={<EditOutlined />}
                       onClick={() => modalRef.current?.open(record.id)}
@@ -192,7 +192,7 @@ export default function ProxySubscribeList() {
                       cancelText={t("proxy.common.cancel")}
                     >
                       <Button
-                        type="text"
+                        type="link"
                         danger
                         size="small"
                         icon={<DeleteOutlined />}
