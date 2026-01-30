@@ -58,3 +58,13 @@ export const ForceResetPasswordInputSchema = z.object({
 });
 
 export type ForceResetPasswordInput = z.infer<typeof ForceResetPasswordInputSchema>;
+
+// 管理员操作 - 创建用户输入
+export const CreateUserInputSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  password: z.string().min(4),
+  role: UserRoleSchema.default("user")
+});
+
+export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;

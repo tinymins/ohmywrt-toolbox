@@ -6,7 +6,8 @@ export {
   SystemSettingsSchema,
   AdminUserSchema,
   UpdateUserRoleInputSchema,
-  ForceResetPasswordInputSchema
+  ForceResetPasswordInputSchema,
+  CreateUserInputSchema
 } from "./user";
 export type {
   User,
@@ -15,7 +16,8 @@ export type {
   SystemSettings,
   AdminUser,
   UpdateUserRoleInput,
-  ForceResetPasswordInput
+  ForceResetPasswordInput,
+  CreateUserInput
 } from "./user";
 
 export {

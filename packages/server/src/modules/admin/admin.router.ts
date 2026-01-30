@@ -4,7 +4,8 @@ import {
 	SystemSettingsSchema,
 	AdminUserSchema,
 	UpdateUserRoleInputSchema,
-	ForceResetPasswordInputSchema
+	ForceResetPasswordInputSchema,
+	CreateUserInputSchema
 } from "@acme/types";
 import { Query, Mutation, Router, Ctx, UseMiddlewares } from "../../trpc/decorators";
 import { requireAdmin, requireSuperAdmin } from "../../trpc/middlewares";
@@ -81,5 +82,12 @@ export class AdminRouter {
 	@UseMiddlewares(requireSuperAdmin)
 	async deleteUser(input: { userId: string }, @Ctx() ctx: Context) {
 		return adminService.deleteUser(input.userId, ctx.userId!);
+	}
+
+	/** 手动创建用户 */
+	@Mutation({ input: CreateUserInputSchema, output: AdminUserSchema })
+	@UseMiddlewares(requireSuperAdmin)
+	async createUser(input: z.infer<typeof CreateUserInputSchema>) {
+		return adminService.createUser(input);
 	}
 }

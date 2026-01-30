@@ -206,6 +206,87 @@ export class AdminService {
 
 		return { success: true };
 	}
+
+	/** 手动创建用户（超管功能） */
+	async createUser(input: { name: string; email: string; password: string; role?: UserRole }) {
+		// 检查邮箱是否已存在
+		const [existing] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(eq(users.email, input.email))
+			.limit(1);
+
+		if (existing) {
+			throw new TRPCError({
+				code: "CONFLICT",
+				message: "该邮箱已被注册"
+			});
+		}
+
+		const role = input.role ?? "user";
+		const workspaceName = `${input.name}的空间站`;
+
+		// 生成唯一的 workspace slug
+		const baseSlug =
+			input.name
+				.toLowerCase()
+				.trim()
+				.replace(/[^a-z0-9]+/g, "-")
+				.replace(/(^-|-$)+/g, "") || "workspace";
+		let slug = baseSlug;
+		let suffix = 1;
+
+		while (true) {
+			const [existingWs] = await db
+				.select({ id: workspaces.id })
+				.from(workspaces)
+				.where(eq(workspaces.slug, slug))
+				.limit(1);
+			if (!existingWs) break;
+			slug = `${baseSlug}-${suffix}`;
+			suffix += 1;
+		}
+
+		// 使用事务创建用户和默认工作空间
+		const result = await db.transaction(async (tx) => {
+			const [createdUser] = await tx
+				.insert(users)
+				.values({
+					name: input.name,
+					email: input.email,
+					passwordHash: input.password,
+					role
+				})
+				.returning();
+
+			const [createdWorkspace] = await tx
+				.insert(workspaces)
+				.values({
+					slug,
+					name: workspaceName,
+					description: "默认工作空间",
+					ownerId: createdUser.id
+				})
+				.returning();
+
+			await tx.insert(workspaceMembers).values({
+				workspaceId: createdWorkspace.id,
+				userId: createdUser.id,
+				role: "owner"
+			});
+
+			return createdUser;
+		});
+
+		return {
+			id: result.id,
+			name: result.name,
+			email: result.email,
+			role: result.role as UserRole,
+			lastLoginAt: null,
+			createdAt: result.createdAt?.toISOString() ?? new Date().toISOString()
+		};
+	}
 }
 
 export const adminService = new AdminService();

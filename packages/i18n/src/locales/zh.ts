@@ -479,7 +479,16 @@ export const zh = {
       newPassword: "新密码",
       saveSuccess: "保存成功",
       deleteSuccess: "删除成功",
-      resetSuccess: "密码重置成功"
+      resetSuccess: "密码重置成功",
+      addUser: "添加用户",
+      addUserTitle: "添加新用户",
+      addUserDesc: "手动创建新用户账号",
+      userName: "用户名",
+      userEmail: "邮箱",
+      userPassword: "密码",
+      userRoleSelect: "选择角色",
+      addUserSuccess: "用户创建成功",
+      emailExists: "该邮箱已被注册"
     }
   }
 };

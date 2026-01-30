@@ -12,6 +12,7 @@ import {
   Space,
   Tag
 } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useTranslation } from "react-i18next";
 import { useMessage } from "../../hooks";
@@ -49,6 +50,7 @@ export default function SystemSettingsModal({
   const updateRoleMutation = trpc.admin.updateUserRole.useMutation();
   const forceResetPasswordMutation = trpc.admin.forceResetPassword.useMutation();
   const deleteUserMutation = trpc.admin.deleteUser.useMutation();
+  const createUserMutation = trpc.admin.createUser.useMutation();
 
   // 重置密码模态框状态
   const [resetPasswordModal, setResetPasswordModal] = useState<{
@@ -57,6 +59,15 @@ export default function SystemSettingsModal({
     userName: string;
   }>({ open: false, userId: "", userName: "" });
   const [newPassword, setNewPassword] = useState("");
+
+  // 添加用户模态框状态
+  const [addUserModal, setAddUserModal] = useState(false);
+  const [addUserForm, setAddUserForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "user" as UserRole
+  });
 
   const handleToggleRegistration = async (checked: boolean) => {
     await updateSettingsMutation.mutateAsync({ allowRegistration: checked });
@@ -88,6 +99,30 @@ export default function SystemSettingsModal({
     setResetPasswordModal({ open: false, userId: "", userName: "" });
     setNewPassword("");
     message.success(t("systemSettings.resetSuccess"));
+  };
+
+  const handleAddUser = async () => {
+    if (!addUserForm.name || !addUserForm.email || !addUserForm.password) {
+      message.error(lang === "zh" ? "请填写完整信息" : "Please fill in all fields");
+      return;
+    }
+    if (addUserForm.password.length < 4) {
+      message.error(lang === "zh" ? "密码至少4位" : "Password must be at least 4 characters");
+      return;
+    }
+    try {
+      await createUserMutation.mutateAsync(addUserForm);
+      setAddUserModal(false);
+      setAddUserForm({ name: "", email: "", password: "", role: "user" });
+      usersQuery.refetch();
+      message.success(t("systemSettings.addUserSuccess"));
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes("已被注册")) {
+        message.error(t("systemSettings.emailExists"));
+      } else {
+        throw error;
+      }
+    }
   };
 
   const getRoleTag = (role: UserRole) => {
@@ -198,6 +233,11 @@ export default function SystemSettingsModal({
 
   const usersTab = (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddUserModal(true)}>
+          {t("systemSettings.addUser")}
+        </Button>
+      </div>
       <Table
         columns={columns}
         dataSource={usersQuery.data ?? []}
@@ -260,6 +300,57 @@ export default function SystemSettingsModal({
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder={lang === "zh" ? "请输入新密码（至少4位）" : "Enter new password (min 4 chars)"}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 添加用户模态框 */}
+      <Modal
+        open={addUserModal}
+        onCancel={() => {
+          setAddUserModal(false);
+          setAddUserForm({ name: "", email: "", password: "", role: "user" });
+        }}
+        title={t("systemSettings.addUserTitle")}
+        onOk={handleAddUser}
+        confirmLoading={createUserMutation.isPending}
+      >
+        <p className="mb-4 text-slate-600 dark:text-slate-400">
+          {t("systemSettings.addUserDesc")}
+        </p>
+        <Form layout="vertical">
+          <Form.Item label={t("systemSettings.userName")} required>
+            <Input
+              value={addUserForm.name}
+              onChange={(e) => setAddUserForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder={lang === "zh" ? "请输入用户名" : "Enter username"}
+            />
+          </Form.Item>
+          <Form.Item label={t("systemSettings.userEmail")} required>
+            <Input
+              type="email"
+              value={addUserForm.email}
+              onChange={(e) => setAddUserForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder={lang === "zh" ? "请输入邮箱" : "Enter email"}
+            />
+          </Form.Item>
+          <Form.Item label={t("systemSettings.userPassword")} required>
+            <Input.Password
+              value={addUserForm.password}
+              onChange={(e) => setAddUserForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder={lang === "zh" ? "请输入密码（至少4位）" : "Enter password (min 4 chars)"}
+            />
+          </Form.Item>
+          <Form.Item label={t("systemSettings.userRoleSelect")}>
+            <Select
+              value={addUserForm.role}
+              onChange={(role) => setAddUserForm((f) => ({ ...f, role }))}
+              options={[
+                { value: "user", label: t("systemSettings.roleUser") },
+                { value: "admin", label: t("systemSettings.roleAdmin") },
+                { value: "superadmin", label: t("systemSettings.roleSuperAdmin") }
+              ]}
             />
           </Form.Item>
         </Form>

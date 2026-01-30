@@ -469,7 +469,16 @@ export const en: TranslationSchema = {
       newPassword: "New Password",
       saveSuccess: "Saved successfully",
       deleteSuccess: "Deleted successfully",
-      resetSuccess: "Password reset successfully"
+      resetSuccess: "Password reset successfully",
+      addUser: "Add User",
+      addUserTitle: "Add New User",
+      addUserDesc: "Manually create a new user account",
+      userName: "Name",
+      userEmail: "Email",
+      userPassword: "Password",
+      userRoleSelect: "Select Role",
+      addUserSuccess: "User created successfully",
+      emailExists: "This email is already registered"
     }
   }
 };
