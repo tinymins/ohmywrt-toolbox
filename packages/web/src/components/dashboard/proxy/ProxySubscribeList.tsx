@@ -77,13 +77,13 @@ export default function ProxySubscribeList() {
   };
 
   return (
-    <div className="p-4 md:p-6">
+    <div>
       {contextHolder}
       <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
       <ProxyStatsModal ref={statsModalRef} />
 
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-3 md:mb-4">
         <Typography.Title level={4} className="!mb-0 !text-lg md:!text-xl">
           {t("proxy.title")}
         </Typography.Title>
@@ -100,10 +100,10 @@ export default function ProxySubscribeList() {
       <Spin spinning={isLoading}>
         {/* Mobile Card View */}
         {isMobile ? (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3 -mx-6">
             {(list ?? []).map((record) => (
-              <Card key={record.id} size="small" className="shadow-sm">
-                <div className="space-y-3">
+              <Card key={record.id} size="small" className="!rounded-none !border-x-0 !shadow-none" styles={{ body: { padding: "12px 24px" } }}>
+                <div className="space-y-2.5">
                   {/* Header: Creator & Remark */}
                   <div className="flex items-center justify-between">
                     <div>
@@ -165,7 +165,7 @@ export default function ProxySubscribeList() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div className="flex justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
                     <Button
                       type="link"
                       size="small"
