@@ -356,18 +356,29 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       return acc;
     }, {});
 
-  // 移动端卡片视图
-  const MobileNodeCard = ({ node, index }: { node: ProxyNode; index: number }) => (
-    <Card
-      size="small"
-      className={`${node.filtered ? "opacity-60" : ""}`}
-      title={
-        <div className="flex items-center justify-between gap-2">
-          <Text
-            delete={node.filtered}
-            type={node.filtered ? "secondary" : undefined}
-            className="truncate flex-1"
-            title={node.name}
+  // 移动端卡片视图（带展开详情）
+  const MobileNodeCard = ({ node, index }: { node: ProxyNode; index: number }) => {
+    const [expanded, setExpanded] = useState(false);
+    const fields = protocolFields[node.type] || [];
+    const raw = node.raw || {};
+    const definedKeys = fields.map((f) => f.key);
+    const basicKeys = ["name", "type", "server", "port"];
+    const extraKeys = Object.keys(raw).filter(
+      (k) => !definedKeys.includes(k) && !basicKeys.includes(k)
+    );
+    const hasDetails = fields.length > 0 || extraKeys.length > 0;
+
+    return (
+      <Card
+        size="small"
+        className={`${node.filtered ? "opacity-60" : ""}`}
+        title={
+          <div className="flex items-center justify-between gap-2">
+            <Text
+              delete={node.filtered}
+              type={node.filtered ? "secondary" : undefined}
+              className="truncate flex-1"
+              title={node.name}
           >
             {node.name}
           </Text>
@@ -408,9 +419,63 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             ⚠️ {t("proxy.preview.filteredBy", { rule: node.filteredBy })}
           </div>
         )}
+
+        {/* 展开/收起按钮 */}
+        {hasDetails && (
+          <div
+            className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-2 cursor-pointer text-blue-500"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? t("proxy.preview.collapse") || "收起" : t("proxy.preview.expand") || "展开详情"}
+          </div>
+        )}
+
+        {/* 详情区域 */}
+        {expanded && (
+          <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+            {fields.map((field) => {
+              const value = raw[field.key];
+              if (value === undefined) return null;
+              return (
+                <div key={field.key} className="flex justify-between items-start">
+                  <span className="text-gray-500 shrink-0">{field.label}:</span>
+                  {field.sensitive ? (
+                    <Text copyable={{ text: formatValue(value) }} className="font-mono text-xs text-right max-w-[60%] break-all">
+                      {typeof value === "string" && value.length > 20
+                        ? `${value.slice(0, 8)}...${value.slice(-8)}`
+                        : formatValue(value)}
+                    </Text>
+                  ) : typeof value === "object" ? (
+                    <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
+                      {formatValue(value)}
+                    </pre>
+                  ) : (
+                    <span className="font-mono text-xs text-right max-w-[60%] break-all">{formatValue(value)}</span>
+                  )}
+                </div>
+              );
+            })}
+            {extraKeys.map((key) => {
+              const value = raw[key];
+              return (
+                <div key={key} className="flex justify-between items-start">
+                  <span className="text-gray-500 shrink-0">{key}:</span>
+                  {typeof value === "object" ? (
+                    <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
+                      {formatValue(value)}
+                    </pre>
+                  ) : (
+                    <span className="font-mono text-xs text-right max-w-[60%] break-all">{formatValue(value)}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </Card>
-  );
+    );
+  };
 
   return (
     <Modal

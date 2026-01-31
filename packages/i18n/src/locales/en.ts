@@ -499,6 +499,8 @@ export const en: TranslationSchema = {
         totalNodes: "Total {{total}} nodes, {{active}} active",
         filtered: "Filtered",
         clickToExpand: "Click row to expand details",
+        expand: "Expand",
+        collapse: "Collapse",
         source: "Source",
         manual: "Manual",
         protocol: "Protocol",

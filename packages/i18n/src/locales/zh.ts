@@ -509,6 +509,8 @@ export const zh = {
         totalNodes: "共 {{total}} 个节点，有效 {{active}} 个",
         filtered: "已过滤",
         clickToExpand: "点击行展开详情",
+        expand: "展开详情",
+        collapse: "收起",
         source: "来源",
         manual: "手动",
         protocol: "协议",
