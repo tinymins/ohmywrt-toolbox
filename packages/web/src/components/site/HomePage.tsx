@@ -480,11 +480,12 @@ export default function HomePage() {
             className="mt-16 rounded-2xl border border-slate-800 bg-slate-900/50 p-8 backdrop-blur"
           >
             <div className="flex flex-wrap items-center justify-center gap-4 text-center">
-              {(
-                t("testing.aiFlowSteps", { returnObjects: true }) as Array<{
-                  step: string;
-                  icon: string;
-                }>
+              {(Array.isArray(t("testing.aiFlowSteps", { returnObjects: true }))
+                ? (t("testing.aiFlowSteps", { returnObjects: true }) as Array<{
+                    step: string;
+                    icon: string;
+                  }>)
+                : []
               ).map((item, index, arr) => (
                 <div key={item.step} className="flex items-center gap-4">
                   <div className="flex flex-col items-center">

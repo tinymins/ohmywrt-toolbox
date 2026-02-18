@@ -6,20 +6,7 @@ export type UserRole = z.infer<typeof UserRoleSchema>;
 
 export const UserSettingsSchema = z.object({
   avatarUrl: z.string().nullable().optional(),
-  langMode: z
-    .enum([
-      "auto",
-      "zh-CN",
-      "zh-TW",
-      "en-US",
-      "ja-JP",
-      "de-DE",
-      "lzh",
-      "wuu",
-      "hak",
-      "yue",
-    ])
-    .optional(),
+  langMode: z.string().optional(),
   themeMode: z.enum(["auto", "light", "dark"]).optional(),
 });
 
@@ -44,6 +31,13 @@ export const SystemSettingsSchema = z.object({
   // 当通过环境变量覆盖时为 true，此时前端应隐藏相关 UI
   singleWorkspaceModeOverridden: z.boolean().optional(),
 });
+
+// TMDB 设置 Schema
+export const TmdbSettingsSchema = z.object({
+  apiKey: z.string().nullable().optional(),
+});
+
+export type TmdbSettings = z.infer<typeof TmdbSettingsSchema>;
 
 export type SystemSettings = z.infer<typeof SystemSettingsSchema>;
 
