@@ -1,5 +1,5 @@
 import type { User } from "@acme/types";
-import type { Theme, ThemeMode, LangMode } from "./types";
+import type { LangMode, Theme, ThemeMode } from "./types";
 
 const USER_STORAGE_KEY = "user";
 const THEME_MODE_COOKIE_KEY = "themeMode";
@@ -15,11 +15,14 @@ export const loadUser = (): User | null => {
       langMode?: LangMode | null;
       themeMode?: ThemeMode | null;
     };
-    if (!parsed.settings && (parsed.avatarUrl || parsed.langMode || parsed.themeMode)) {
+    if (
+      !parsed.settings &&
+      (parsed.avatarUrl || parsed.langMode || parsed.themeMode)
+    ) {
       parsed.settings = {
         avatarUrl: parsed.avatarUrl ?? undefined,
         langMode: parsed.langMode ?? undefined,
-        themeMode: parsed.themeMode ?? undefined
+        themeMode: parsed.themeMode ?? undefined,
       };
     }
     return parsed as User;
@@ -49,7 +52,7 @@ export const getCookieValue = (name: string): string | null => {
 export const setCookieValue = (name: string, value: string) => {
   if (typeof document === "undefined") return;
   document.cookie = `${name}=${encodeURIComponent(
-    value
+    value,
   )}; path=/; max-age=31536000; samesite=lax`;
 };
 
@@ -88,9 +91,27 @@ export const saveThemeMode = (mode: ThemeMode) => {
 
 export const loadLangMode = (): LangMode => {
   const savedMode = getCookieValue(LANG_MODE_COOKIE_KEY);
-  if (savedMode === "auto" || savedMode === "zh" || savedMode === "en") {
-    return savedMode;
+  // Valid BCP 47 language codes
+  const validModes: LangMode[] = [
+    "auto",
+    "zh-CN",
+    "zh-TW",
+    "en-US",
+    "ja-JP",
+    "de-DE",
+    "lzh",
+    "wuu",
+    "hak",
+    "yue",
+  ];
+  if (validModes.includes(savedMode as LangMode)) {
+    return savedMode as LangMode;
   }
+  // Legacy support: convert old codes
+  if (savedMode === "zh") return "zh-CN";
+  if (savedMode === "en") return "en-US";
+  if (savedMode === "ja") return "ja-JP";
+  if (savedMode === "de") return "de-DE";
   return "auto";
 };
 

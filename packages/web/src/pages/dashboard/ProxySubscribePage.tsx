@@ -1,9 +1,5 @@
 import { ProxySubscribeList } from "../../components/dashboard/proxy";
 
-interface Props {
-  lang: string;
-}
-
-export default function ProxySubscribePage({ lang }: Props) {
+export default function ProxySubscribePage() {
   return <ProxySubscribeList />;
 }

@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import {
+  detectSystemTheme,
+  loadThemeMode,
+  saveThemeMode,
+} from "../lib/storage";
 import type { Theme, ThemeMode } from "../lib/types";
-import { detectSystemTheme, loadThemeMode, saveThemeMode } from "../lib/storage";
 
 export function useTheme() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => loadThemeMode());
   const [theme, setTheme] = useState<Theme>(() =>
-    themeMode === "auto" ? detectSystemTheme() : themeMode
+    themeMode === "auto" ? detectSystemTheme() : themeMode,
   );
 
   useEffect(() => {
@@ -15,7 +19,10 @@ export function useTheme() {
     setTheme(resolvedTheme);
 
     if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+      document.documentElement.classList.toggle(
+        "dark",
+        resolvedTheme === "dark",
+      );
     }
   }, [themeMode]);
 

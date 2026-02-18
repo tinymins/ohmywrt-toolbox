@@ -3,8 +3,12 @@ import { useTranslation } from "react-i18next";
 
 export const AnalyzingPhase = () => {
   const { t } = useTranslation();
-  const modules = t("aiWorkflow.analyzing.modules", { returnObjects: true }) as unknown as string[];
-  const stats = t("aiWorkflow.analyzing.stats", { returnObjects: true }) as unknown as { label: string; value: string }[];
+  const modules = t("aiWorkflow.analyzing.modules", {
+    returnObjects: true,
+  }) as unknown as string[];
+  const stats = t("aiWorkflow.analyzing.stats", {
+    returnObjects: true,
+  }) as unknown as { label: string; value: string }[];
 
   return (
     <motion.div
@@ -24,12 +28,20 @@ export const AnalyzingPhase = () => {
             🤖
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{t("aiWorkflow.analyzing.title")}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t("aiWorkflow.analyzing.desc")}</p>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              {t("aiWorkflow.analyzing.title")}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t("aiWorkflow.analyzing.desc")}
+            </p>
           </div>
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            transition={{
+              duration: 1.5,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "linear",
+            }}
             className="ml-auto h-6 w-6 rounded-full border-2 border-violet-500 border-t-transparent"
           />
         </div>
@@ -38,7 +50,9 @@ export const AnalyzingPhase = () => {
         <div className="flex-1 space-y-4">
           {/* Document Structure */}
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <h4 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">📑 {t("aiWorkflow.analyzing.docStructure")}</h4>
+            <h4 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">
+              📑 {t("aiWorkflow.analyzing.docStructure")}
+            </h4>
             <div className="space-y-2">
               {modules.map((item, i) => (
                 <motion.div
@@ -78,8 +92,14 @@ export const AnalyzingPhase = () => {
                 className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-center dark:border-slate-800 dark:bg-slate-900"
               >
                 <span className="text-xl">{item.icon}</span>
-                <p className={`mt-1 text-2xl font-bold text-${item.color}-600 dark:text-${item.color}-400`}>{stats[i]?.value}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{stats[i]?.label}</p>
+                <p
+                  className={`mt-1 text-2xl font-bold text-${item.color}-600 dark:text-${item.color}-400`}
+                >
+                  {stats[i]?.value}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {stats[i]?.label}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -87,8 +107,14 @@ export const AnalyzingPhase = () => {
           {/* Progress Bar */}
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-600 dark:text-slate-400">{t("aiWorkflow.analyzing.progress")}</span>
-              <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-violet-600 dark:text-violet-400">
+              <span className="text-slate-600 dark:text-slate-400">
+                {t("aiWorkflow.analyzing.progress")}
+              </span>
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-violet-600 dark:text-violet-400"
+              >
                 {t("aiWorkflow.analyzing.analyzing")}
               </motion.span>
             </div>

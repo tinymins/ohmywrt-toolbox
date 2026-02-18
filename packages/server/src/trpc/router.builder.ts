@@ -1,5 +1,9 @@
+import type {
+  AnyMiddlewareFunction,
+  AnyProcedure,
+  AnyRouter,
+} from "@trpc/server";
 import { initTRPC } from "@trpc/server";
-import type { AnyRouter, AnyMiddlewareFunction, AnyProcedure } from "@trpc/server";
 import type { Context } from "./context";
 import {
   getCtxMeta,
@@ -8,7 +12,6 @@ import {
   getProcedureMeta,
   getRouterAlias,
   getRouterRegistry,
-  type RouterClass
 } from "./decorators";
 
 const t = initTRPC.context<Context>().create();
@@ -18,28 +21,33 @@ type Resolver = (routerClass: new () => RouterInstance) => RouterInstance;
 
 const applyMiddlewares = (
   base: typeof t.procedure,
-  middlewares: AnyMiddlewareFunction[]
+  middlewares: AnyMiddlewareFunction[],
 ) => middlewares.reduce((acc, mw) => acc.use(mw), base);
 
 const buildHandlerArgs = (
   instance: Record<string, unknown>,
   methodName: string,
   input: unknown,
-  ctx: Context
+  ctx: Context,
 ) => {
   const inputMeta = getInputMeta(instance, methodName);
   const ctxMeta = getCtxMeta(instance, methodName);
   const method = instance[methodName];
-  const methodLength = typeof method === 'function' ? method.length : 0;
+  const methodLength = typeof method === "function" ? method.length : 0;
   const argCount = Math.max(
     methodLength,
     ...inputMeta.map((meta) => meta.index + 1),
-    ctxMeta ? ctxMeta.index + 1 : 0
+    ctxMeta ? ctxMeta.index + 1 : 0,
   );
   const args = Array.from({ length: argCount }).fill(undefined);
 
   for (const meta of inputMeta) {
-    if (meta.key && input && typeof input === "object" && !Array.isArray(input)) {
+    if (
+      meta.key &&
+      input &&
+      typeof input === "object" &&
+      !Array.isArray(input)
+    ) {
       args[meta.index] = (input as Record<string, unknown>)[meta.key];
     } else {
       args[meta.index] = input;
@@ -77,26 +85,35 @@ export const createAppRouter = (resolve?: Resolver): AnyRouter => {
       if (!meta) continue;
 
       let procedure = t.procedure;
-      if (meta.input) procedure = procedure.input(meta.input) as typeof procedure;
+      if (meta.input)
+        procedure = procedure.input(meta.input) as typeof procedure;
       if (meta.output) procedure = procedure.output(meta.output);
 
       const middlewares = getMiddlewaresMeta(proto, methodName);
       procedure = applyMiddlewares(procedure, middlewares);
 
       if (meta.kind === "query") {
-        procedures[methodName] = procedure.query(({ ctx, input }: { ctx: Context; input: unknown }) => {
-          const args = buildHandlerArgs(instance, methodName, input, ctx);
-          const method = instance[methodName] as (...args: unknown[]) => unknown;
-          return method.apply(instance, args);
-        });
+        procedures[methodName] = procedure.query(
+          ({ ctx, input }: { ctx: Context; input: unknown }) => {
+            const args = buildHandlerArgs(instance, methodName, input, ctx);
+            const method = instance[methodName] as (
+              ...args: unknown[]
+            ) => unknown;
+            return method.apply(instance, args);
+          },
+        );
       }
 
       if (meta.kind === "mutation") {
-        procedures[methodName] = procedure.mutation(({ ctx, input }: { ctx: Context; input: unknown }) => {
-          const args = buildHandlerArgs(instance, methodName, input, ctx);
-          const method = instance[methodName] as (...args: unknown[]) => unknown;
-          return method.apply(instance, args);
-        });
+        procedures[methodName] = procedure.mutation(
+          ({ ctx, input }: { ctx: Context; input: unknown }) => {
+            const args = buildHandlerArgs(instance, methodName, input, ctx);
+            const method = instance[methodName] as (
+              ...args: unknown[]
+            ) => unknown;
+            return method.apply(instance, args);
+          },
+        );
       }
     }
 

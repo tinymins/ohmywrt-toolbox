@@ -1,10 +1,12 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { trpc } from "../../lib/trpc";
 import { WorkspaceRedirectSkeleton } from "../../components/skeleton";
+import { trpc } from "../../lib/trpc";
 
 export default function DashboardIndexRedirect() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const workspacesQuery = trpc.workspace.list.useQuery();
 
   useEffect(() => {
@@ -20,9 +22,9 @@ export default function DashboardIndexRedirect() {
     return (
       <div className="mx-auto w-full max-w-3xl px-6 py-12">
         <div className="card">
-          <h2 className="text-xl font-semibold">无法加载工作空间</h2>
+          <h2 className="text-xl font-semibold">{t("dashboard.loadError")}</h2>
           <p className="mt-2 text-slate-500 dark:text-slate-300">
-            请稍后重试
+            {t("dashboard.retryLater")}
           </p>
         </div>
       </div>
@@ -33,9 +35,11 @@ export default function DashboardIndexRedirect() {
     return (
       <div className="mx-auto w-full max-w-3xl px-6 py-12">
         <div className="card">
-          <h2 className="text-xl font-semibold">暂无工作空间</h2>
+          <h2 className="text-xl font-semibold">
+            {t("dashboard.noWorkspace")}
+          </h2>
           <p className="mt-2 text-slate-500 dark:text-slate-300">
-            请先创建工作空间
+            {t("dashboard.createFirst")}
           </p>
         </div>
       </div>

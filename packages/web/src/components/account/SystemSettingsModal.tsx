@@ -1,39 +1,37 @@
-import { useState } from "react";
+import type { AdminUser, InvitationCode, User, UserRole } from "@acme/types";
+import { CopyOutlined, LinkOutlined, PlusOutlined } from "@ant-design/icons";
+import { TRPCClientError } from "@trpc/client";
 import {
   Button,
   Form,
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Select,
+  Space,
   Switch,
   Table,
   Tabs,
-  Popconfirm,
-  Space,
   Tag,
-  Tooltip
+  Tooltip,
 } from "antd";
-import { PlusOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMessage } from "../../hooks";
-import type { User, AdminUser, UserRole, InvitationCode } from "@acme/types";
-import type { Lang } from "../../lib/types";
 import { trpc } from "../../lib/trpc";
 
 type SystemSettingsModalProps = {
   open: boolean;
   onClose: () => void;
   user: User;
-  lang: Lang;
 };
 
 export default function SystemSettingsModal({
   open,
   onClose,
   user,
-  lang
 }: SystemSettingsModalProps) {
   const { t } = useTranslation();
   const message = useMessage();
@@ -41,25 +39,28 @@ export default function SystemSettingsModal({
 
   // 系统设置查询
   const settingsQuery = trpc.admin.getSystemSettings.useQuery(undefined, {
-    enabled: open
+    enabled: open,
   });
   const updateSettingsMutation = trpc.admin.updateSystemSettings.useMutation();
 
   // 用户列表查询（仅超管）
   const usersQuery = trpc.admin.listUsers.useQuery(undefined, {
-    enabled: open && isSuperAdmin
+    enabled: open && isSuperAdmin,
   });
   const updateRoleMutation = trpc.admin.updateUserRole.useMutation();
-  const forceResetPasswordMutation = trpc.admin.forceResetPassword.useMutation();
+  const forceResetPasswordMutation =
+    trpc.admin.forceResetPassword.useMutation();
   const deleteUserMutation = trpc.admin.deleteUser.useMutation();
   const createUserMutation = trpc.admin.createUser.useMutation();
 
   // 邀请码查询（仅超管）
   const invitationsQuery = trpc.admin.listInvitationCodes.useQuery(undefined, {
-    enabled: open && isSuperAdmin
+    enabled: open && isSuperAdmin,
   });
-  const generateInvitationMutation = trpc.admin.generateInvitationCode.useMutation();
-  const deleteInvitationMutation = trpc.admin.deleteInvitationCode.useMutation();
+  const generateInvitationMutation =
+    trpc.admin.generateInvitationCode.useMutation();
+  const deleteInvitationMutation =
+    trpc.admin.deleteInvitationCode.useMutation();
 
   // 重置密码模态框状态
   const [resetPasswordModal, setResetPasswordModal] = useState<{
@@ -75,14 +76,22 @@ export default function SystemSettingsModal({
     name: "",
     email: "",
     password: "",
-    role: "user" as UserRole
+    role: "user" as UserRole,
   });
 
   // 邀请码有效期设置
-  const [invitationExpiresHours, setInvitationExpiresHours] = useState<number | null>(null);
+  const [invitationExpiresHours, setInvitationExpiresHours] = useState<
+    number | null
+  >(null);
 
   const handleToggleRegistration = async (checked: boolean) => {
     await updateSettingsMutation.mutateAsync({ allowRegistration: checked });
+    settingsQuery.refetch();
+    message.success(t("systemSettings.saveSuccess"));
+  };
+
+  const handleToggleSingleWorkspaceMode = async (checked: boolean) => {
+    await updateSettingsMutation.mutateAsync({ singleWorkspaceMode: checked });
     settingsQuery.refetch();
     message.success(t("systemSettings.saveSuccess"));
   };
@@ -101,12 +110,12 @@ export default function SystemSettingsModal({
 
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 4) {
-      message.error(lang === "zh" ? "密码至少4位" : "Password must be at least 4 characters");
+      message.error(t("systemSettings.passwordMinLength"));
       return;
     }
     await forceResetPasswordMutation.mutateAsync({
       userId: resetPasswordModal.userId,
-      newPassword
+      newPassword,
     });
     setResetPasswordModal({ open: false, userId: "", userName: "" });
     setNewPassword("");
@@ -115,11 +124,11 @@ export default function SystemSettingsModal({
 
   const handleAddUser = async () => {
     if (!addUserForm.name || !addUserForm.email || !addUserForm.password) {
-      message.error(lang === "zh" ? "请填写完整信息" : "Please fill in all fields");
+      message.error(t("systemSettings.fillAllFields"));
       return;
     }
     if (addUserForm.password.length < 4) {
-      message.error(lang === "zh" ? "密码至少4位" : "Password must be at least 4 characters");
+      message.error(t("systemSettings.passwordMinLength"));
       return;
     }
     try {
@@ -129,7 +138,7 @@ export default function SystemSettingsModal({
       usersQuery.refetch();
       message.success(t("systemSettings.addUserSuccess"));
     } catch (error: unknown) {
-      if (error instanceof Error && error.message.includes("已被注册")) {
+      if (error instanceof TRPCClientError && error.data?.code === "CONFLICT") {
         message.error(t("systemSettings.emailExists"));
       } else {
         throw error;
@@ -140,7 +149,7 @@ export default function SystemSettingsModal({
   // 邀请码处理函数
   const handleGenerateInvitation = async () => {
     const result = await generateInvitationMutation.mutateAsync({
-      expiresInHours: invitationExpiresHours ?? undefined
+      expiresInHours: invitationExpiresHours ?? undefined,
     });
     invitationsQuery.refetch();
     // 自动复制到剪贴板
@@ -163,56 +172,68 @@ export default function SystemSettingsModal({
 
   const getInvitationStatus = (invitation: InvitationCode) => {
     if (invitation.usedBy) {
-      return <Tag color="default">{t("systemSettings.invitationStatusUsed")}</Tag>;
+      return (
+        <Tag color="default">{t("systemSettings.invitationStatusUsed")}</Tag>
+      );
     }
     if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
-      return <Tag color="red">{t("systemSettings.invitationStatusExpired")}</Tag>;
+      return (
+        <Tag color="red">{t("systemSettings.invitationStatusExpired")}</Tag>
+      );
     }
-    return <Tag color="green">{t("systemSettings.invitationStatusUnused")}</Tag>;
+    return (
+      <Tag color="green">{t("systemSettings.invitationStatusUnused")}</Tag>
+    );
   };
 
   const getRoleTag = (role: UserRole) => {
     const config: Record<UserRole, { color: string; label: string }> = {
       superadmin: { color: "red", label: t("systemSettings.roleSuperAdmin") },
       admin: { color: "blue", label: t("systemSettings.roleAdmin") },
-      user: { color: "default", label: t("systemSettings.roleUser") }
+      user: { color: "default", label: t("systemSettings.roleUser") },
     };
     return <Tag color={config[role].color}>{config[role].label}</Tag>;
   };
 
   const columns: ColumnsType<AdminUser> = [
     {
-      title: lang === "zh" ? "用户名" : "Name",
+      title: t("systemSettings.userNameColumn"),
       dataIndex: "name",
-      key: "name"
+      key: "name",
+      width: 100,
     },
     {
-      title: lang === "zh" ? "邮箱" : "Email",
+      title: t("systemSettings.emailColumn"),
       dataIndex: "email",
-      key: "email"
+      key: "email",
+      width: 160,
     },
     {
       title: t("systemSettings.userRole"),
       dataIndex: "role",
       key: "role",
-      render: (role: UserRole) => getRoleTag(role)
+      width: 120,
+      render: (role: UserRole) => getRoleTag(role),
     },
     {
       title: t("systemSettings.lastLoginAt"),
       dataIndex: "lastLoginAt",
       key: "lastLoginAt",
+      width: 100,
       render: (date: string | null) =>
-        date ? new Date(date).toLocaleString() : (lang === "zh" ? "从未登录" : "Never")
+        date ? new Date(date).toLocaleString() : t("systemSettings.neverLogin"),
     },
     {
       title: t("systemSettings.userCreatedAt"),
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleDateString()
+      width: 120,
+      render: (date: string) => new Date(date).toLocaleDateString(),
     },
     {
       title: t("systemSettings.userActions"),
       key: "actions",
+      width: 280,
       render: (_, record) => {
         const isCurrentUser = record.id === user.id;
         const isSuperAdminUser = record.role === "superadmin";
@@ -228,7 +249,10 @@ export default function SystemSettingsModal({
               options={[
                 { value: "user", label: t("systemSettings.roleUser") },
                 { value: "admin", label: t("systemSettings.roleAdmin") },
-                { value: "superadmin", label: t("systemSettings.roleSuperAdmin") }
+                {
+                  value: "superadmin",
+                  label: t("systemSettings.roleSuperAdmin"),
+                },
               ]}
             />
             <Button
@@ -238,7 +262,7 @@ export default function SystemSettingsModal({
                 setResetPasswordModal({
                   open: true,
                   userId: record.id,
-                  userName: record.name
+                  userName: record.name,
                 })
               }
             >
@@ -246,18 +270,24 @@ export default function SystemSettingsModal({
             </Button>
             <Popconfirm
               title={t("systemSettings.confirmDelete")}
-              description={t("systemSettings.confirmDeleteDesc", { name: record.name })}
+              description={t("systemSettings.confirmDeleteDesc", {
+                name: record.name,
+              })}
               onConfirm={() => handleDeleteUser(record.id)}
               disabled={isCurrentUser || isSuperAdminUser}
             >
-              <Button size="small" danger disabled={isCurrentUser || isSuperAdminUser}>
+              <Button
+                size="small"
+                danger
+                disabled={isCurrentUser || isSuperAdminUser}
+              >
                 {t("systemSettings.deleteUser")}
               </Button>
             </Popconfirm>
           </Space>
         );
-      }
-    }
+      },
+    },
   ];
 
   const generalTab = (
@@ -273,6 +303,19 @@ export default function SystemSettingsModal({
             loading={updateSettingsMutation.isPending}
           />
         </Form.Item>
+        {/* 仅当超管且未被环境变量覆盖时显示单一空间模式开关 */}
+        {isSuperAdmin && !settingsQuery.data?.singleWorkspaceModeOverridden && (
+          <Form.Item
+            label={t("systemSettings.singleWorkspaceMode")}
+            extra={t("systemSettings.singleWorkspaceModeDesc")}
+          >
+            <Switch
+              checked={settingsQuery.data?.singleWorkspaceMode ?? false}
+              onChange={handleToggleSingleWorkspaceMode}
+              loading={updateSettingsMutation.isPending}
+            />
+          </Form.Item>
+        )}
       </Form>
     </div>
   );
@@ -280,7 +323,11 @@ export default function SystemSettingsModal({
   const usersTab = (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setAddUserModal(true)}>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setAddUserModal(true)}
+        >
           {t("systemSettings.addUser")}
         </Button>
       </div>
@@ -290,6 +337,7 @@ export default function SystemSettingsModal({
         rowKey="id"
         loading={usersQuery.isLoading}
         size="small"
+        scroll={{ x: 900 }}
         pagination={{ pageSize: 10 }}
       />
     </div>
@@ -304,25 +352,27 @@ export default function SystemSettingsModal({
         <Tooltip title={code}>
           <code className="text-xs">{code.slice(0, 8)}...</code>
         </Tooltip>
-      )
+      ),
     },
     {
       title: t("systemSettings.invitationStatus"),
       key: "status",
-      render: (_, record) => getInvitationStatus(record)
+      render: (_, record) => getInvitationStatus(record),
     },
     {
       title: t("systemSettings.invitationExpiresAt"),
       dataIndex: "expiresAt",
       key: "expiresAt",
       render: (date: string | null) =>
-        date ? new Date(date).toLocaleString() : t("systemSettings.invitationNeverExpire")
+        date
+          ? new Date(date).toLocaleString()
+          : t("systemSettings.invitationNeverExpire"),
     },
     {
       title: t("systemSettings.invitationCreatedAt"),
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleString()
+      render: (date: string) => new Date(date).toLocaleString(),
     },
     {
       title: t("systemSettings.userActions"),
@@ -349,21 +399,23 @@ export default function SystemSettingsModal({
             </Popconfirm>
           </Space>
         );
-      }
-    }
+      },
+    },
   ];
 
   const invitationsTab = (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <InputNumber
-          placeholder={t("systemSettings.expiresInHours")}
-          min={1}
-          value={invitationExpiresHours}
-          onChange={(v) => setInvitationExpiresHours(v)}
-          addonAfter={lang === "zh" ? "小时" : "hours"}
-          style={{ width: 180 }}
-        />
+        <Space.Compact>
+          <InputNumber
+            placeholder={t("systemSettings.expiresInHours")}
+            min={1}
+            value={invitationExpiresHours}
+            onChange={(v) => setInvitationExpiresHours(v)}
+            style={{ width: 140 }}
+          />
+          <Button disabled>{t("systemSettings.hoursUnit")}</Button>
+        </Space.Compact>
         <span className="text-slate-500 text-sm">
           {invitationExpiresHours ? "" : t("systemSettings.noExpiration")}
         </span>
@@ -391,7 +443,7 @@ export default function SystemSettingsModal({
     {
       key: "general",
       label: t("systemSettings.generalTab"),
-      children: generalTab
+      children: generalTab,
     },
     // 超管才显示用户管理 Tab
     ...(isSuperAdmin
@@ -399,15 +451,15 @@ export default function SystemSettingsModal({
           {
             key: "users",
             label: t("systemSettings.usersTab"),
-            children: usersTab
+            children: usersTab,
           },
           {
             key: "invitations",
             label: t("systemSettings.invitationTab"),
-            children: invitationsTab
-          }
+            children: invitationsTab,
+          },
         ]
-      : [])
+      : []),
   ];
 
   return (
@@ -418,7 +470,7 @@ export default function SystemSettingsModal({
         title={t("systemSettings.title")}
         footer={null}
         width={isSuperAdmin ? 900 : 500}
-        destroyOnClose
+        destroyOnHidden
       >
         <Tabs items={tabItems} />
       </Modal>
@@ -435,14 +487,16 @@ export default function SystemSettingsModal({
         confirmLoading={forceResetPasswordMutation.isPending}
       >
         <p className="mb-4 text-slate-600 dark:text-slate-400">
-          {t("systemSettings.resetPasswordDesc", { name: resetPasswordModal.userName })}
+          {t("systemSettings.resetPasswordDesc", {
+            name: resetPasswordModal.userName,
+          })}
         </p>
         <Form layout="vertical">
           <Form.Item label={t("systemSettings.newPassword")} required>
             <Input.Password
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder={lang === "zh" ? "请输入新密码（至少4位）" : "Enter new password (min 4 chars)"}
+              placeholder={t("systemSettings.newPasswordPlaceholder")}
             />
           </Form.Item>
         </Form>
@@ -466,23 +520,29 @@ export default function SystemSettingsModal({
           <Form.Item label={t("systemSettings.userName")} required>
             <Input
               value={addUserForm.name}
-              onChange={(e) => setAddUserForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder={lang === "zh" ? "请输入用户名" : "Enter username"}
+              onChange={(e) =>
+                setAddUserForm((f) => ({ ...f, name: e.target.value }))
+              }
+              placeholder={t("systemSettings.usernamePlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("systemSettings.userEmail")} required>
             <Input
               type="email"
               value={addUserForm.email}
-              onChange={(e) => setAddUserForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder={lang === "zh" ? "请输入邮箱" : "Enter email"}
+              onChange={(e) =>
+                setAddUserForm((f) => ({ ...f, email: e.target.value }))
+              }
+              placeholder={t("systemSettings.emailPlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("systemSettings.userPassword")} required>
             <Input.Password
               value={addUserForm.password}
-              onChange={(e) => setAddUserForm((f) => ({ ...f, password: e.target.value }))}
-              placeholder={lang === "zh" ? "请输入密码（至少4位）" : "Enter password (min 4 chars)"}
+              onChange={(e) =>
+                setAddUserForm((f) => ({ ...f, password: e.target.value }))
+              }
+              placeholder={t("systemSettings.passwordPlaceholder")}
             />
           </Form.Item>
           <Form.Item label={t("systemSettings.userRoleSelect")}>
@@ -492,7 +552,10 @@ export default function SystemSettingsModal({
               options={[
                 { value: "user", label: t("systemSettings.roleUser") },
                 { value: "admin", label: t("systemSettings.roleAdmin") },
-                { value: "superadmin", label: t("systemSettings.roleSuperAdmin") }
+                {
+                  value: "superadmin",
+                  label: t("systemSettings.roleSuperAdmin"),
+                },
               ]}
             />
           </Form.Item>

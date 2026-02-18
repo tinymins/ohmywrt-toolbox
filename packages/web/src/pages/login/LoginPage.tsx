@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
-import { Alert, Button, Form, Input, Spin } from "antd";
 import type { User } from "@acme/types";
+import { Alert, Button, Form, Input, Spin } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { trpc } from "../../lib/trpc";
 
 type LoginPageProps = {
@@ -10,7 +10,10 @@ type LoginPageProps = {
   initialMode?: "login" | "register";
 };
 
-export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageProps) {
+export default function LoginPage({
+  onLogin,
+  initialMode = "login",
+}: LoginPageProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const loginMutation = trpc.auth.login.useMutation();
@@ -26,15 +29,18 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
   const hasValidInvitation = !!invitationCode;
 
   const [mode, setMode] = useState<"login" | "register">(initialMode);
-  const error = (mode === "login" ? loginMutation.error : registerMutation.error)?.message;
-  const { t, i18n } = useTranslation();
-  const lang = i18n.language === "zh" ? "zh" : "en";
+  const error = (
+    mode === "login" ? loginMutation.error : registerMutation.error
+  )?.message;
+  const { t } = useTranslation();
   const redirect = searchParams.get("redirect");
-  const redirectQuery = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+  const redirectQuery = redirect
+    ? `?redirect=${encodeURIComponent(redirect)}`
+    : "";
   const [form] = Form.useForm();
   const submitDisabled = useMemo(
     () => loginMutation.isPending || registerMutation.isPending,
-    [loginMutation.isPending, registerMutation.isPending]
+    [loginMutation.isPending, registerMutation.isPending],
   );
 
   useEffect(() => {
@@ -45,13 +51,14 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
       setMode(initialMode);
     }
     form.resetFields();
-  }, [initialMode, hasValidInvitation]);
+  }, [initialMode, hasValidInvitation, form.resetFields]);
 
   // 如果正在检查注册状态，显示加载
   if (registrationStatusQuery.isLoading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950">
         <Spin size="large" />
+        <Form form={form} className="hidden" />
       </div>
     );
   }
@@ -66,16 +73,10 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
             </h1>
             <p className="text-slate-500 dark:text-slate-400">
               {hasValidInvitation && mode === "register"
-                ? lang === "zh"
-                  ? "您已收到邀请，请注册账户"
-                  : "You have been invited, please register"
+                ? t("login.invitedRegister")
                 : isFirstUser && mode === "register"
-                  ? lang === "zh"
-                    ? "创建第一个管理员账户"
-                    : "Create the first admin account"
-                  : lang === "zh"
-                    ? "请登录您的账户"
-                    : "Please sign in to your account"}
+                  ? t("login.firstAdmin")
+                  : t("login.pleaseLogin")}
             </p>
           </div>
 
@@ -87,10 +88,12 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
               if (mode === "login") {
                 const result = await loginMutation.mutateAsync({
                   email: values.email,
-                  password: values.password
+                  password: values.password,
                 });
                 onLogin(result.user as User);
-                navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
+                navigate(
+                  redirect || `/dashboard/${result.defaultWorkspaceSlug}`,
+                );
                 return;
               }
 
@@ -98,7 +101,7 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                 name: values.name?.trim(),
                 email: values.email,
                 password: values.password,
-                invitationCode: invitationCode ?? undefined
+                invitationCode: invitationCode ?? undefined,
               });
               onLogin(result.user as User);
               navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
@@ -109,7 +112,12 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
               name="email"
               rules={[{ required: true, message: t("login.email") }]}
             >
-              <Input type="email" placeholder="请输入邮箱" size="large" />
+              <Input
+                type="email"
+                placeholder={t("login.emailPlaceholder")}
+                size="large"
+                autoComplete="email"
+              />
             </Form.Item>
 
             <Form.Item
@@ -117,20 +125,31 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
               name="password"
               rules={[{ required: true, message: t("login.password") }]}
             >
-              <Input.Password placeholder="请输入密码" size="large" />
+              <Input.Password
+                placeholder={t("login.passwordPlaceholder")}
+                size="large"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+              />
             </Form.Item>
 
             {mode === "register" ? (
               <Form.Item
-                label={lang === "zh" ? "用户名称" : "User name"}
+                label={t("login.userName")}
                 name="name"
-                rules={[{ required: true, message: lang === "zh" ? "请输入用户名称" : "Please enter your name" }]}
+                rules={[
+                  { required: true, message: t("login.userNameRequired") },
+                ]}
               >
-                <Input placeholder={lang === "zh" ? "例如：张三" : "e.g. Alex"} size="large" />
+                <Input
+                  placeholder={t("login.userNamePlaceholder")}
+                  size="large"
+                />
               </Form.Item>
             ) : null}
 
-            {error ? <Alert type="error" message={error} showIcon className="mb-4" /> : null}
+            {error ? (
+              <Alert type="error" message={error} showIcon className="mb-4" />
+            ) : null}
 
             <Button
               type="primary"
@@ -144,9 +163,7 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                 ? t("login.loading")
                 : mode === "login"
                   ? t("login.submit")
-                  : lang === "zh"
-                    ? "注册"
-                    : "Register"}
+                  : t("login.register")}
             </Button>
 
             {/* 只有允许注册或有邀请码时才显示切换按钮 */}
@@ -159,24 +176,26 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                   setMode(nextMode);
                   form.resetFields();
                   // 保留邀请码参数
-                  const inviteParam = invitationCode ? `&invite=${invitationCode}` : "";
-                  navigate(nextMode === "login" ? `/login${redirectQuery}` : `/register${redirectQuery}${inviteParam}`);
+                  const inviteParam = invitationCode
+                    ? `&invite=${invitationCode}`
+                    : "";
+                  navigate(
+                    nextMode === "login"
+                      ? `/login${redirectQuery}`
+                      : `/register${redirectQuery}${inviteParam}`,
+                  );
                 }}
               >
                 {mode === "login"
-                  ? lang === "zh"
-                    ? "没有账号？去注册"
-                    : "No account? Register"
-                  : lang === "zh"
-                    ? "已有账号？去登录"
-                    : "Already have an account? Login"}
+                  ? t("login.noAccount")
+                  : t("login.hasAccount")}
               </Button>
             ) : mode === "register" ? (
               // 如果注册被禁用但当前在注册页，显示提示并跳转到登录
               <div className="mt-4 text-center">
                 <Alert
                   type="warning"
-                  message={lang === "zh" ? "系统暂不开放注册" : "Registration is currently disabled"}
+                  message={t("login.registrationDisabled")}
                   className="mb-4"
                 />
                 <Button
@@ -187,7 +206,7 @@ export default function LoginPage({ onLogin, initialMode = "login" }: LoginPageP
                     navigate(`/login${redirectQuery}`);
                   }}
                 >
-                  {lang === "zh" ? "返回登录" : "Back to login"}
+                  {t("login.backToLogin")}
                 </Button>
               </div>
             ) : null}

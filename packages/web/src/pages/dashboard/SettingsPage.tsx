@@ -1,17 +1,30 @@
+import {
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  UserAddOutlined,
+} from "@ant-design/icons";
+import { Button, Card, Form, Input, Modal, Table, Tabs, Tag } from "antd";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Card, Divider, Form, Input, Modal, Space, Table, Tag, Tabs } from "antd";
-import { DeleteOutlined, ExclamationCircleOutlined, PlusOutlined, UserAddOutlined } from "@ant-design/icons";
 import { useMessage } from "../../hooks";
-import type { Lang } from "../../lib/types";
 import { trpc } from "../../lib/trpc";
+import { SYSTEM_SHARED_SLUG } from "../../main";
 
-type SettingsPageProps = {
-  lang: Lang;
-};
+export default function SettingsPage() {
+  const { t } = useTranslation();
+  const { workspace: workspaceSlugFromUrl } = useParams<{
+    workspace: string;
+  }>();
+  // 查询系统设置判断是否为单一空间模式
+  const systemSettingsQuery = trpc.auth.systemSettings.useQuery();
+  const singleWorkspaceMode =
+    systemSettingsQuery.data?.singleWorkspaceMode ?? false;
+  // 在单一空间模式下使用系统共享空间，否则使用 URL 参数
+  const workspaceSlug = singleWorkspaceMode
+    ? SYSTEM_SHARED_SLUG
+    : workspaceSlugFromUrl;
 
-export default function SettingsPage({ lang }: SettingsPageProps) {
-  const { workspace: workspaceSlug } = useParams<{ workspace: string }>();
   const navigate = useNavigate();
   const message = useMessage();
   const [form] = Form.useForm();
@@ -22,7 +35,7 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
   // Queries
   const workspaceQuery = trpc.workspace.getBySlug.useQuery(
     { slug: workspaceSlug ?? "" },
-    { enabled: !!workspaceSlug }
+    { enabled: !!workspaceSlug },
   );
   const workspacesQuery = trpc.workspace.list.useQuery();
 
@@ -31,15 +44,23 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
   // Mutations
   const updateMutation = trpc.workspace.update.useMutation({
     onSuccess: async (data) => {
-      message.success(lang === "zh" ? "保存成功" : "Saved successfully");
+      message.success(t("common.saveSuccess"));
+
+      // In single workspace mode, don't navigate on slug change
+      if (singleWorkspaceMode) {
+        await utils.workspace.list.invalidate();
+        await utils.workspace.getBySlug.invalidate({ slug: "shared" });
+        return;
+      }
 
       // If slug changed, use optimistic update to avoid flickering
       if (data.slug !== workspaceSlug) {
         // Update the workspace list cache with the new slug
         const currentList = utils.workspace.list.getData();
         if (currentList) {
-          utils.workspace.list.setData(undefined,
-            currentList.map(ws => ws.id === data.id ? data : ws)
+          utils.workspace.list.setData(
+            undefined,
+            currentList.map((ws) => (ws.id === data.id ? data : ws)),
           );
         }
 
@@ -55,22 +76,26 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
       } else {
         // If slug didn't change, just invalidate normally
         await utils.workspace.list.invalidate();
-        await utils.workspace.getBySlug.invalidate({ slug: workspaceSlug ?? "" });
+        await utils.workspace.getBySlug.invalidate({
+          slug: workspaceSlug ?? "",
+        });
       }
     },
     onError: (error) => {
-      message.error(error.message || (lang === "zh" ? "保存失败" : "Failed to save"));
+      message.error(error.message || t("common.saveFailed"));
     },
   });
 
   const deleteMutation = trpc.workspace.delete.useMutation({
     onSuccess: async () => {
-      message.success(lang === "zh" ? "空间站已删除" : "Workspace deleted");
+      message.success(t("dashboard.settings.workspaceDeleted"));
       await utils.workspace.list.invalidate();
 
       // Navigate to first available workspace or home
       const workspaces = workspacesQuery.data ?? [];
-      const remainingWorkspace = workspaces.find((ws) => ws.slug !== workspaceSlug);
+      const remainingWorkspace = workspaces.find(
+        (ws) => ws.slug !== workspaceSlug,
+      );
       if (remainingWorkspace) {
         navigate(`/dashboard/${remainingWorkspace.slug}`);
       } else {
@@ -78,7 +103,7 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
       }
     },
     onError: (error) => {
-      message.error(error.message || (lang === "zh" ? "删除失败" : "Failed to delete"));
+      message.error(error.message || t("common.deleteFailed"));
     },
   });
 
@@ -102,25 +127,23 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
     if (!workspace) return;
 
     Modal.confirm({
-      title: lang === "zh" ? "确认删除空间站" : "Confirm Delete Workspace",
+      title: t("dashboard.settings.confirmDeleteTitle"),
       icon: <ExclamationCircleOutlined />,
       content: (
         <div>
           <p>
-            {lang === "zh"
-              ? `确定要删除空间站 "${workspace.name}" 吗？此操作无法撤销。`
-              : `Are you sure you want to delete workspace "${workspace.name}"? This action cannot be undone.`}
+            {t("dashboard.settings.confirmDeleteContent", {
+              name: workspace.name,
+            })}
           </p>
           <p className="mt-2 text-red-600 dark:text-red-400">
-            {lang === "zh"
-              ? "所有相关数据（包括待办事项）将被永久删除。"
-              : "All related data (including todos) will be permanently deleted."}
+            {t("dashboard.settings.confirmDeleteWarning")}
           </p>
         </div>
       ),
-      okText: lang === "zh" ? "确认删除" : "Delete",
+      okText: t("dashboard.settings.confirmDeleteOk"),
       okType: "danger",
-      cancelText: lang === "zh" ? "取消" : "Cancel",
+      cancelText: t("common.cancel"),
       onOk: async () => {
         await deleteMutation.mutateAsync({ id: workspace.id });
       },
@@ -131,9 +154,7 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
     try {
       const values = await inviteForm.validateFields();
       message.info(
-        lang === "zh"
-          ? `邀请功能开发中：将向 ${values.email} 发送邀请邮件`
-          : `Invite feature coming soon: Will send invitation to ${values.email}`
+        t("dashboard.settings.inviteComingSoon", { email: values.email }),
       );
       inviteForm.resetFields();
       setInviteModalOpen(false);
@@ -147,7 +168,7 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
     {
       key: "1",
       email: "owner@example.com",
-      name: lang === "zh" ? "空间站创建者" : "Workspace Owner",
+      name: t("dashboard.settings.workspaceOwner"),
       role: "owner",
       joinedAt: "2024-01-15",
     },
@@ -155,10 +176,10 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
 
   const memberColumns = [
     {
-      title: lang === "zh" ? "成员" : "Member",
+      title: t("dashboard.settings.tableColumnMember"),
       dataIndex: "name",
       key: "name",
-      render: (text: string, record: typeof mockMembers[0]) => (
+      render: (text: string, record: (typeof mockMembers)[0]) => (
         <div>
           <div className="font-medium">{text}</div>
           <div className="text-xs text-slate-500">{record.email}</div>
@@ -166,24 +187,24 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
       ),
     },
     {
-      title: lang === "zh" ? "角色" : "Role",
+      title: t("dashboard.settings.tableColumnRole"),
       dataIndex: "role",
       key: "role",
       render: (role: string) => (
         <Tag color={role === "owner" ? "blue" : "default"}>
-          {role === "owner" ? (lang === "zh" ? "创建者" : "Owner") : (lang === "zh" ? "成员" : "Member")}
+          {role === "owner" ? t("common.owner") : t("common.member")}
         </Tag>
       ),
     },
     {
-      title: lang === "zh" ? "加入时间" : "Joined",
+      title: t("dashboard.settings.tableColumnJoined"),
       dataIndex: "joinedAt",
       key: "joinedAt",
     },
     {
-      title: lang === "zh" ? "操作" : "Actions",
+      title: t("dashboard.settings.tableColumnActions"),
       key: "actions",
-      render: (_: unknown, record: typeof mockMembers[0]) =>
+      render: (_: unknown, record: (typeof mockMembers)[0]) =>
         record.role !== "owner" ? (
           <Button
             type="text"
@@ -191,10 +212,10 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
             size="small"
             icon={<DeleteOutlined />}
             onClick={() => {
-              message.info(lang === "zh" ? "移除成员功能开发中" : "Remove member feature coming soon");
+              message.info(t("dashboard.settings.removeMemberComingSoon"));
             }}
           >
-            {lang === "zh" ? "移除" : "Remove"}
+            {t("common.remove")}
           </Button>
         ) : null,
     },
@@ -203,7 +224,7 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
   if (workspaceQuery.isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-slate-500">{lang === "zh" ? "加载中..." : "Loading..."}</div>
+        <div className="text-slate-500">{t("common.loading")}</div>
       </div>
     );
   }
@@ -211,7 +232,9 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
   if (!workspace) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="text-slate-500">{lang === "zh" ? "空间站不存在" : "Workspace not found"}</div>
+        <div className="text-slate-500">
+          {t("dashboard.settings.workspaceNotFound")}
+        </div>
       </div>
     );
   }
@@ -228,50 +251,70 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
   const tabItems = [
     {
       key: "general",
-      label: lang === "zh" ? "基础设置" : "General",
+      label: t("dashboard.settings.generalTab"),
       children: (
         <Card>
           <Form form={form} layout="vertical" className="max-w-2xl">
             <Form.Item
               name="name"
-              label={lang === "zh" ? "空间站名称" : "Workspace Name"}
+              label={t("dashboard.settings.workspaceName")}
               rules={[
-                { required: true, message: lang === "zh" ? "请输入名称" : "Please enter name" },
-                { min: 1, max: 50, message: lang === "zh" ? "名称长度为 1-50 个字符" : "Name length should be 1-50 characters" },
-              ]}
-            >
-              <Input placeholder={lang === "zh" ? "例如：我的项目" : "e.g., My Project"} maxLength={50} />
-            </Form.Item>
-
-            <Form.Item
-              name="slug"
-              label={lang === "zh" ? "空间站标识（URL）" : "Workspace Slug (URL)"}
-              rules={[
-                { required: true, message: lang === "zh" ? "请输入标识" : "Please enter slug" },
                 {
-                  pattern: /^[a-z0-9-]+$/,
-                  message: lang === "zh" ? "只能包含小写字母、数字和连字符" : "Only lowercase letters, numbers and hyphens allowed",
+                  required: true,
+                  message: t("dashboard.settings.workspaceNameRequired"),
+                },
+                {
+                  min: 1,
+                  max: 50,
+                  message: t("dashboard.settings.workspaceNameLength"),
                 },
               ]}
-              extra={lang === "zh" ? "用于访问地址，例如：/dashboard/my-project" : "Used in URL, e.g., /dashboard/my-project"}
             >
-              <Input placeholder="my-project" maxLength={50} />
+              <Input
+                placeholder={t("dashboard.settings.workspaceNamePlaceholder")}
+                maxLength={50}
+              />
             </Form.Item>
+
+            {/* 单一空间模式下隐藏 slug 字段 */}
+            {!singleWorkspaceMode && (
+              <Form.Item
+                name="slug"
+                label={t("dashboard.settings.workspaceSlug")}
+                rules={[
+                  {
+                    required: true,
+                    message: t("dashboard.settings.workspaceSlugRequired"),
+                  },
+                  {
+                    pattern: /^[a-z0-9-]+$/,
+                    message: t("dashboard.settings.workspaceSlugPattern"),
+                  },
+                ]}
+                extra={t("dashboard.settings.workspaceSlugExtra")}
+              >
+                <Input placeholder="my-project" maxLength={50} />
+              </Form.Item>
+            )}
 
             <Form.Item
               name="description"
-              label={lang === "zh" ? "描述" : "Description"}
+              label={t("dashboard.settings.description")}
             >
               <Input.TextArea
-                placeholder={lang === "zh" ? "简要描述这个空间站..." : "Briefly describe this workspace..."}
+                placeholder={t("dashboard.settings.descriptionPlaceholder")}
                 rows={3}
                 maxLength={200}
               />
             </Form.Item>
 
             <Form.Item>
-              <Button type="primary" onClick={handleSave} loading={updateMutation.isPending}>
-                {lang === "zh" ? "保存更改" : "Save Changes"}
+              <Button
+                type="primary"
+                onClick={handleSave}
+                loading={updateMutation.isPending}
+              >
+                {t("common.saveChanges")}
               </Button>
             </Form.Item>
           </Form>
@@ -280,14 +323,16 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
     },
     {
       key: "members",
-      label: lang === "zh" ? "成员管理" : "Members",
+      label: t("dashboard.settings.membersTab"),
       children: (
         <Card>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">{lang === "zh" ? "成员列表" : "Team Members"}</h3>
+              <h3 className="text-lg font-semibold">
+                {t("dashboard.settings.memberList")}
+              </h3>
               <p className="text-sm text-slate-500">
-                {lang === "zh" ? "管理空间站成员和权限" : "Manage workspace members and permissions"}
+                {t("dashboard.settings.memberListDesc")}
               </p>
             </div>
             <Button
@@ -295,42 +340,54 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
               icon={<UserAddOutlined />}
               onClick={() => setInviteModalOpen(true)}
             >
-              {lang === "zh" ? "邀请成员" : "Invite Member"}
+              {t("dashboard.settings.inviteMember")}
             </Button>
           </div>
-          <Table columns={memberColumns} dataSource={mockMembers} pagination={false} />
+          <Table
+            columns={memberColumns}
+            dataSource={mockMembers}
+            pagination={false}
+          />
 
           {/* Invite Member Modal */}
           <Modal
-            title={lang === "zh" ? "邀请成员" : "Invite Member"}
+            title={t("dashboard.settings.inviteModalTitle")}
             open={inviteModalOpen}
             onOk={handleInviteMember}
             onCancel={() => {
               inviteForm.resetFields();
               setInviteModalOpen(false);
             }}
-            okText={lang === "zh" ? "发送邀请" : "Send Invite"}
-            cancelText={lang === "zh" ? "取消" : "Cancel"}
+            okText={t("dashboard.settings.sendInvite")}
+            cancelText={t("common.cancel")}
           >
             <Form form={inviteForm} layout="vertical" className="mt-6">
               <Form.Item
                 name="email"
-                label={lang === "zh" ? "邮箱地址" : "Email Address"}
+                label={t("dashboard.settings.emailAddress")}
                 rules={[
-                  { required: true, message: lang === "zh" ? "请输入邮箱" : "Please enter email" },
-                  { type: "email", message: lang === "zh" ? "请输入有效邮箱" : "Please enter valid email" },
+                  {
+                    required: true,
+                    message: t("dashboard.settings.emailRequired"),
+                  },
+                  {
+                    type: "email",
+                    message: t("dashboard.settings.emailInvalid"),
+                  },
                 ]}
               >
                 <Input placeholder="user@example.com" />
               </Form.Item>
               <Form.Item
                 name="role"
-                label={lang === "zh" ? "角色" : "Role"}
+                label={t("dashboard.settings.role")}
                 initialValue="member"
               >
-                <Tag color="default">{lang === "zh" ? "成员（默认）" : "Member (Default)"}</Tag>
+                <Tag color="default">
+                  {t("dashboard.settings.memberDefault")}
+                </Tag>
                 <p className="mt-2 text-xs text-slate-500">
-                  {lang === "zh" ? "成员可以查看和编辑空间站内容" : "Members can view and edit workspace content"}
+                  {t("dashboard.settings.memberPermissionDesc")}
                 </p>
               </Form.Item>
             </Form>
@@ -338,35 +395,38 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
         </Card>
       ),
     },
-    {
-      key: "danger",
-      label: lang === "zh" ? "危险区域" : "Danger Zone",
-      children: (
-        <Card>
-          <div className="max-w-2xl space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">
-                {lang === "zh" ? "删除空间站" : "Delete Workspace"}
-              </h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                {lang === "zh"
-                  ? "删除后，所有数据将被永久清除，且无法恢复。"
-                  : "Once deleted, all data will be permanently removed and cannot be recovered."}
-              </p>
-              <Button
-                danger
-                icon={<DeleteOutlined />}
-                onClick={handleDelete}
-                loading={deleteMutation.isPending}
-                className="mt-4"
-              >
-                {lang === "zh" ? "删除空间站" : "Delete Workspace"}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ),
-    },
+    // 单一空间模式下隐藏危险区域
+    ...(!singleWorkspaceMode
+      ? [
+          {
+            key: "danger",
+            label: t("dashboard.settings.dangerTab"),
+            children: (
+              <Card>
+                <div className="max-w-2xl space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-600 dark:text-red-400">
+                      {t("dashboard.settings.deleteWorkspace")}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                      {t("dashboard.settings.deleteWorkspaceDesc")}
+                    </p>
+                    <Button
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={handleDelete}
+                      loading={deleteMutation.isPending}
+                      className="mt-4"
+                    >
+                      {t("dashboard.settings.deleteWorkspace")}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -374,12 +434,10 @@ export default function SettingsPage({ lang }: SettingsPageProps) {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-200">
-          {lang === "zh" ? "空间站设置" : "Workspace Settings"}
+          {t("dashboard.settings.title")}
         </h1>
         <p className="mt-1 text-slate-500">
-          {lang === "zh"
-            ? `管理 "${workspace.name}" 的配置和成员`
-            : `Manage "${workspace.name}" configuration and members`}
+          {t("dashboard.settings.subtitle", { name: workspace.name })}
         </p>
       </div>
 

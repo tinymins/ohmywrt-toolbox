@@ -8,7 +8,7 @@ const avatarColors = [
   "#eab308",
   "#38bdf8",
   "#8b5cf6",
-  "#f59e0b"
+  "#f59e0b",
 ];
 
 const hashString = (value: string) => {
@@ -26,7 +26,10 @@ export const getAvatarColor = (value?: string | null) => {
   return avatarColors[hash % avatarColors.length];
 };
 
-export const getAvatarInitial = (name?: string | null, email?: string | null) => {
+export const getAvatarInitial = (
+  name?: string | null,
+  email?: string | null,
+) => {
   const base = (name || email || "").trim();
   if (!base) return "?";
   return base[0].toUpperCase();

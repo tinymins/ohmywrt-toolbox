@@ -8,4 +8,7 @@ export const PHASE_DURATIONS = {
   report: 10000,
 };
 
-export const TOTAL_DURATION = Object.values(PHASE_DURATIONS).reduce((a, b) => a + b, 0);
+export const TOTAL_DURATION = Object.values(PHASE_DURATIONS).reduce(
+  (a, b) => a + b,
+  0,
+);

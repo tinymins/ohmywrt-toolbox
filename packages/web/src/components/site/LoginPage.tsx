@@ -1,7 +1,7 @@
-import { Form, Input, Button, Alert } from "antd";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import type { User } from "@acme/types";
+import { Alert, Button, Form, Input } from "antd";
+import { useTranslation } from "react-i18next";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { trpc } from "../../lib/trpc";
 
 type LoginPageProps = {
@@ -12,6 +12,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const mutation = trpc.auth.login.useMutation();
+  const systemSettingsQuery = trpc.auth.systemSettings.useQuery();
+  const singleWorkspaceMode =
+    systemSettingsQuery.data?.singleWorkspaceMode ?? false;
   const error = mutation.error?.message;
   const { t } = useTranslation();
   const redirect = searchParams.get("redirect");
@@ -25,7 +28,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {t("login.title")}
             </h1>
             <p className="text-slate-500 dark:text-slate-400">
-              请登录您的账户
+              {t("login.pleaseLogin")}
             </p>
           </div>
 
@@ -35,10 +38,17 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             onFinish={async (values) => {
               const result = await mutation.mutateAsync({
                 email: values.email,
-                password: values.password
+                password: values.password,
               });
               onLogin(result.user as User);
-              navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
+              // 根据系统设置决定跳转路径
+              if (singleWorkspaceMode) {
+                navigate(redirect || "/dashboard");
+              } else {
+                navigate(
+                  redirect || `/dashboard/${result.defaultWorkspaceSlug}`,
+                );
+              }
             }}
           >
             <Form.Item
@@ -46,7 +56,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               name="email"
               rules={[{ required: true, message: t("login.email") }]}
             >
-              <Input type="email" placeholder="请输入邮箱" size="large" />
+              <Input
+                type="email"
+                placeholder={t("login.emailPlaceholder")}
+                size="large"
+              />
             </Form.Item>
 
             <Form.Item
@@ -54,7 +68,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               name="password"
               rules={[{ required: true, message: t("login.password") }]}
             >
-              <Input.Password placeholder="请输入密码" size="large" />
+              <Input.Password
+                placeholder={t("login.passwordPlaceholder")}
+                size="large"
+              />
             </Form.Item>
 
             {error ? <Alert type="error" title={error} showIcon /> : null}

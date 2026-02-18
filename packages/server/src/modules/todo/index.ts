@@ -1,3 +1,3 @@
 export * from "./todo.module";
-export * from "./todo.service";
 export * from "./todo.router";
+export * from "./todo.service";

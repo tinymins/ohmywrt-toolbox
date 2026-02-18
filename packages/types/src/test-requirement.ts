@@ -3,20 +3,27 @@ import { z } from "zod";
 /**
  * 测试需求优先级
  */
-export const TestRequirementPrioritySchema = z.enum(["critical", "high", "medium", "low"]);
-export type TestRequirementPriority = z.infer<typeof TestRequirementPrioritySchema>;
+export const TestRequirementPrioritySchema = z.enum([
+  "critical",
+  "high",
+  "medium",
+  "low",
+]);
+export type TestRequirementPriority = z.infer<
+  typeof TestRequirementPrioritySchema
+>;
 
 /**
  * 测试需求状态
  */
 export const TestRequirementStatusSchema = z.enum([
-  "draft",       // 草稿
-  "pending",     // 待审核
-  "approved",    // 已批准
+  "draft", // 草稿
+  "pending", // 待审核
+  "approved", // 已批准
   "in_progress", // 进行中
-  "completed",   // 已完成
-  "rejected",    // 已拒绝
-  "cancelled"    // 已取消
+  "completed", // 已完成
+  "rejected", // 已拒绝
+  "cancelled", // 已取消
 ]);
 export type TestRequirementStatus = z.infer<typeof TestRequirementStatusSchema>;
 
@@ -24,13 +31,13 @@ export type TestRequirementStatus = z.infer<typeof TestRequirementStatusSchema>;
  * 测试需求类型
  */
 export const TestRequirementTypeSchema = z.enum([
-  "functional",    // 功能测试
-  "performance",   // 性能测试
-  "security",      // 安全测试
-  "usability",     // 易用性测试
+  "functional", // 功能测试
+  "performance", // 性能测试
+  "security", // 安全测试
+  "usability", // 易用性测试
   "compatibility", // 兼容性测试
-  "integration",   // 集成测试
-  "regression"     // 回归测试
+  "integration", // 集成测试
+  "regression", // 回归测试
 ]);
 export type TestRequirementType = z.infer<typeof TestRequirementTypeSchema>;
 
@@ -59,7 +66,7 @@ export const TestRequirementSchema = z.object({
   // 关联信息
   childrenCount: z.number().optional(), // 子需求数量
   creatorName: z.string().nullable().optional(), // 创建者名称
-  assigneeName: z.string().nullable().optional() // 负责人名称
+  assigneeName: z.string().nullable().optional(), // 负责人名称
 });
 export type TestRequirement = z.infer<typeof TestRequirementSchema>;
 
@@ -77,9 +84,11 @@ export const CreateTestRequirementInputSchema = z.object({
   tags: z.array(z.string()).optional(),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(), // ISO 日期字符串
-  estimatedHours: z.number().optional()
+  estimatedHours: z.number().optional(),
 });
-export type CreateTestRequirementInput = z.infer<typeof CreateTestRequirementInputSchema>;
+export type CreateTestRequirementInput = z.infer<
+  typeof CreateTestRequirementInputSchema
+>;
 
 /**
  * 更新测试需求输入
@@ -97,17 +106,21 @@ export const UpdateTestRequirementInputSchema = z.object({
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   estimatedHours: z.number().nullable().optional(),
-  actualHours: z.number().nullable().optional()
+  actualHours: z.number().nullable().optional(),
 });
-export type UpdateTestRequirementInput = z.infer<typeof UpdateTestRequirementInputSchema>;
+export type UpdateTestRequirementInput = z.infer<
+  typeof UpdateTestRequirementInputSchema
+>;
 
 /**
  * 删除测试需求输入
  */
 export const DeleteTestRequirementInputSchema = z.object({
-  id: z.string()
+  id: z.string(),
 });
-export type DeleteTestRequirementInput = z.infer<typeof DeleteTestRequirementInputSchema>;
+export type DeleteTestRequirementInput = z.infer<
+  typeof DeleteTestRequirementInputSchema
+>;
 
 /**
  * 测试需求列表查询参数
@@ -119,6 +132,8 @@ export const TestRequirementListQuerySchema = z.object({
   parentId: z.string().nullable().optional(), // null 表示查询顶级需求
   keyword: z.string().optional(),
   page: z.number().default(1),
-  pageSize: z.number().default(20)
+  pageSize: z.number().default(20),
 });
-export type TestRequirementListQuery = z.infer<typeof TestRequirementListQuerySchema>;
+export type TestRequirementListQuery = z.infer<
+  typeof TestRequirementListQuerySchema
+>;

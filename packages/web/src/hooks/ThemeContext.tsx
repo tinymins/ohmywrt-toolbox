@@ -1,6 +1,17 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import {
+  detectSystemTheme,
+  loadThemeMode,
+  saveThemeMode,
+} from "../lib/storage";
 import type { Theme, ThemeMode } from "../lib/types";
-import { detectSystemTheme, loadThemeMode, saveThemeMode } from "../lib/storage";
 
 interface ThemeContextValue {
   theme: Theme;
@@ -11,9 +22,11 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => loadThemeMode());
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() =>
+    loadThemeMode(),
+  );
   const [theme, setTheme] = useState<Theme>(() =>
-    themeMode === "auto" ? detectSystemTheme() : themeMode
+    themeMode === "auto" ? detectSystemTheme() : themeMode,
   );
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
@@ -27,7 +40,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(resolvedTheme);
 
     if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+      document.documentElement.classList.toggle(
+        "dark",
+        resolvedTheme === "dark",
+      );
     }
   }, [themeMode]);
 

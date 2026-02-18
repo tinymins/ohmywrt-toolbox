@@ -67,7 +67,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 WORKDIR /app/packages/server
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 4000
 
 # 启动应用
 CMD ["node", "dist/main.js"]

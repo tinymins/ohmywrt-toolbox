@@ -4,6 +4,6 @@ import { TestRequirementService } from "./test-requirement.service";
 
 @Module({
   providers: [TestRequirementService, TestRequirementRouter],
-  exports: [TestRequirementService, TestRequirementRouter]
+  exports: [TestRequirementService, TestRequirementRouter],
 })
 export class TestRequirementModule {}

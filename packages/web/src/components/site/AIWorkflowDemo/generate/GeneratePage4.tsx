@@ -3,8 +3,12 @@ import { useTranslation } from "react-i18next";
 
 export const GeneratePage4 = () => {
   const { t } = useTranslation();
-  const browsers = t("aiWorkflow.generate.browsers", { returnObjects: true }) as unknown as { browser: string; version: string }[];
-  const browserTests = t("aiWorkflow.generate.browserTests", { returnObjects: true }) as unknown as string[];
+  const browsers = t("aiWorkflow.generate.browsers", {
+    returnObjects: true,
+  }) as unknown as { browser: string; version: string }[];
+  const browserTests = t("aiWorkflow.generate.browserTests", {
+    returnObjects: true,
+  }) as unknown as string[];
   const browsersWithData = [
     { ...browsers[0], icon: "🌐", cases: 128 },
     { ...browsers[1], icon: "🦊", cases: 128 },
@@ -13,9 +17,16 @@ export const GeneratePage4 = () => {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0, x: 50 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -50 }} className="absolute inset-0 p-4">
+    <motion.div
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -50 }}
+      className="absolute inset-0 p-4"
+    >
       <h4 className="mb-3 flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-xs text-white">4</span>
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-violet-500 text-xs text-white">
+          4
+        </span>
         🖥️ {t("aiWorkflow.generate.step4")}
       </h4>
       <div className="grid grid-cols-4 gap-2">
@@ -28,9 +39,15 @@ export const GeneratePage4 = () => {
             className="rounded-lg border border-violet-200 bg-violet-50 p-3 text-center dark:border-violet-900 dark:bg-violet-950/30"
           >
             <span className="text-2xl">{b.icon}</span>
-            <p className="mt-1 text-sm font-medium text-violet-700 dark:text-violet-300">{b.browser}</p>
-            <p className="text-xs text-violet-500 dark:text-violet-400">{b.version}</p>
-            <p className="mt-1 text-lg font-bold text-violet-600 dark:text-violet-400">{b.cases}</p>
+            <p className="mt-1 text-sm font-medium text-violet-700 dark:text-violet-300">
+              {b.browser}
+            </p>
+            <p className="text-xs text-violet-500 dark:text-violet-400">
+              {b.version}
+            </p>
+            <p className="mt-1 text-lg font-bold text-violet-600 dark:text-violet-400">
+              {b.cases}
+            </p>
           </motion.div>
         ))}
       </div>

@@ -86,10 +86,10 @@ make docker  # 🐳 构建并启动 Docker 容器
 # 数据库配置
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=apps_db
+POSTGRES_DB=ohmywrt_toolbox_db
 
 # 数据库连接字符串
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/apps_db
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ohmywrt_toolbox_db
 ```
 
 ## 🐳 Docker 部署

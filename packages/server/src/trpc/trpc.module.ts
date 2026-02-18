@@ -1,19 +1,19 @@
 import {
   All,
   Controller,
+  type DynamicModule,
   Inject,
   Injectable,
   Module,
+  type Provider,
   Req,
   Res,
-  type DynamicModule,
-  type Provider
 } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import type { Request, Response } from "express";
 import type { AnyRouter } from "@trpc/server";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import type { Request, Response } from "express";
 import { createAppRouter } from "./router.builder";
 
 export type TrpcCreateContext = (opts: CreateExpressContextOptions) => unknown;
@@ -31,9 +31,10 @@ class TrpcRouterFactory {
 
   createRouter(): AnyRouter {
     const moduleRef = this.moduleRef;
-    return createAppRouter((routerClass) =>
-      (moduleRef.get(routerClass, { strict: false }) ??
-        new routerClass()) as Record<string, unknown>
+    return createAppRouter(
+      (routerClass) =>
+        (moduleRef.get(routerClass, { strict: false }) ??
+          new routerClass()) as Record<string, unknown>,
     );
   }
 }
@@ -44,11 +45,11 @@ class TrpcController {
 
   constructor(
     @Inject(TRPC_ROUTER) router: AnyRouter,
-    @Inject(TRPC_CONTEXT) createContext: TrpcCreateContext
+    @Inject(TRPC_CONTEXT) createContext: TrpcCreateContext,
   ) {
     this.middleware = createExpressMiddleware({
       router,
-      createContext
+      createContext,
     });
   }
 
@@ -60,24 +61,22 @@ class TrpcController {
 
 @Module({})
 export class TrpcModule {
-  private readonly _ = 0;
-
   static forRoot(options: TrpcModuleOptions): DynamicModule {
     const providers: Provider[] = [
       TrpcRouterFactory,
       {
         provide: TRPC_ROUTER,
         useFactory: (factory: TrpcRouterFactory) => factory.createRouter(),
-        inject: [TrpcRouterFactory]
+        inject: [TrpcRouterFactory],
       },
-      { provide: TRPC_CONTEXT, useValue: options.createContext }
+      { provide: TRPC_CONTEXT, useValue: options.createContext },
     ];
 
     return {
       module: TrpcModule,
       controllers: [TrpcController],
       providers,
-      exports: [TRPC_ROUTER, TRPC_CONTEXT]
+      exports: [TRPC_ROUTER, TRPC_CONTEXT],
     };
   }
 }

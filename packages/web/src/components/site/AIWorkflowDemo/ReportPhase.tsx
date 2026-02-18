@@ -3,9 +3,15 @@ import { useTranslation } from "react-i18next";
 
 export const ReportPhase = () => {
   const { t } = useTranslation();
-  const metrics = t("aiWorkflow.report.metrics", { returnObjects: true }) as unknown as { label: string; value: string }[];
-  const chartLabels = t("aiWorkflow.report.chartLabels", { returnObjects: true }) as unknown as string[];
-  const defects = t("aiWorkflow.report.defects", { returnObjects: true }) as unknown as { module: string; count: number; severity: string }[];
+  const metrics = t("aiWorkflow.report.metrics", {
+    returnObjects: true,
+  }) as unknown as { label: string; value: string }[];
+  const chartLabels = t("aiWorkflow.report.chartLabels", {
+    returnObjects: true,
+  }) as unknown as string[];
+  const defects = t("aiWorkflow.report.defects", {
+    returnObjects: true,
+  }) as unknown as { module: string; count: number; severity: string }[];
 
   const metricsWithData = [
     { ...metrics[0], icon: "✅", color: "emerald" },
@@ -39,8 +45,12 @@ export const ReportPhase = () => {
             📊
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{t("aiWorkflow.report.title")}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t("aiWorkflow.report.desc")}</p>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              {t("aiWorkflow.report.title")}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t("aiWorkflow.report.desc")}
+            </p>
           </div>
           <motion.span
             initial={{ opacity: 0, scale: 0 }}
@@ -57,7 +67,11 @@ export const ReportPhase = () => {
           {/* Left: Stats & Charts */}
           <div className="space-y-3">
             {/* Key Metrics */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-2 gap-2"
+            >
               {metricsWithData.map((stat, i) => (
                 <motion.div
                   key={stat.label}
@@ -68,9 +82,15 @@ export const ReportPhase = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-lg">{stat.icon}</span>
-                    <span className={`text-xl font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}>{stat.value}</span>
+                    <span
+                      className={`text-xl font-bold text-${stat.color}-600 dark:text-${stat.color}-400`}
+                    >
+                      {stat.value}
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{stat.label}</p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {stat.label}
+                  </p>
                 </motion.div>
               ))}
             </motion.div>
@@ -82,7 +102,9 @@ export const ReportPhase = () => {
               transition={{ delay: 0.5 }}
               className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
             >
-              <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-400">{t("aiWorkflow.report.chartTitle")}</p>
+              <p className="mb-2 text-xs font-medium text-slate-600 dark:text-slate-400">
+                {t("aiWorkflow.report.chartTitle")}
+              </p>
               <div className="flex h-24 items-end gap-2">
                 {chartData.map((bar, i) => (
                   <motion.div
@@ -96,7 +118,9 @@ export const ReportPhase = () => {
               </div>
               <div className="mt-1 flex gap-2 text-[10px] text-slate-500 dark:text-slate-400">
                 {chartLabels.map((label) => (
-                  <span key={label} className="flex-1 text-center">{label}</span>
+                  <span key={label} className="flex-1 text-center">
+                    {label}
+                  </span>
                 ))}
               </div>
             </motion.div>
@@ -108,18 +132,27 @@ export const ReportPhase = () => {
               transition={{ delay: 0.8 }}
               className="rounded-xl border border-rose-200 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/30"
             >
-              <p className="mb-2 text-xs font-medium text-rose-700 dark:text-rose-400">🐛 {t("aiWorkflow.report.defectTitle")}</p>
+              <p className="mb-2 text-xs font-medium text-rose-700 dark:text-rose-400">
+                🐛 {t("aiWorkflow.report.defectTitle")}
+              </p>
               <div className="space-y-1.5">
                 {defects.map((defect) => (
-                  <div key={defect.module} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 dark:text-slate-400">{defect.module}</span>
+                  <div
+                    key={defect.module}
+                    className="flex items-center justify-between text-xs"
+                  >
+                    <span className="text-slate-600 dark:text-slate-400">
+                      {defect.module}
+                    </span>
                     <div className="flex items-center gap-2">
                       <span
-                        className={`rounded px-1.5 py-0.5 ${defect.severity === "高" || defect.severity === "High" ? "bg-rose-500 text-white" : defect.severity === "中" || defect.severity === "Medium" ? "bg-amber-500 text-white" : "bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-300"}`}
+                        className={`rounded px-1.5 py-0.5 ${defect.severity === t("common.severity.high") ? "bg-rose-500 text-white" : defect.severity === t("common.severity.medium") ? "bg-amber-500 text-white" : "bg-slate-300 text-slate-700 dark:bg-slate-600 dark:text-slate-300"}`}
                       >
                         {defect.severity}
                       </span>
-                      <span className="font-medium text-rose-600 dark:text-rose-400">{defect.count}</span>
+                      <span className="font-medium text-rose-600 dark:text-rose-400">
+                        {defect.count}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -142,7 +175,9 @@ export const ReportPhase = () => {
                   <div className="h-2 w-2 rounded-full bg-amber-500" />
                   <div className="h-2 w-2 rounded-full bg-emerald-500" />
                 </div>
-                <span className="text-[10px] text-slate-400">{t("aiWorkflow.report.browserRecording")}</span>
+                <span className="text-[10px] text-slate-400">
+                  {t("aiWorkflow.report.browserRecording")}
+                </span>
                 <motion.span
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
@@ -175,7 +210,12 @@ export const ReportPhase = () => {
             </motion.div>
 
             {/* Mobile Screenshot */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="flex gap-3">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="flex gap-3"
+            >
               {/* iPhone */}
               <div className="flex-1 overflow-hidden rounded-2xl border-4 border-slate-800 bg-slate-900">
                 <div className="flex h-4 items-center justify-center bg-slate-800">
@@ -209,7 +249,12 @@ export const ReportPhase = () => {
             </motion.div>
 
             {/* Actions */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }} className="flex gap-2">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="flex gap-2"
+            >
               <button
                 className="flex-1 rounded-xl bg-gradient-to-r from-violet-500 to-purple-500 py-2.5 text-sm font-medium text-white shadow-lg"
                 type="button"
@@ -231,7 +276,9 @@ export const ReportPhase = () => {
               transition={{ delay: 1.2 }}
               className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 p-3 text-center text-white"
             >
-              <p className="text-sm font-medium">✨ {t("aiWorkflow.report.timeSaved")}</p>
+              <p className="text-sm font-medium">
+                ✨ {t("aiWorkflow.report.timeSaved")}
+              </p>
             </motion.div>
           </div>
         </div>

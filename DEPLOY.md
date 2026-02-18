@@ -78,12 +78,15 @@ ssh <server> "vi /mnt/docker/ohmywrt-toolbox/.env"
 ```env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=apps_db
+POSTGRES_DB=ohmywrt_toolbox_db
 
-# 端口配置
-DB_PORT=5432
-SERVER_PORT=4000
+# 前端端口
 WEB_PORT=8080
+
+# 暴露后端/数据库端口到宿主机（可选，取消注释启用）
+# COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
+# SERVER_PORT=4000
+# DB_PORT=5432
 ```
 
 ### 6. 启动服务
@@ -126,8 +129,8 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose logs --tail=50 se
 | 服务 | 默认端口 | 环境变量 | 说明 |
 |------|---------|---------|------|
 | 前端 | 8080 | `WEB_PORT` | React 应用 (通过 Nginx) |
-| 后端 | 4000 | `SERVER_PORT` | NestJS API |
-| 数据库 | 5432 | `DB_PORT` | PostgreSQL (外部访问) |
+| 后端 | 不暴露 | `SERVER_PORT` | 需启用 debug 叠加文件（见下方说明） |
+| 数据库 | 不暴露 | `DB_PORT` | 需启用 debug 叠加文件（见下方说明） |
 | tRPC | ${WEB_PORT}/trpc | - | API 端点 (通过 Nginx 代理) |
 
 > **注意**: 如端口被占用，修改 `.env` 文件中对应的端口变量即可。
@@ -182,18 +185,27 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && \
 
 ### 端口被占用
 
-如果默认端口被占用，修改 `.env` 文件中的端口变量：
+如果前端默认端口被占用，修改 `.env` 文件中的端口变量：
 
 ```env
-# 数据库端口
-DB_PORT=5433
-
-# 后端端口
-SERVER_PORT=4001
-
 # 前端端口
 WEB_PORT=8180
 ```
+
+### 暴露后端/数据库端口（可选）
+
+默认仅前端暴露端口到宿主机，后端和数据库通过 Docker 内网通信（更安全）。
+前端 Nginx 自动代理 `/trpc` 请求到后端，无需额外暴露。
+
+如需直接访问后端 API 或用数据库工具（DBeaver、pgAdmin）连接调试，在 `.env` 中添加：
+
+```env
+COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
+SERVER_PORT=4000
+DB_PORT=5432
+```
+
+> 可以只暴露其中一个，不需要的端口变量不设置即可（叠加文件中有默认值）。
 
 ### 查看实时日志
 
@@ -208,5 +220,5 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose logs -f"
 ssh <server> "docker exec -it ohmywrt-toolbox-server sh"
 
 # 进入数据库容器
-ssh <server> "docker exec -it ohmywrt-toolbox-postgres psql -U postgres -d apps_db"
+ssh <server> "docker exec -it ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db"
 ```

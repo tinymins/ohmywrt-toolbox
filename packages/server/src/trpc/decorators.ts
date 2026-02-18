@@ -46,66 +46,75 @@ export const getCtxMeta = (target: object, key: string | symbol) =>
   (Reflect.getMetadata(CTX_META, target, key) as CtxMeta | undefined) ??
   undefined;
 
-export const Router = (options?: { alias?: string }) => (target: RouterClass) => {
-  if (!ROUTER_REGISTRY.includes(target)) {
-    ROUTER_REGISTRY.push(target);
-  }
-  Reflect.defineMetadata(ROUTER_META, options?.alias ?? target.name, target);
-};
+export const Router =
+  (options?: { alias?: string }) => (target: RouterClass) => {
+    if (!ROUTER_REGISTRY.includes(target)) {
+      ROUTER_REGISTRY.push(target);
+    }
+    Reflect.defineMetadata(ROUTER_META, options?.alias ?? target.name, target);
+  };
 
-export const Query = (options?: { input?: ZodTypeAny; output?: ZodTypeAny }) =>
+export const Query =
+  (options?: { input?: ZodTypeAny; output?: ZodTypeAny }) =>
   (target: object, key: string | symbol) => {
     Reflect.defineMetadata(
       PROCEDURE_META,
       {
         kind: "query",
         input: options?.input,
-        output: options?.output
+        output: options?.output,
       } satisfies ProcedureMeta,
       target,
-      key
+      key,
     );
   };
 
-export const Mutation = (
-  options?: { input?: ZodTypeAny; output?: ZodTypeAny }
-) =>
+export const Mutation =
+  (options?: { input?: ZodTypeAny; output?: ZodTypeAny }) =>
   (target: object, key: string | symbol) => {
     Reflect.defineMetadata(
       PROCEDURE_META,
       {
         kind: "mutation",
         input: options?.input,
-        output: options?.output
+        output: options?.output,
       } satisfies ProcedureMeta,
       target,
-      key
+      key,
     );
   };
 
-export const UseMiddlewares = (...middlewares: AnyMiddlewareFunction[]) =>
+export const UseMiddlewares =
+  (...middlewares: AnyMiddlewareFunction[]) =>
   (target: object, key: string | symbol) => {
     const existing = getMiddlewaresMeta(target, key);
     Reflect.defineMetadata(
       MIDDLEWARE_META,
       [...existing, ...middlewares],
       target,
-      key
+      key,
     );
   };
 
-export const Input = (key?: string) =>
+export const Input =
+  (key?: string) =>
   (target: object, propertyKey: string | symbol, parameterIndex: number) => {
     const existing = getInputMeta(target, propertyKey);
     Reflect.defineMetadata(
       INPUT_META,
       [...existing, { index: parameterIndex, key }],
       target,
-      propertyKey
+      propertyKey,
     );
   };
 
-export const Ctx = () =>
+export const Ctx =
+  () =>
   (target: object, propertyKey: string | symbol, parameterIndex: number) => {
-    Reflect.defineMetadata(CTX_META, { index: parameterIndex }, target, propertyKey);
+    Reflect.defineMetadata(
+      CTX_META,
+      { index: parameterIndex },
+      target,
+      propertyKey,
+    );
   };

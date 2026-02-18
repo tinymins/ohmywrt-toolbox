@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import type { SubPhaseProps } from "./types";
 import {
   GeneratePage1,
   GeneratePage2,
@@ -9,6 +8,7 @@ import {
   GeneratePage5,
   GeneratePage6,
 } from "./generate";
+import type { SubPhaseProps } from "./types";
 
 export const GenerateCasesPhase = ({ subPhase }: SubPhaseProps) => {
   const { t } = useTranslation();
@@ -30,14 +30,23 @@ export const GenerateCasesPhase = ({ subPhase }: SubPhaseProps) => {
             ✨
           </motion.div>
           <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">{t("aiWorkflow.generate.title")}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">{t("aiWorkflow.generate.desc")}</p>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">
+              {t("aiWorkflow.generate.title")}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t("aiWorkflow.generate.desc")}
+            </p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-slate-500 dark:text-slate-400">{t("aiWorkflow.generate.page")} {Math.min(subPhase + 1, 6)}/6</span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {t("aiWorkflow.generate.page")} {Math.min(subPhase + 1, 6)}/6
+            </span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className={`h-1.5 w-4 rounded-full ${subPhase >= i ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700"}`} />
+                <div
+                  key={i}
+                  className={`h-1.5 w-4 rounded-full ${subPhase >= i ? "bg-amber-500" : "bg-slate-200 dark:bg-slate-700"}`}
+                />
               ))}
             </div>
           </div>

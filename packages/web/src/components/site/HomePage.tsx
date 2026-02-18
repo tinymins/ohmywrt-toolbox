@@ -29,7 +29,9 @@ export default function HomePage() {
     label: string;
     value: string;
   }[];
-  const consoleLines = t("hero.consoleLines", { returnObjects: true }) as string[];
+  const _consoleLines = t("hero.consoleLines", {
+    returnObjects: true,
+  }) as string[];
   const overviewCards = t("overview.cards", { returnObjects: true }) as {
     title: string;
     desc: string;
@@ -47,8 +49,12 @@ export default function HomePage() {
     title: string;
     desc: string;
   }[];
-  const integrations = t("integrations.items", { returnObjects: true }) as string[];
-  const securityItems = t("security.items", { returnObjects: true }) as string[];
+  const integrations = t("integrations.items", {
+    returnObjects: true,
+  }) as string[];
+  const securityItems = t("security.items", {
+    returnObjects: true,
+  }) as string[];
 
   return (
     <div className="space-y-32">
@@ -160,7 +166,10 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="mx-auto max-w-6xl px-6">
-        <SectionTitle title={t("overview.title")} desc={t("overview.description")} />
+        <SectionTitle
+          title={t("overview.title")}
+          desc={t("overview.description")}
+        />
         <div className="mt-16 grid gap-8 md:grid-cols-2">
           {overviewCards.map((card, index) => (
             <motion.div
@@ -181,7 +190,9 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h3 className="text-2xl font-bold">{card.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400">{card.desc}</p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  {card.desc}
+                </p>
                 <ul className="space-y-2 pt-2">
                   {card.bullets.map((bullet) => (
                     <li
@@ -230,7 +241,9 @@ export default function HomePage() {
                 <span className="text-lg">✦</span>
               </div>
               <h3 className="mt-4 text-xl font-bold">{item.title}</h3>
-              <p className="mt-3 text-slate-600 dark:text-slate-400">{item.desc}</p>
+              <p className="mt-3 text-slate-600 dark:text-slate-400">
+                {item.desc}
+              </p>
             </motion.div>
           ))}
         </div>
@@ -252,8 +265,18 @@ export default function HomePage() {
             className="text-center"
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm font-medium text-sky-400">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
               {t("testing.badge")}
             </div>
@@ -268,95 +291,184 @@ export default function HomePage() {
           {/* Testing Capabilities Grid */}
           <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(() => {
-              const capabilities = t("testing.capabilities", { returnObjects: true });
-              const capabilitiesArray = Array.isArray(capabilities) ? capabilities : [];
-              return capabilitiesArray.map((capability: { title: string; desc: string }, index: number) => {
-              // Icon mapping based on title
-              const iconMap: Record<string, React.ReactNode> = {
-                "HTTP / REST API": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                  </svg>
-                ),
-                "gRPC": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                ),
-                "移动端 UI": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                ),
-                "Mobile UI": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                ),
-                "浏览器测试": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                ),
-                "Browser Testing": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                ),
-                "Windows 桌面": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                  </svg>
-                ),
-                "Windows Desktop": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                  </svg>
-                ),
-                "AI 智能规划": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                ),
-                "AI Planning": (
-                  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                )
-              };
+              const capabilities = t("testing.capabilities", {
+                returnObjects: true,
+              });
+              const capabilitiesArray = Array.isArray(capabilities)
+                ? capabilities
+                : [];
+              return capabilitiesArray.map(
+                (
+                  capability: { title: string; desc: string },
+                  index: number,
+                ) => {
+                  // Icon mapping based on index (matches capabilities array order in i18n)
+                  const icons: React.ReactNode[] = [
+                    <svg
+                      key="icon-globe"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                      />
+                    </svg>,
+                    <svg
+                      key="icon-code"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>,
+                    <svg
+                      key="icon-mobile"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                      />
+                    </svg>,
+                    <svg
+                      key="icon-desktop"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                      />
+                    </svg>,
+                    <svg
+                      key="icon-chip"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+                      />
+                    </svg>,
+                    <svg
+                      key="icon-bulb"
+                      className="h-8 w-8"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>,
+                  ];
 
-              // Color mapping based on index
-              const colors = ['sky', 'violet', 'emerald', 'amber', 'rose', 'cyan'];
-              const color = colors[index % colors.length];
+                  // Color mapping based on index
+                  const colors = [
+                    "sky",
+                    "violet",
+                    "emerald",
+                    "amber",
+                    "rose",
+                    "cyan",
+                  ];
+                  const color = colors[index % colors.length];
 
-              const colorMap: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-                sky: { bg: 'bg-sky-500/10', border: 'border-sky-500/30', text: 'text-sky-400', glow: 'group-hover:shadow-sky-500/20' },
-                violet: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400', glow: 'group-hover:shadow-violet-500/20' },
-                emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'group-hover:shadow-emerald-500/20' },
-                amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', glow: 'group-hover:shadow-amber-500/20' },
-                rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/30', text: 'text-rose-400', glow: 'group-hover:shadow-rose-500/20' },
-                cyan: { bg: 'bg-cyan-500/10', border: 'border-cyan-500/30', text: 'text-cyan-400', glow: 'group-hover:shadow-cyan-500/20' }
-              };
-              const colorStyles = colorMap[color];
-              const icon = iconMap[capability.title] || iconMap["AI Planning"];
+                  const colorMap: Record<
+                    string,
+                    { bg: string; border: string; text: string; glow: string }
+                  > = {
+                    sky: {
+                      bg: "bg-sky-500/10",
+                      border: "border-sky-500/30",
+                      text: "text-sky-400",
+                      glow: "group-hover:shadow-sky-500/20",
+                    },
+                    violet: {
+                      bg: "bg-violet-500/10",
+                      border: "border-violet-500/30",
+                      text: "text-violet-400",
+                      glow: "group-hover:shadow-violet-500/20",
+                    },
+                    emerald: {
+                      bg: "bg-emerald-500/10",
+                      border: "border-emerald-500/30",
+                      text: "text-emerald-400",
+                      glow: "group-hover:shadow-emerald-500/20",
+                    },
+                    amber: {
+                      bg: "bg-amber-500/10",
+                      border: "border-amber-500/30",
+                      text: "text-amber-400",
+                      glow: "group-hover:shadow-amber-500/20",
+                    },
+                    rose: {
+                      bg: "bg-rose-500/10",
+                      border: "border-rose-500/30",
+                      text: "text-rose-400",
+                      glow: "group-hover:shadow-rose-500/20",
+                    },
+                    cyan: {
+                      bg: "bg-cyan-500/10",
+                      border: "border-cyan-500/30",
+                      text: "text-cyan-400",
+                      glow: "group-hover:shadow-cyan-500/20",
+                    },
+                  };
+                  const colorStyles = colorMap[color];
+                  const icon = icons[index] || icons[icons.length - 1];
 
-              return (
-                <motion.div
-                  key={capability.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className={`group rounded-2xl border ${colorStyles.border} ${colorStyles.bg} p-6 backdrop-blur transition-all hover:shadow-xl ${colorStyles.glow}`}
-                >
-                  <div className={`inline-flex h-14 w-14 items-center justify-center rounded-xl ${colorStyles.bg} ${colorStyles.text}`}>
-                    {icon}
-                  </div>
-                  <h3 className="mt-4 text-lg font-semibold text-white">{capability.title}</h3>
-                  <p className="mt-2 text-sm text-slate-400">{capability.desc}</p>
-                </motion.div>
+                  return (
+                    <motion.div
+                      key={capability.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`group rounded-2xl border ${colorStyles.border} ${colorStyles.bg} p-6 backdrop-blur transition-all hover:shadow-xl ${colorStyles.glow}`}
+                    >
+                      <div
+                        className={`inline-flex h-14 w-14 items-center justify-center rounded-xl ${colorStyles.bg} ${colorStyles.text}`}
+                      >
+                        {icon}
+                      </div>
+                      <h3 className="mt-4 text-lg font-semibold text-white">
+                        {capability.title}
+                      </h3>
+                      <p className="mt-2 text-sm text-slate-400">
+                        {capability.desc}
+                      </p>
+                    </motion.div>
+                  );
+                },
               );
-            });
             })()}
           </div>
 
@@ -368,24 +480,34 @@ export default function HomePage() {
             className="mt-16 rounded-2xl border border-slate-800 bg-slate-900/50 p-8 backdrop-blur"
           >
             <div className="flex flex-wrap items-center justify-center gap-4 text-center">
-              {[
-                { step: '需求文档', icon: '📄' },
-                { step: 'AI 分析', icon: '🤖' },
-                { step: '测试计划', icon: '📋' },
-                { step: '用例生成', icon: '✨' },
-                { step: '自动执行', icon: '🚀' },
-                { step: '智能报告', icon: '📊' }
-              ].map((item, index, arr) => (
+              {(
+                t("testing.aiFlowSteps", { returnObjects: true }) as Array<{
+                  step: string;
+                  icon: string;
+                }>
+              ).map((item, index, arr) => (
                 <div key={item.step} className="flex items-center gap-4">
                   <div className="flex flex-col items-center">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 text-2xl shadow-lg">
                       {item.icon}
                     </div>
-                    <span className="mt-2 text-sm font-medium text-slate-300">{item.step}</span>
+                    <span className="mt-2 text-sm font-medium text-slate-300">
+                      {item.step}
+                    </span>
                   </div>
                   {index < arr.length - 1 && (
-                    <svg className="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    <svg
+                      className="h-5 w-5 text-slate-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 7l5 5m0 0l-5 5m5-5H6"
+                      />
                     </svg>
                   )}
                 </div>
@@ -409,20 +531,20 @@ export default function HomePage() {
           <div className="grid gap-8 md:grid-cols-3">
             {flowSteps.map((step, index) => {
               const gradients = [
-                'from-sky-500 to-blue-600',
-                'from-violet-500 to-purple-600',
-                'from-emerald-500 to-teal-600',
-                'from-amber-500 to-orange-600',
-                'from-rose-500 to-pink-600',
-                'from-cyan-500 to-sky-600'
+                "from-sky-500 to-blue-600",
+                "from-violet-500 to-purple-600",
+                "from-emerald-500 to-teal-600",
+                "from-amber-500 to-orange-600",
+                "from-rose-500 to-pink-600",
+                "from-cyan-500 to-sky-600",
               ];
               const glowColors = [
-                'shadow-sky-500/30',
-                'shadow-violet-500/30',
-                'shadow-emerald-500/30',
-                'shadow-amber-500/30',
-                'shadow-rose-500/30',
-                'shadow-cyan-500/30'
+                "shadow-sky-500/30",
+                "shadow-violet-500/30",
+                "shadow-emerald-500/30",
+                "shadow-amber-500/30",
+                "shadow-rose-500/30",
+                "shadow-cyan-500/30",
               ];
 
               return (
@@ -437,20 +559,36 @@ export default function HomePage() {
                   <div className="relative rounded-2xl border border-slate-200 bg-white p-6 transition-all hover:shadow-xl dark:border-slate-800 dark:bg-slate-900">
                     {/* Gradient Number Circle */}
                     <div className="relative mb-5">
-                      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${gradients[index % gradients.length]} text-xl font-bold text-white shadow-lg ${glowColors[index % glowColors.length]} transition-transform group-hover:scale-110`}>
+                      <div
+                        className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${gradients[index % gradients.length]} text-xl font-bold text-white shadow-lg ${glowColors[index % glowColors.length]} transition-transform group-hover:scale-110`}
+                      >
                         {index + 1}
                       </div>
                       {/* Decorative Ring */}
-                      <div className={`absolute -inset-1 -z-10 rounded-2xl bg-gradient-to-br ${gradients[index % gradients.length]} opacity-20 blur-sm`} />
+                      <div
+                        className={`absolute -inset-1 -z-10 rounded-2xl bg-gradient-to-br ${gradients[index % gradients.length]} opacity-20 blur-sm`}
+                      />
                     </div>
                     <h3 className="text-xl font-bold">{step.title}</h3>
-                    <p className="mt-2 text-slate-600 dark:text-slate-400">{step.desc}</p>
+                    <p className="mt-2 text-slate-600 dark:text-slate-400">
+                      {step.desc}
+                    </p>
 
                     {/* Arrow Connector */}
                     {index < flowSteps.length - 1 && (
                       <div className="absolute -right-4 top-10 hidden text-slate-300 dark:text-slate-700 lg:block">
-                        <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        <svg
+                          className="h-8 w-8"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 7l5 5m0 0l-5 5m5-5H6"
+                          />
                         </svg>
                       </div>
                     )}
@@ -480,7 +618,12 @@ export default function HomePage() {
                 <div
                   className={`inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${featureClasses[index % featureClasses.length]}`}
                 >
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-7 w-7"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -490,7 +633,9 @@ export default function HomePage() {
                   </svg>
                 </div>
                 <h3 className="mt-6 text-xl font-bold">{item.title}</h3>
-                <p className="mt-3 text-slate-600 dark:text-slate-400">{item.desc}</p>
+                <p className="mt-3 text-slate-600 dark:text-slate-400">
+                  {item.desc}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -547,7 +692,12 @@ export default function HomePage() {
                   transition={{ delay: index * 0.05 }}
                   className="flex items-center gap-3 text-slate-600 dark:text-slate-400"
                 >
-                  <svg className="h-5 w-5 flex-shrink-0 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg
+                    className="h-5 w-5 flex-shrink-0 text-sky-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -609,12 +759,18 @@ export default function HomePage() {
           <div className="absolute right-8 top-8">
             <motion.div
               animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+              transition={{
+                duration: 20,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "linear",
+              }}
               className="h-20 w-20 rounded-full border-2 border-dashed border-slate-200 dark:border-slate-800"
             />
           </div>
           <div className="max-w-xl space-y-4">
-            <h3 className="text-2xl font-bold md:text-3xl">{t("closing.title")}</h3>
+            <h3 className="text-2xl font-bold md:text-3xl">
+              {t("closing.title")}
+            </h3>
             <p className="text-slate-600 dark:text-slate-400">
               {t("closing.subtitle")}
             </p>
@@ -623,8 +779,18 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 text-sky-600 hover:text-sky-700 dark:text-sky-400"
             >
               Get Started
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
               </svg>
             </Link>
           </div>

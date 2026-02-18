@@ -1,15 +1,15 @@
+import type {
+  CreateTestRequirementInput,
+  TestRequirementListQuery,
+  TestRequirementPriority,
+  TestRequirementStatus,
+  TestRequirementType,
+  UpdateTestRequirementInput,
+} from "@acme/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "../../db/client";
 import { testRequirements, users } from "../../db/schema";
-import type {
-  CreateTestRequirementInput,
-  UpdateTestRequirementInput,
-  TestRequirementListQuery,
-  TestRequirementType,
-  TestRequirementStatus,
-  TestRequirementPriority
-} from "@acme/types";
 import { getMessage, type Language } from "../../i18n";
 
 // 转换数据库记录为 API 输出格式
@@ -19,7 +19,7 @@ const toOutput = (
     childrenCount: number;
     creatorName: string | null;
     assigneeName: string | null;
-  }
+  },
 ) => ({
   id: requirement.id,
   workspaceId: requirement.workspaceId,
@@ -45,7 +45,7 @@ const toOutput = (
     : null,
   childrenCount: extra.childrenCount,
   creatorName: extra.creatorName,
-  assigneeName: extra.assigneeName
+  assigneeName: extra.assigneeName,
 });
 
 export class TestRequirementService {
@@ -87,8 +87,8 @@ export class TestRequirementService {
         or(
           like(testRequirements.title, `%${query.keyword}%`),
           like(testRequirements.code, `%${query.keyword}%`),
-          like(testRequirements.description, `%${query.keyword}%`)
-        )!
+          like(testRequirements.description, `%${query.keyword}%`),
+        )!,
       );
     }
 
@@ -106,8 +106,8 @@ export class TestRequirementService {
         requirement: testRequirements,
         creator: {
           id: users.id,
-          name: users.name
-        }
+          name: users.name,
+        },
       })
       .from(testRequirements)
       .leftJoin(users, eq(testRequirements.createdBy, users.id))
@@ -138,16 +138,16 @@ export class TestRequirementService {
         return toOutput(item.requirement, {
           childrenCount: Number(childCount?.count ?? 0),
           creatorName: item.creator?.name ?? null,
-          assigneeName
+          assigneeName,
         });
-      })
+      }),
     );
 
     return {
       items: itemsWithChildren,
       total: Number(countResult?.count ?? 0),
       page: query.page,
-      pageSize: query.pageSize
+      pageSize: query.pageSize,
     };
   }
 
@@ -160,16 +160,16 @@ export class TestRequirementService {
         requirement: testRequirements,
         creator: {
           id: users.id,
-          name: users.name
-        }
+          name: users.name,
+        },
       })
       .from(testRequirements)
       .leftJoin(users, eq(testRequirements.createdBy, users.id))
       .where(
         and(
           eq(testRequirements.id, id),
-          eq(testRequirements.workspaceId, workspaceId)
-        )
+          eq(testRequirements.workspaceId, workspaceId),
+        ),
       )
       .limit(1);
 
@@ -195,7 +195,7 @@ export class TestRequirementService {
     return toOutput(result.requirement, {
       childrenCount: Number(childCount?.count ?? 0),
       creatorName: result.creator?.name ?? null,
-      assigneeName
+      assigneeName,
     });
   }
 
@@ -206,7 +206,7 @@ export class TestRequirementService {
     input: CreateTestRequirementInput,
     workspaceId: string,
     createdBy: string | undefined,
-    language: Language
+    language: Language,
   ) {
     const code = await this.generateCode(workspaceId);
 
@@ -226,15 +226,18 @@ export class TestRequirementService {
         assigneeId: input.assigneeId,
         createdBy,
         dueDate: input.dueDate ? new Date(input.dueDate) : null,
-        estimatedHours: input.estimatedHours?.toString()
+        estimatedHours: input.estimatedHours?.toString(),
       })
       .returning();
 
     const result = await this.getById(created.id, workspaceId);
     if (!result) {
       throw new TRPCError({
-		code: "BAD_REQUEST",
-        message: getMessage(language, "errors.testRequirement.createFetchFailed")
+        code: "BAD_REQUEST",
+        message: getMessage(
+          language,
+          "errors.testRequirement.createFetchFailed",
+        ),
       });
     }
     return result;
@@ -247,17 +250,17 @@ export class TestRequirementService {
     id: string,
     workspaceId: string,
     input: UpdateTestRequirementInput,
-    language: Language
+    language: Language,
   ) {
     const existing = await this.getById(id, workspaceId);
     if (!existing) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: getMessage(language, "errors.testRequirement.notFound")
+        message: getMessage(language, "errors.testRequirement.notFound"),
       });
     }
 
-    const updateData: Record<string, any> = { updatedAt: new Date() };
+    const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
     if (input.title !== undefined) updateData.title = input.title;
     if (input.description !== undefined)
@@ -285,8 +288,11 @@ export class TestRequirementService {
     const result = await this.getById(id, workspaceId);
     if (!result) {
       throw new TRPCError({
-		code: "BAD_REQUEST",
-        message: getMessage(language, "errors.testRequirement.updateFetchFailed")
+        code: "BAD_REQUEST",
+        message: getMessage(
+          language,
+          "errors.testRequirement.updateFetchFailed",
+        ),
       });
     }
     return result;
@@ -300,7 +306,7 @@ export class TestRequirementService {
     if (!existing) {
       throw new TRPCError({
         code: "NOT_FOUND",
-        message: getMessage(language, "errors.testRequirement.notFound")
+        message: getMessage(language, "errors.testRequirement.notFound"),
       });
     }
 
@@ -308,13 +314,14 @@ export class TestRequirementService {
     if (existing.childrenCount > 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: getMessage(language, "errors.testRequirement.deleteChildrenFirst")
+        message: getMessage(
+          language,
+          "errors.testRequirement.deleteChildrenFirst",
+        ),
       });
     }
 
-    await db
-      .delete(testRequirements)
-      .where(eq(testRequirements.id, id));
+    await db.delete(testRequirements).where(eq(testRequirements.id, id));
 
     return { id };
   }
@@ -326,7 +333,7 @@ export class TestRequirementService {
     return this.list(workspaceId, {
       parentId,
       page: 1,
-      pageSize: 100
+      pageSize: 100,
     });
   }
 }

@@ -10,12 +10,12 @@ export default defineConfig({
     proxy: {
       "/trpc": {
         target: "http://localhost:4000",
-        changeOrigin: true
+        changeOrigin: true,
       },
       "/public": {
         target: "http://localhost:4000",
-        changeOrigin: true
-      }
-    }
-  }
+        changeOrigin: true,
+      },
+    },
+  },
 });

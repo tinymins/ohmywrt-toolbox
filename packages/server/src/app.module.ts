@@ -1,7 +1,5 @@
 import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
-import { createContext } from "./trpc/context";
-import { TrpcModule } from "./trpc/trpc.module";
 import { AdminModule } from "./modules/admin";
 import { AuthModule } from "./modules/auth";
 import { ProxyModule } from "./modules/proxy";
@@ -12,11 +10,13 @@ import { UserModule } from "./modules/user";
 import { WorkspaceModule } from "./modules/workspace";
 import { ProxyPublicController } from "./modules/proxy/proxy.public.controller";
 import { NetworkPublicController } from "./modules/network/network.public.controller";
+import { createContext } from "./trpc/context";
+import { TrpcModule } from "./trpc/trpc.module";
 
 @Module({
   imports: [
     TrpcModule.forRoot({
-      createContext
+      createContext,
     }),
     AdminModule,
     AuthModule,
@@ -25,8 +25,8 @@ import { NetworkPublicController } from "./modules/network/network.public.contro
     TestRequirementModule,
     TodoModule,
     UserModule,
-    WorkspaceModule
+    WorkspaceModule,
   ],
-  controllers: [AppController, ProxyPublicController, NetworkPublicController]
+  controllers: [AppController, ProxyPublicController, NetworkPublicController],
 })
 export class AppModule {}

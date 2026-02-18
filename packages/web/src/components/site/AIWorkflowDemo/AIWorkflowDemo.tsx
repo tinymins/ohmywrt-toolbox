@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { PHASE_DURATIONS, TOTAL_DURATION } from "./constants";
-import { UploadPhase } from "./UploadPhase";
 import { AnalyzingPhase } from "./AnalyzingPhase";
-import { TestPlanPhase } from "./TestPlanPhase";
-import { GenerateCasesPhase } from "./GenerateCasesPhase";
+import { PHASE_DURATIONS, TOTAL_DURATION } from "./constants";
 import { ExecutePhase } from "./ExecutePhase";
+import { GenerateCasesPhase } from "./GenerateCasesPhase";
 import { ReportPhase } from "./ReportPhase";
+import { TestPlanPhase } from "./TestPlanPhase";
+import { UploadPhase } from "./UploadPhase";
 
 export const AIWorkflowDemo = () => {
   const { t } = useTranslation();
@@ -91,8 +91,18 @@ export const AIWorkflowDemo = () => {
             <div className="h-3 w-3 rounded-full bg-green-400" />
           </div>
           <div className="ml-2 flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="h-3 w-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
             <span>testops.example.com/dashboard</span>
           </div>
@@ -104,7 +114,9 @@ export const AIWorkflowDemo = () => {
               <div
                 key={p}
                 className={`h-1.5 w-6 rounded-full transition-all duration-300 ${
-                  phase >= p ? "bg-emerald-500" : "bg-slate-200 dark:bg-slate-700"
+                  phase >= p
+                    ? "bg-emerald-500"
+                    : "bg-slate-200 dark:bg-slate-700"
                 }`}
               />
             ))}
@@ -136,7 +148,9 @@ export const AIWorkflowDemo = () => {
           {phase === 3 && <TestPlanPhase key="testplan" />}
 
           {/* Phase 4: Generate Cases */}
-          {phase === 4 && <GenerateCasesPhase key="generate" subPhase={subPhase} />}
+          {phase === 4 && (
+            <GenerateCasesPhase key="generate" subPhase={subPhase} />
+          )}
 
           {/* Phase 5: Execute */}
           {phase === 5 && <ExecutePhase key="execute" subPhase={subPhase} />}

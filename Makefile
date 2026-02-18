@@ -51,7 +51,10 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 	@printf "$(YELLOW)📝 [1/9] 检查环境变量文件...$(NC)\n"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
-		printf "$(GREEN)✓ 已从 .env.example 创建根目录 .env 文件（用于 Docker）$(NC)\n"; \
+		sed -i 's|^# COMPOSE_FILE=|COMPOSE_FILE=|' .env; \
+		sed -i 's|^# SERVER_PORT=|SERVER_PORT=|' .env; \
+		sed -i 's|^# DB_PORT=|DB_PORT=|' .env; \
+		printf "$(GREEN)✓ 已从 .env.example 创建根目录 .env 文件（已启用本地调试端口）$(NC)\n"; \
 	else \
 		printf "$(GREEN)✓ 根目录 .env 文件已存在$(NC)\n"; \
 	fi
@@ -74,6 +77,7 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 	@printf "\n"
 	@printf "$(YELLOW)🗑️  [3/9] 清理数据库数据目录...$(NC)\n"
 	@sudo rm -rf .data/postgres
+	@sudo chown -R $(shell id -u):$(shell id -g) .data 2>/dev/null || true
 	@printf "$(GREEN)✓ 数据目录已清理$(NC)\n"
 	@printf "\n"
 	@printf "$(YELLOW)📁 [4/9] 创建数据目录...$(NC)\n"
@@ -109,11 +113,7 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 	@printf "\n"
 
 dev: ## 启动开发环境（数据库+开发服务器）
-	@printf "$(GREEN)� 启动开发环境...$(NC)\n"
-	@docker-compose up -d db
-	@printf "$(GREEN)✓ 数据库已启动$(NC)\n"
-	@printf "$(YELLOW)启动开发服务器...$(NC)\n"
-	@pnpm dev
+	@./scripts/dev.sh
 
 build: ## 编译生产版本
 	@printf "$(GREEN)�🔨 开始编译...$(NC)\n"

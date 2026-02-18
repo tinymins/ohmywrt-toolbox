@@ -2,21 +2,22 @@ import "dotenv/config";
 
 import { eq, sql } from "drizzle-orm";
 import { db } from "./db/client";
-import { users, workspaces, workspaceMembers } from "./db/schema";
+import { users, workspaceMembers, workspaces } from "./db/schema";
+import { getMessage } from "./i18n";
 
 const seedUsers = [
   {
     name: "Admin",
     email: "admin@example.com",
     passwordHash: "password",
-    role: "superadmin"
+    role: "superadmin",
   },
   {
     name: "User",
     email: "user@example.com",
     passwordHash: "password",
-    role: "user"
-  }
+    role: "user",
+  },
 ];
 
 async function seed() {
@@ -71,37 +72,55 @@ async function seed() {
     )
   `);
 
-  for (const user of seedUsers) {
-    const existing = await db
+  for (const seedUser of seedUsers) {
+    // 检查用户是否存在
+    let [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, user.email));
+      .where(eq(users.email, seedUser.email));
 
-    if (existing.length === 0) {
-      const [createdUser] = await db.insert(users).values(user).returning();
-
-      // 为每个用户创建默认工作空间
-      const workspaceSlug = `${user.name.toLowerCase()}-workspace`;
-      const workspaceName = `${user.name}的空间站`;
-
-      const [createdWorkspace] = await db.insert(workspaces).values({
-        slug: workspaceSlug,
-        name: workspaceName,
-        description: "默认工作空间",
-        ownerId: createdUser.id
-      }).returning();
-
-      // 将用户添加为工作空间成员
-      await db.insert(workspaceMembers).values({
-        workspaceId: createdWorkspace.id,
-        userId: createdUser.id,
-        role: "owner"
-      });
-    } else if (!existing[0].name) {
+    if (!user) {
+      // 创建用户
+      [user] = await db.insert(users).values(seedUser).returning();
+      console.log(`Created user: ${user.email}`);
+    } else if (!user.name) {
       await db
         .update(users)
-        .set({ name: user.name })
-        .where(eq(users.id, existing[0].id));
+        .set({ name: seedUser.name })
+        .where(eq(users.id, user.id));
+    }
+
+    // 检查用户是否有工作空间
+    const [existingMembership] = await db
+      .select()
+      .from(workspaceMembers)
+      .where(eq(workspaceMembers.userId, user.id))
+      .limit(1);
+
+    if (!existingMembership) {
+      // 为用户创建默认工作空间
+      const workspaceName = `${seedUser.name}${getMessage("zh-CN", "errors.admin.workspaceSuffix")}`;
+      const workspaceSlug = seedUser.name.toLowerCase();
+
+      const [workspace] = await db
+        .insert(workspaces)
+        .values({
+          slug: workspaceSlug,
+          name: workspaceName,
+          description: getMessage("zh-CN", "errors.admin.defaultWorkspaceDesc"),
+          ownerId: user.id,
+        })
+        .returning();
+
+      await db.insert(workspaceMembers).values({
+        workspaceId: workspace.id,
+        userId: user.id,
+        role: "owner",
+      });
+
+      console.log(
+        `Created workspace "${workspaceName}" for user: ${user.email}`,
+      );
     }
   }
 

@@ -1,7 +1,7 @@
+import { Form, Input, Modal, Typography } from "antd";
 import { useState } from "react";
-import { Modal, Form, Input, Typography } from "antd";
+import { useTranslation } from "react-i18next";
 import { useMessage } from "../../hooks";
-import type { Lang } from "../../lib/types";
 import { trpc } from "../../lib/trpc";
 
 const { Text } = Typography;
@@ -9,14 +9,12 @@ const { Text } = Typography;
 interface CreateWorkspaceModalProps {
   open: boolean;
   onClose: () => void;
-  lang: Lang;
   onSuccess?: (workspace: { id: string; slug: string; name: string }) => void;
 }
 
 export default function CreateWorkspaceModal({
   open,
   onClose,
-  lang,
   onSuccess,
 }: CreateWorkspaceModalProps) {
   const [form] = Form.useForm();
@@ -25,17 +23,18 @@ export default function CreateWorkspaceModal({
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const utils = trpc.useUtils();
   const message = useMessage();
+  const { t } = useTranslation();
 
   const createMutation = trpc.workspace.create.useMutation({
     onSuccess: async (data) => {
-      message.success(lang === "zh" ? "空间站创建成功" : "Workspace created successfully");
+      message.success(t("createWorkspace.success"));
       await utils.workspace.list.invalidate();
       form.resetFields();
       onClose();
       onSuccess?.(data);
     },
     onError: (error) => {
-      message.error(error.message || (lang === "zh" ? "创建失败" : "Failed to create"));
+      message.error(error.message || t("createWorkspace.failed"));
     },
   });
 
@@ -84,29 +83,25 @@ export default function CreateWorkspaceModal({
 
   return (
     <Modal
-      title={lang === "zh" ? "新建空间站" : "Create Workspace"}
+      title={t("createWorkspace.title")}
       open={open}
       onOk={handleSubmit}
       onCancel={handleCancel}
       confirmLoading={isSubmitting}
-      okText={lang === "zh" ? "创建" : "Create"}
-      cancelText={lang === "zh" ? "取消" : "Cancel"}
+      okText={t("createWorkspace.create")}
+      cancelText={t("createWorkspace.cancel")}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        className="mt-6"
-      >
+      <Form form={form} layout="vertical" className="mt-6">
         <Form.Item
           name="name"
-          label={lang === "zh" ? "空间站名称" : "Workspace Name"}
+          label={t("createWorkspace.nameLabel")}
           rules={[
-            { required: true, message: lang === "zh" ? "请输入空间站名称" : "Please enter workspace name" },
-            { min: 1, max: 50, message: lang === "zh" ? "名称长度为 1-50 个字符" : "Name length should be 1-50 characters" },
+            { required: true, message: t("createWorkspace.nameRequired") },
+            { min: 1, max: 50, message: t("createWorkspace.nameLength") },
           ]}
         >
           <Input
-            placeholder={lang === "zh" ? "例如：我的项目" : "e.g., My Project"}
+            placeholder={t("createWorkspace.namePlaceholder")}
             maxLength={50}
             onChange={handleNameChange}
           />
@@ -114,40 +109,32 @@ export default function CreateWorkspaceModal({
 
         <Form.Item
           name="slug"
-          label={lang === "zh" ? "空间站标识（用于访问链接）" : "Workspace Slug (for URL)"}
+          label={t("createWorkspace.slugLabel")}
           rules={[
-            { required: true, message: lang === "zh" ? "请输入空间站标识" : "Please enter workspace slug" },
+            { required: true, message: t("createWorkspace.slugRequired") },
             {
               pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-              message: lang === "zh"
-                ? "只能包含小写字母、数字和连字符，且不能以连字符开头或结尾"
-                : "Only lowercase letters, numbers, and hyphens allowed. Cannot start or end with hyphen."
+              message: t("createWorkspace.slugPattern"),
             },
           ]}
           extra={
             slugValue && (
               <Text type="secondary" className="text-xs">
-                {lang === "zh" ? "访问链接：" : "URL: "}
-                <Text code className="text-xs">
-                  /workspace/{slugValue}
-                </Text>
+                {t("createWorkspace.slugExtra", { slug: slugValue })}
               </Text>
             )
           }
         >
           <Input
-            placeholder={lang === "zh" ? "例如：my-project" : "e.g., my-project"}
+            placeholder="e.g., my-project"
             maxLength={50}
             onChange={handleSlugChange}
           />
         </Form.Item>
 
-        <Form.Item
-          name="description"
-          label={lang === "zh" ? "描述（可选）" : "Description (Optional)"}
-        >
+        <Form.Item name="description" label={t("createWorkspace.descLabel")}>
           <Input.TextArea
-            placeholder={lang === "zh" ? "简要描述这个空间站的用途..." : "Briefly describe this workspace..."}
+            placeholder={t("createWorkspace.descPlaceholder")}
             rows={3}
             maxLength={200}
           />

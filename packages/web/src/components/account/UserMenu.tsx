@@ -1,19 +1,28 @@
-import { Avatar, Dropdown } from "antd";
-import { UserOutlined, ControlOutlined, LogoutOutlined } from "@ant-design/icons";
-import type { MenuProps } from "antd";
 import type { User } from "@acme/types";
-import type { Lang } from "../../lib/types";
+import {
+  ControlOutlined,
+  LogoutOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { Avatar, Dropdown } from "antd";
+import { useTranslation } from "react-i18next";
 import { getAvatarColor, getAvatarInitial } from "../../lib/avatar";
 
 type UserMenuProps = {
   user: User;
-  lang: Lang;
   onOpenSettings: () => void;
   onOpenSystemSettings?: () => void;
   onLogout: () => void;
 };
 
-export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSettings, onLogout }: UserMenuProps) {
+export default function UserMenu({
+  user,
+  onOpenSettings,
+  onOpenSystemSettings,
+  onLogout,
+}: UserMenuProps) {
+  const { t } = useTranslation();
   const displayName = user.name || user.email;
   const settings = user.settings ?? {};
   const avatarColor = getAvatarColor(displayName);
@@ -29,7 +38,9 @@ export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSetti
           <Avatar
             size={40}
             src={settings.avatarUrl ?? undefined}
-            style={{ backgroundColor: settings.avatarUrl ? undefined : avatarColor }}
+            style={{
+              backgroundColor: settings.avatarUrl ? undefined : avatarColor,
+            }}
           >
             {avatarInitial}
           </Avatar>
@@ -37,16 +48,18 @@ export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSetti
             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
               {displayName}
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">{user.email}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {user.email}
+            </span>
           </div>
         </div>
-      )
+      ),
     },
     { type: "divider" },
     {
       key: "settings",
       icon: <UserOutlined style={{ color: "#1677ff" }} />,
-      label: lang === "zh" ? "账户设置" : "Account"
+      label: t("userMenu.account"),
     },
     // 管理员才显示管理后台
     ...(isAdmin && onOpenSystemSettings
@@ -54,15 +67,15 @@ export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSetti
           {
             key: "systemSettings",
             icon: <ControlOutlined style={{ color: "#722ed1" }} />,
-            label: lang === "zh" ? "管理后台" : "Admin"
-          } as const
+            label: t("userMenu.admin"),
+          } as const,
         ]
       : []),
     {
       key: "logout",
       icon: <LogoutOutlined style={{ color: "#ff4d4f" }} />,
-      label: lang === "zh" ? "退出" : "Sign out"
-    }
+      label: t("userMenu.signOut"),
+    },
   ];
 
   const handleClick: MenuProps["onClick"] = ({ key }) => {
@@ -78,7 +91,11 @@ export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSetti
   };
 
   return (
-    <Dropdown menu={{ items, onClick: handleClick }} trigger={["hover"]} placement="bottomRight">
+    <Dropdown
+      menu={{ items, onClick: handleClick }}
+      trigger={["hover"]}
+      placement="bottomRight"
+    >
       <button
         type="button"
         className="flex items-center gap-2 rounded-full px-2 py-1 text-sm text-slate-700 dark:text-slate-200"
@@ -86,11 +103,15 @@ export default function UserMenu({ user, lang, onOpenSettings, onOpenSystemSetti
         <Avatar
           size={28}
           src={settings.avatarUrl ?? undefined}
-          style={{ backgroundColor: settings.avatarUrl ? undefined : avatarColor }}
+          style={{
+            backgroundColor: settings.avatarUrl ? undefined : avatarColor,
+          }}
         >
           {avatarInitial}
         </Avatar>
-        <span className="max-w-[120px] truncate font-medium">{displayName}</span>
+        <span className="max-w-[120px] truncate font-medium">
+          {displayName}
+        </span>
       </button>
     </Dropdown>
   );

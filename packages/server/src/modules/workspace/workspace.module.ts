@@ -3,7 +3,7 @@ import { WorkspaceRouter } from "./workspace.router";
 import { WorkspaceService } from "./workspace.service";
 
 @Module({
-	providers: [WorkspaceService, WorkspaceRouter],
-	exports: [WorkspaceService, WorkspaceRouter]
+  providers: [WorkspaceService, WorkspaceRouter],
+  exports: [WorkspaceService, WorkspaceRouter],
 })
 export class WorkspaceModule {}

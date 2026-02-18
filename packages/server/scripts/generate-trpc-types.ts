@@ -7,7 +7,7 @@ import {
   ObjectLiteralExpression,
   Project,
   SourceFile,
-  SyntaxKind
+  SyntaxKind,
 } from "ts-morph";
 
 const rootDir = path.resolve(__dirname, "..");
@@ -23,7 +23,7 @@ const camelCase = (value: string) =>
 
 const getDecoratorArgObject = (
   decoratorName: string,
-  node: MethodDeclaration
+  node: MethodDeclaration,
 ): ObjectLiteralExpression | null => {
   const decorator = node.getDecorator(decoratorName);
   if (!decorator) return null;
@@ -42,7 +42,8 @@ const getRouterAlias = (classDecl: ClassDeclaration) => {
   const [arg] = callExpr.getArguments();
   if (!arg || !arg.isKind(SyntaxKind.ObjectLiteralExpression)) return null;
   const aliasProp = arg.getProperty("alias");
-  if (!aliasProp || !aliasProp.isKind(SyntaxKind.PropertyAssignment)) return null;
+  if (!aliasProp || !aliasProp.isKind(SyntaxKind.PropertyAssignment))
+    return null;
   const initializer = aliasProp.getInitializer();
   if (!initializer) return null;
   if (initializer.isKind(SyntaxKind.StringLiteral)) {
@@ -65,14 +66,16 @@ const extractIdentifiers = (expression: string): string[] => {
   }
 
   // Match all lowercase identifiers that could be exported constants
-  const constMatches = expression.matchAll(/\b([a-z][a-zA-Z0-9]*(?:Input|Output|Schema))\b/g);
+  const constMatches = expression.matchAll(
+    /\b([a-z][a-zA-Z0-9]*(?:Input|Output|Schema))\b/g,
+  );
   for (const match of constMatches) {
     identifiers.push(match[1]);
   }
 
   // Also check for 'z' from zod
   if (/\bz\b/.test(expression)) {
-    identifiers.push('z');
+    identifiers.push("z");
   }
 
   return Array.from(new Set(identifiers));
@@ -81,7 +84,7 @@ const extractIdentifiers = (expression: string): string[] => {
 const collectImports = (
   sourceFile: SourceFile,
   expressionTexts: string[],
-  importMap: Map<string, Set<string>>
+  importMap: Map<string, Set<string>>,
 ) => {
   const allIdentifiers = new Set<string>();
   for (const expr of expressionTexts) {
@@ -94,12 +97,12 @@ const collectImports = (
   for (const identifier of allIdentifiers) {
     // Check if it's exported from the router file itself
     const exportDecl = sourceFile.getVariableDeclaration(identifier);
-    if (exportDecl && exportDecl.isExported()) {
+    if (exportDecl?.isExported()) {
       const declSource = exportDecl.getSourceFile();
       const modulePath = toPosix(
         path
           .relative(path.dirname(outFile), declSource.getFilePath())
-          .replace(/\.ts$/, "")
+          .replace(/\.ts$/, ""),
       );
       const spec = modulePath.startsWith(".") ? modulePath : `./${modulePath}`;
       const set = importMap.get(spec) ?? new Set<string>();
@@ -111,7 +114,7 @@ const collectImports = (
     // Check if it's imported from another module
     for (const importDecl of sourceFile.getImportDeclarations()) {
       const namedImports = importDecl.getNamedImports();
-      const hasImport = namedImports.some(ni => ni.getName() === identifier);
+      const hasImport = namedImports.some((ni) => ni.getName() === identifier);
       if (hasImport) {
         const moduleSpec = importDecl.getModuleSpecifierValue();
         const set = importMap.get(moduleSpec) ?? new Set<string>();
@@ -125,7 +128,7 @@ const collectImports = (
 
 const generateTypes = () => {
   const project = new Project({
-    tsConfigFilePath: path.resolve(rootDir, "tsconfig.json")
+    tsConfigFilePath: path.resolve(rootDir, "tsconfig.json"),
   });
 
   const routers = project.getSourceFiles(`${modulesDir}/**/*.router.ts`);
@@ -143,7 +146,11 @@ const generateTypes = () => {
       for (const method of classDecl.getMethods()) {
         const queryMeta = getDecoratorArgObject("Query", method);
         const mutationMeta = getDecoratorArgObject("Mutation", method);
-        const decorator = queryMeta ? "query" : mutationMeta ? "mutation" : null;
+        const decorator = queryMeta
+          ? "query"
+          : mutationMeta
+            ? "mutation"
+            : null;
         const meta = queryMeta ?? mutationMeta;
         if (!decorator || !meta) continue;
 
@@ -165,7 +172,9 @@ const generateTypes = () => {
         const parts: string[] = ["t.procedure"];
         if (inputValue) parts.push(`input(${inputValue})`);
         if (outputValue) parts.push(`output(${outputValue})`);
-        parts.push(`${decorator}(async () => \"PLACEHOLDER_DO_NOT_REMOVE\" as any)`);
+        parts.push(
+          `${decorator}(async () => "PLACEHOLDER_DO_NOT_REMOVE" as any)`,
+        );
 
         procedures.push(`${method.getName()}: ${parts.join(".")}`);
       }
@@ -177,7 +186,7 @@ const generateTypes = () => {
   const imports = Array.from(importMap.entries())
     .map(([specifier, names]) => {
       const named = Array.from(names).sort().join(", ");
-      return `import { ${named} } from \"${specifier}\";`;
+      return `import { ${named} } from "${specifier}";`;
     })
     .join("\n");
 
@@ -188,8 +197,8 @@ const generateTypes = () => {
  * Run 'pnpm generate:trpc' to regenerate this file.
  */
 
-import { initTRPC } from \"@trpc/server\";
-import type { Context } from \"../context\";
+import { initTRPC } from "@trpc/server";
+import type { Context } from "../context";
 ${imports}
 
 const t = initTRPC.context<Context>().create();
@@ -223,7 +232,7 @@ const trigger = () => {
 generateTypes();
 chokidar
   .watch([modulesDir, path.resolve(rootDir, "src/trpc/decorators.ts")], {
-    ignoreInitial: true
+    ignoreInitial: true,
   })
   .on("add", trigger)
   .on("change", trigger)
