@@ -15,11 +15,9 @@ import {
   DashboardIndexRedirect,
   DashboardNotFoundPage,
   ProxySubscribePage,
-  ProxyRedirect,
   LoginPage,
   NotFoundPage,
   RegisterPage,
-  SettingsPage,
   UnauthorizedPage,
   WorkspacePage,
 } from "./pages";
@@ -28,7 +26,6 @@ import {
 const dashboardChildRoutes = (user: User | null) => [
   <Route key="index" index element={<WorkspacePage user={user} />} />,
   <Route key="proxy" path="proxy" element={<ProxySubscribePage />} />,
-  <Route key="settings" path="settings" element={<SettingsPage />} />,
   <Route key="not-found" path="*" element={<DashboardNotFoundPage />} />,
 ];
 

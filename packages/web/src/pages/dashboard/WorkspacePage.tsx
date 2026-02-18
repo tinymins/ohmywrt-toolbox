@@ -2,7 +2,13 @@ import type { User } from "@acme/types";
 import { useTranslation } from "react-i18next";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Spin } from "antd";
-import { PlusOutlined, RightOutlined, CloudServerOutlined, LinkOutlined, ClockCircleOutlined } from "@ant-design/icons";
+import {
+  PlusOutlined,
+  RightOutlined,
+  CloudServerOutlined,
+  LinkOutlined,
+  ClockCircleOutlined,
+} from "@ant-design/icons";
 import { trpc } from "../../lib/trpc";
 
 type WorkspacePageProps = {
@@ -12,18 +18,19 @@ type WorkspacePageProps = {
 export default function WorkspacePage({ user }: WorkspacePageProps) {
   const { workspace } = useParams<{ workspace: string }>();
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const lang = i18n.language as "zh" | "en";
+  const { t } = useTranslation();
 
   // 获取 Proxy 订阅列表
-  const { data: proxyList, isLoading: isListLoading } = trpc.proxy.list.useQuery(undefined, {
-    enabled: Boolean(user),
-  });
+  const { data: proxyList, isLoading: isListLoading } =
+    trpc.proxy.list.useQuery(undefined, {
+      enabled: Boolean(user),
+    });
 
   // 获取用户整体统计（真实数据）
-  const { data: userStats, isLoading: isStatsLoading } = trpc.proxy.getUserStats.useQuery(undefined, {
-    enabled: Boolean(user),
-  });
+  const { data: userStats, isLoading: isStatsLoading } =
+    trpc.proxy.getUserStats.useQuery(undefined, {
+      enabled: Boolean(user),
+    });
 
   const isLoading = isListLoading || isStatsLoading;
 
@@ -31,23 +38,23 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
   const statsData = [
     userStats?.totalSubscriptions ?? 0,
     userStats?.totalNodes ?? 0,
-    userStats?.todayRequests ?? 0
+    userStats?.todayRequests ?? 0,
   ];
 
   // 快速操作
   const quickActions = [
     {
       icon: <PlusOutlined />,
-      title: lang === "zh" ? "新建订阅" : "New Subscription",
-      desc: lang === "zh" ? "创建新的代理订阅配置" : "Create a new proxy subscription",
-      onClick: () => navigate(`/dashboard/${workspace}/proxy`)
+      title: t("dashboard.newSubscription"),
+      desc: t("dashboard.newSubscriptionDesc"),
+      onClick: () => navigate(`/dashboard/${workspace}/proxy`),
     },
     {
       icon: <LinkOutlined />,
-      title: lang === "zh" ? "管理订阅" : "Manage Subscriptions",
-      desc: lang === "zh" ? "查看和编辑所有订阅" : "View and edit all subscriptions",
-      onClick: () => navigate(`/dashboard/${workspace}/proxy`)
-    }
+      title: t("dashboard.manageSubscriptions"),
+      desc: t("dashboard.manageSubscriptionsDesc"),
+      onClick: () => navigate(`/dashboard/${workspace}/proxy`),
+    },
   ];
 
   return (
@@ -68,19 +75,23 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
               <div key={title} className="card">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
-                    {index === 0 ? <CloudServerOutlined /> : index === 1 ? <LinkOutlined /> : <ClockCircleOutlined />}
+                    {index === 0 ? (
+                      <CloudServerOutlined />
+                    ) : index === 1 ? (
+                      <LinkOutlined />
+                    ) : (
+                      <ClockCircleOutlined />
+                    )}
                   </div>
                   <div>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {title}
                     </p>
-                    <p className="text-2xl font-semibold">
-                      {statsData[index]}
-                    </p>
+                    <p className="text-2xl font-semibold">{statsData[index]}</p>
                   </div>
                 </div>
               </div>
-            )
+            ),
           )}
         </div>
       </Spin>
@@ -97,7 +108,7 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
               size="small"
               onClick={() => navigate(`/dashboard/${workspace}/proxy`)}
             >
-              {lang === "zh" ? "查看全部" : "View All"} <RightOutlined />
+              {t("dashboard.viewAll")} <RightOutlined />
             </Button>
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-300">
@@ -111,14 +122,14 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
           ) : (userStats?.totalSubscriptions ?? 0) === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-slate-500">
               <CloudServerOutlined className="text-4xl mb-2" />
-              <p>{lang === "zh" ? "暂无订阅" : "No subscriptions yet"}</p>
+              <p>{t("dashboard.noSubscriptions")}</p>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 className="mt-4"
                 onClick={() => navigate(`/dashboard/${workspace}/proxy`)}
               >
-                {lang === "zh" ? "创建订阅" : "Create Subscription"}
+                {t("dashboard.createSubscription")}
               </Button>
             </div>
           ) : (
@@ -133,16 +144,19 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
                       <CloudServerOutlined />
                     </div>
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{sub.remark || (lang === "zh" ? "未命名订阅" : "Unnamed Subscription")}</p>
+                      <p className="font-medium truncate">
+                        {sub.remark || t("dashboard.unnamedSubscription")}
+                      </p>
                       <p className="text-xs text-slate-500 truncate">
-                        {lang === "zh" ? "创建者：" : "By: "}{sub.user.name}
+                        {t("dashboard.createdBy")}
+                        {sub.user.name}
                       </p>
                     </div>
                   </div>
                   <div className="text-xs text-slate-400">
                     {sub.lastAccessAt
                       ? new Date(sub.lastAccessAt).toLocaleDateString()
-                      : lang === "zh" ? "从未访问" : "Never accessed"}
+                      : t("dashboard.neverAccessed")}
                   </div>
                 </div>
               ))}
@@ -171,7 +185,9 @@ export default function WorkspacePage({ user }: WorkspacePageProps) {
                 </div>
                 <div>
                   <p className="font-medium">{action.title}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{action.desc}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {action.desc}
+                  </p>
                 </div>
                 <RightOutlined className="ml-auto text-slate-400" />
               </button>

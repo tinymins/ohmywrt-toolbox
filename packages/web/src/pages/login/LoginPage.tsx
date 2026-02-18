@@ -128,7 +128,9 @@ export default function LoginPage({
               <Input.Password
                 placeholder={t("login.passwordPlaceholder")}
                 size="large"
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete={
+                  mode === "login" ? "current-password" : "new-password"
+                }
               />
             </Form.Item>
 

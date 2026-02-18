@@ -26,90 +26,9 @@ export const menuConfig: MenuItemConfig[] = [
     routeSuffix: "",
   },
   {
-    key: "requirements",
-    labelKey: "requirements",
-    routeSuffix: "/test-requirements",
-  },
-  {
-    key: "testPlan",
-    labelKey: "testPlan",
-    routeSuffix: "/test-plan",
-  },
-  {
-    key: "testDesign",
-    labelKey: "testDesign",
-    routeSuffix: null,
-    children: [
-      {
-        key: "caseLibrary",
-        labelKey: "testDesign.caseLibrary",
-        routeSuffix: "/test-design",
-      },
-      {
-        key: "caseReview",
-        labelKey: "testDesign.caseReview",
-        routeSuffix: "/test-design/review",
-      },
-      {
-        key: "dataManagement",
-        labelKey: "testDesign.dataManagement",
-        routeSuffix: null,
-        children: [
-          {
-            key: "testData",
-            labelKey: "testDesign.dataManagement.testData",
-            routeSuffix: "/test-design/data/test-data",
-          },
-          {
-            key: "mockData",
-            labelKey: "testDesign.dataManagement.mockData",
-            routeSuffix: "/test-design/data/mock-data",
-          },
-        ],
-      },
-    ],
-  },
-  {
-    key: "execution",
-    labelKey: "execution",
-    routeSuffix: null,
-    children: [
-      {
-        key: "executionCenter",
-        labelKey: "execution.center",
-        routeSuffix: "/execution",
-      },
-      {
-        key: "executionHistory",
-        labelKey: "execution.history",
-        routeSuffix: "/execution/history",
-      },
-    ],
-  },
-  {
-    key: "defects",
-    labelKey: "defects",
-    routeSuffix: "/defects",
-  },
-  {
-    key: "reports",
-    labelKey: "reports",
-    routeSuffix: "/reports",
-  },
-  {
-    key: "automation",
-    labelKey: "automation",
-    routeSuffix: "/automation",
-  },
-  {
-    key: "settings",
-    labelKey: "settings",
-    routeSuffix: "/settings",
-  },
-  {
-    key: "todolist",
-    labelKey: "todolist",
-    routeSuffix: "/todulist",
+    key: "proxy",
+    labelKey: "proxy",
+    routeSuffix: "/proxy",
   },
 ];
 
@@ -120,7 +39,6 @@ export const menuConfig: MenuItemConfig[] = [
 export const menuRouteSuffixes = [
   "", // 工作台
   "/proxy", // Proxy 订阅管理
-  "/settings", // 系统设置（放最后）
 ];
 
 /**

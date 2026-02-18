@@ -9,7 +9,7 @@ export const ProxyGroupSchema = z.object({
   type: z.string(),
   proxies: z.array(z.string()),
   /** 这个组不加节点 */
-  readonly: z.boolean().optional()
+  readonly: z.boolean().optional(),
 });
 
 export type ProxyGroup = z.infer<typeof ProxyGroupSchema>;
@@ -21,17 +21,19 @@ export type ProxyGroup = z.infer<typeof ProxyGroupSchema>;
 export const ProxyRuleProviderSchema = z.object({
   name: z.string(),
   url: z.string(),
-  type: z.string().optional()
+  type: z.string().optional(),
 });
 
 export type ProxyRuleProvider = z.infer<typeof ProxyRuleProviderSchema>;
 
 export const ProxyRuleProvidersListSchema = z.record(
   z.string(),
-  z.array(ProxyRuleProviderSchema)
+  z.array(ProxyRuleProviderSchema),
 );
 
-export type ProxyRuleProvidersList = z.infer<typeof ProxyRuleProvidersListSchema>;
+export type ProxyRuleProvidersList = z.infer<
+  typeof ProxyRuleProvidersListSchema
+>;
 
 // ============================================
 // 代理订阅
@@ -52,7 +54,7 @@ export const ProxySubscribeSchema = z.object({
   authorizedUserIds: z.array(z.string()),
   lastAccessAt: z.string().nullable(),
   createdAt: z.string(),
-  updatedAt: z.string()
+  updatedAt: z.string(),
 });
 
 export type ProxySubscribe = z.infer<typeof ProxySubscribeSchema>;
@@ -62,18 +64,20 @@ export const ProxySubscribeWithUserSchema = ProxySubscribeSchema.extend({
   user: z.object({
     id: z.string(),
     name: z.string(),
-    email: z.string()
+    email: z.string(),
   }),
   authorizedUsers: z.array(
     z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string()
-    })
-  )
+      email: z.string(),
+    }),
+  ),
 });
 
-export type ProxySubscribeWithUser = z.infer<typeof ProxySubscribeWithUserSchema>;
+export type ProxySubscribeWithUser = z.infer<
+  typeof ProxySubscribeWithUserSchema
+>;
 
 // ============================================
 // 创建/更新订阅输入（JSONC 字符串）
@@ -87,10 +91,12 @@ export const CreateProxySubscribeInputSchema = z.object({
   filter: z.string().nullable().optional(),
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
-  authorizedUserIds: z.array(z.string()).optional().default([])
+  authorizedUserIds: z.array(z.string()).optional().default([]),
 });
 
-export type CreateProxySubscribeInput = z.infer<typeof CreateProxySubscribeInputSchema>;
+export type CreateProxySubscribeInput = z.infer<
+  typeof CreateProxySubscribeInputSchema
+>;
 
 export const UpdateProxySubscribeInputSchema = z.object({
   id: z.string(),
@@ -101,23 +107,27 @@ export const UpdateProxySubscribeInputSchema = z.object({
   filter: z.string().nullable().optional(),
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
-  authorizedUserIds: z.array(z.string()).optional()
+  authorizedUserIds: z.array(z.string()).optional(),
 });
 
-export type UpdateProxySubscribeInput = z.infer<typeof UpdateProxySubscribeInputSchema>;
+export type UpdateProxySubscribeInput = z.infer<
+  typeof UpdateProxySubscribeInputSchema
+>;
 
 export const DeleteProxySubscribeInputSchema = z.object({
-  id: z.string()
+  id: z.string(),
 });
 
-export type DeleteProxySubscribeInput = z.infer<typeof DeleteProxySubscribeInputSchema>;
+export type DeleteProxySubscribeInput = z.infer<
+  typeof DeleteProxySubscribeInputSchema
+>;
 
 // ============================================
 // 规则测试
 // ============================================
 
 export const ProxyRuleTestInputSchema = z.object({
-  url: z.string()
+  url: z.string(),
 });
 
 export type ProxyRuleTestInput = z.infer<typeof ProxyRuleTestInputSchema>;
@@ -145,19 +155,19 @@ export const ProxyPreviewNodeSchema = z.object({
   /** 是否被过滤规则过滤 */
   filtered: z.boolean().optional(),
   /** 匹配的过滤规则 */
-  filteredBy: z.string().optional()
+  filteredBy: z.string().optional(),
 });
 
 export type ProxyPreviewNode = z.infer<typeof ProxyPreviewNodeSchema>;
 
 export const ProxyPreviewInputSchema = z.object({
-  id: z.string()
+  id: z.string(),
 });
 
 export type ProxyPreviewInput = z.infer<typeof ProxyPreviewInputSchema>;
 
 export const ProxyPreviewOutputSchema = z.object({
-  nodes: z.array(ProxyPreviewNodeSchema)
+  nodes: z.array(ProxyPreviewNodeSchema),
 });
 
 export type ProxyPreviewOutput = z.infer<typeof ProxyPreviewOutputSchema>;

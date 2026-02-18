@@ -1,11 +1,28 @@
-import { Controller, Get, Param, Query, Req, Res, BadRequestException, NotFoundException, Logger } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Req,
+  Res,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from "@nestjs/common";
 import type { Request, Response } from "express";
 import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
 import { proxySubscribeService } from "./proxy.service";
 import { convertClashToSingbox } from "./lib/converter";
-import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
-import { DEFAULT_RULE_PROVIDERS, DEFAULT_GROUPS, SB_DEFAULT_GROUPS } from "./lib/config";
+import {
+  isBase64Subscription,
+  parseBase64Subscription,
+} from "./lib/subscription-parser";
+import {
+  DEFAULT_RULE_PROVIDERS,
+  DEFAULT_GROUPS,
+  SB_DEFAULT_GROUPS,
+} from "./lib/config";
 import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
 import type { Singbox, SingBoxRule } from "./lib/types";
 
@@ -67,17 +84,19 @@ export class ProxyPublicController {
               this.logger.warn(`Failed to fetch subscription: ${url}`, e);
               return null;
             }
-          })
+          }),
       );
 
       for (const item of results) {
         if (item?.proxies) {
-          let filtered = item.proxies.filter((p: any) =>
-            !filters.some((f) => p.name && p.name.includes(f))
+          let filtered = item.proxies.filter(
+            (p: any) => !filters.some((f) => p.name && p.name.includes(f)),
           );
           // 排除指定类型
           if (excludeTypes.length > 0) {
-            filtered = filtered.filter((p: any) => !excludeTypes.includes(p.type));
+            filtered = filtered.filter(
+              (p: any) => !excludeTypes.includes(p.type),
+            );
           }
           proxies.push(...filtered);
         }
@@ -96,14 +115,24 @@ export class ProxyPublicController {
 
   /** 生成 Clash 订阅配置 (YAML) */
   @Get("proxy/clash/:uuid")
-  async getClashConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
+  async getClashConfig(
+    @Param("uuid") uuid: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
     const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
 
     // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(subscribe.ruleList, {});
-    const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
+    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+      subscribe.ruleList,
+      {},
+    );
+    const ruleProvidersList =
+      rawRuleList && Object.keys(rawRuleList).length > 0
+        ? rawRuleList
+        : DEFAULT_RULE_PROVIDERS;
 
     for (const [key, items] of Object.entries(ruleProvidersList)) {
       for (const item of items) {
@@ -113,13 +142,14 @@ export class ProxyPublicController {
           behavior: item.type ?? "classical",
           url: item.url,
           path: `./rules/${item.name}`,
-          interval: 86400
+          interval: 86400,
         };
       }
     }
 
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : DEFAULT_GROUPS;
+    const groups =
+      rawGroups && rawGroups.length > 0 ? rawGroups : DEFAULT_GROUPS;
     const customConfig = safeParseJsonc<string[]>(subscribe.customConfig, []);
 
     const rules = [
@@ -128,7 +158,7 @@ export class ProxyPublicController {
       "DOMAIN-SUFFIX,local,DIRECT",
       "GEOIP,LAN,DIRECT,no-resolve",
       "GEOIP,CN,DIRECT,no-resolve",
-      "MATCH,⚓️ 其他流量"
+      "MATCH,⚓️ 其他流量",
     ];
 
     const data = {
@@ -143,13 +173,13 @@ export class ProxyPublicController {
           return {
             name: item.name,
             type: item.type,
-            proxies: item.proxies
+            proxies: item.proxies,
           };
         }
         return {
           name: item.name,
           type: item.type,
-          proxies: [...item.proxies, ...nodes]
+          proxies: [...item.proxies, ...nodes],
         };
       }),
       "rule-providers": ruleProviders,
@@ -157,14 +187,17 @@ export class ProxyPublicController {
       profile: {
         "store-selected": true,
         "store-fake-ip": true,
-        tracing: true
-      }
+        tracing: true,
+      },
     };
 
     // 获取客户端信息
-    const clientIp = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
-      || req.socket?.remoteAddress
-      || undefined;
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]
+        ?.trim() ||
+      req.socket?.remoteAddress ||
+      undefined;
     const userAgent = req.get("user-agent") || undefined;
 
     // 更新访问信息和记录日志
@@ -173,7 +206,7 @@ export class ProxyPublicController {
       proxies.length,
       "clash",
       clientIp,
-      userAgent
+      userAgent,
     );
 
     res.setHeader("content-type", "text/plain; charset=utf-8");
@@ -186,20 +219,37 @@ ${yaml.stringify(data)}`);
 
   /** 生成 Sing-box 订阅配置 (JSON) */
   @Get("proxy/sing-box/:uuid")
-  async getSingboxConfig(@Param("uuid") uuid: string, @Req() req: Request, @Res() res: Response) {
-    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, ["ssr"]);
+  async getSingboxConfig(
+    @Param("uuid") uuid: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, [
+      "ssr",
+    ]);
 
     // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(subscribe.ruleList, {});
-    const ruleProvidersList = (rawRuleList && Object.keys(rawRuleList).length > 0) ? rawRuleList : DEFAULT_RULE_PROVIDERS;
+    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+      subscribe.ruleList,
+      {},
+    );
+    const ruleProvidersList =
+      rawRuleList && Object.keys(rawRuleList).length > 0
+        ? rawRuleList
+        : DEFAULT_RULE_PROVIDERS;
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups = (rawGroups && rawGroups.length > 0) ? rawGroups : SB_DEFAULT_GROUPS;
+    const groups =
+      rawGroups && rawGroups.length > 0 ? rawGroups : SB_DEFAULT_GROUPS;
     // 从环境变量获取公网服务器地址，或从请求自动检测
     let publicServerUrl = process.env.PUBLIC_SERVER_URL;
     if (!publicServerUrl) {
-      const forwardedProto = req.headers["x-forwarded-proto"] as string | undefined;
-      const forwardedPort = req.headers["x-forwarded-port"] as string | undefined;
+      const forwardedProto = req.headers["x-forwarded-proto"] as
+        | string
+        | undefined;
+      const forwardedPort = req.headers["x-forwarded-port"] as
+        | string
+        | undefined;
       const hostHeader = req.get("host") || "localhost:4000";
       let host = hostHeader;
       if (forwardedPort && forwardedPort !== "80" && forwardedPort !== "443") {
@@ -210,13 +260,15 @@ ${yaml.stringify(data)}`);
     }
 
     const select = groups.map((item) => {
-      const outbounds = item.readonly ? item.proxies : [...item.proxies, ...nodes];
+      const outbounds = item.readonly
+        ? item.proxies
+        : [...item.proxies, ...nodes];
       return {
         type: "selector" as const,
         tag: item.name,
         outbounds,
         default: outbounds[0],
-        interrupt_exist_connections: true
+        interrupt_exist_connections: true,
       };
     });
 
@@ -227,7 +279,7 @@ ${yaml.stringify(data)}`);
           url: `${publicServerUrl}/public/proxy/sing-box/convert/rule?url=${encodeURIComponent(item.url)}`,
           tag: item.name,
           format: "source",
-          download_detour: "🚀 直接连接"
+          download_detour: "🚀 直接连接",
         });
       }
     }
@@ -236,20 +288,30 @@ ${yaml.stringify(data)}`);
       log: {
         disabled: false,
         level: "info",
-        timestamp: true
+        timestamp: true,
       },
       dns: {
         disable_cache: false,
         servers: [
           { tag: "local", address: "127.0.0.1", detour: "🚀 直接连接" },
           { tag: "fakeip", address: "fakeip", strategy: "ipv4_only" },
-          { tag: "local_v4", address: "127.0.0.1", strategy: "ipv4_only", detour: "🚀 直接连接" }
+          {
+            tag: "local_v4",
+            address: "127.0.0.1",
+            strategy: "ipv4_only",
+            detour: "🚀 直接连接",
+          },
         ],
         rules: [
           { query_type: ["HTTPS"], action: "reject" },
           {
-            ip_cidr: ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
-            server: "local"
+            ip_cidr: [
+              "127.0.0.0/8",
+              "10.0.0.0/8",
+              "172.16.0.0/12",
+              "192.168.0.0/16",
+            ],
+            server: "local",
           },
           { rule_set: ["geosite-cn"], server: "local" },
           {
@@ -258,16 +320,16 @@ ${yaml.stringify(data)}`);
             rules: [
               { rule_set: ["geoip-cn"] },
               { rule_set: ["geoip-hk"], invert: true },
-              { rule_set: ["geoip-gfwblack"], invert: true }
+              { rule_set: ["geoip-gfwblack"], invert: true },
             ],
-            server: "local"
+            server: "local",
           },
           {
             disable_cache: false,
             rewrite_ttl: 300,
             query_type: ["A", "AAAA"],
-            server: "fakeip"
-          }
+            server: "fakeip",
+          },
         ],
         disable_expire: false,
         independent_cache: false,
@@ -275,11 +337,17 @@ ${yaml.stringify(data)}`);
         fakeip: {
           enabled: true,
           inet4_range: "198.18.0.0/15",
-          inet6_range: "fc00::/18"
-        }
+          inet6_range: "fc00::/18",
+        },
       },
       inbounds: [
-        { type: "direct", tag: "dns-in", listen: "::", sniff: true, listen_port: 1053 },
+        {
+          type: "direct",
+          tag: "dns-in",
+          listen: "::",
+          sniff: true,
+          listen_port: 1053,
+        },
         {
           type: "tproxy",
           listen: "::",
@@ -288,20 +356,24 @@ ${yaml.stringify(data)}`);
           tcp_fast_open: true,
           udp_fragment: true,
           sniff: true,
-          sniff_override_destination: false
-        }
+          sniff_override_destination: false,
+        },
       ],
       outbounds: [
         { type: "direct", tag: "🚀 直接连接" },
         { tag: "dns-out", type: "dns" },
         { type: "block", tag: "reject" },
         ...convertClashToSingbox({ proxies }),
-        ...select
+        ...select,
       ],
       route: {
         rules: [
           { outbound: "dns-out", inbound: ["dns-in"], protocol: "dns" },
-          { outbound: "🚀 直接连接", rule_set: ["geoip-cn", "geosite-cn"], ip_is_private: true }
+          {
+            outbound: "🚀 直接连接",
+            rule_set: ["geoip-cn", "geosite-cn"],
+            ip_is_private: true,
+          },
         ],
         rule_set: [
           ...ruleProviders,
@@ -310,53 +382,54 @@ ${yaml.stringify(data)}`);
             type: "remote",
             format: "binary",
             url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs",
-            download_detour: "🚀 直接连接"
+            download_detour: "🚀 直接连接",
           },
           {
             tag: "geoip-hk",
             type: "remote",
             format: "binary",
             url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.srs",
-            download_detour: "🚀 直接连接"
+            download_detour: "🚀 直接连接",
           },
           {
             tag: "geosite-openai",
             type: "remote",
             format: "binary",
             url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.srs",
-            download_detour: "🚀 直接连接"
+            download_detour: "🚀 直接连接",
           },
           {
             tag: "geosite-cn",
             type: "remote",
             format: "binary",
             url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs",
-            download_detour: "🚀 直接连接"
+            download_detour: "🚀 直接连接",
           },
           {
             tag: "geoip-gfwblack",
             type: "remote",
             url: `${publicServerUrl}/public/proxy/sing-box/convert/rule?url=${encodeURIComponent("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")}`,
             format: "source",
-            download_detour: "🚀 直接连接"
-          }
+            download_detour: "🚀 直接连接",
+          },
         ],
-        final: "⚓️ 其他流量"
+        final: "⚓️ 其他流量",
       },
       experimental: {
         cache_file: {
           enabled: true,
           store_fakeip: true,
-          store_rdrc: false
+          store_rdrc: false,
         },
         clash_api: {
           external_controller: "0.0.0.0:9999",
           external_ui: "/etc/sb/ui",
-          external_ui_download_url: "https://mirror.ghproxy.com/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+          external_ui_download_url:
+            "https://mirror.ghproxy.com/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
           secret: "123456",
-          default_mode: "rule"
-        }
-      }
+          default_mode: "rule",
+        },
+      },
     };
 
     // 处理自定义规则（从 JSONC 字符串解析）
@@ -401,15 +474,18 @@ ${yaml.stringify(data)}`);
       if (data.route?.rules) {
         data.route.rules.push({
           outbound: key,
-          rule_set: items.map((item) => item.name)
+          rule_set: items.map((item) => item.name),
         });
       }
     }
 
     // 获取客户端信息
-    const clientIp = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim()
-      || req.socket?.remoteAddress
-      || undefined;
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]
+        ?.trim() ||
+      req.socket?.remoteAddress ||
+      undefined;
     const userAgent = req.get("user-agent") || undefined;
 
     // 更新访问信息和记录日志
@@ -418,7 +494,7 @@ ${yaml.stringify(data)}`);
       proxies.length,
       "sing-box",
       clientIp,
-      userAgent
+      userAgent,
     );
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -437,19 +513,21 @@ ${yaml.stringify(data)}`);
     const object = yaml.parse(text);
 
     const json: any = {
-      rules: [{
-        domain: [],
-        domain_suffix: [],
-        domain_keyword: [],
-        domain_regex: [],
-        ip_cidr: [],
-        source_ip_cidr: [],
-        port: [],
-        source_port: [],
-        process_name: [],
-        process_path: []
-      }],
-      version: 1
+      rules: [
+        {
+          domain: [],
+          domain_suffix: [],
+          domain_keyword: [],
+          domain_regex: [],
+          ip_cidr: [],
+          source_ip_cidr: [],
+          port: [],
+          source_port: [],
+          process_name: [],
+          process_path: [],
+        },
+      ],
+      version: 1,
     };
 
     const arr = Array.isArray(object) ? object : object.payload;

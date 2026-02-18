@@ -31,7 +31,9 @@ export function isBase64Subscription(text: string): boolean {
   try {
     const decoded = Buffer.from(trimmed, "base64").toString("utf-8");
     // 检查解码后是否包含代理 URL 协议
-    return /^(vless|vmess|ss|trojan|ssr|hysteria|hysteria2):\/\//m.test(decoded);
+    return /^(vless|vmess|ss|trojan|ssr|hysteria|hysteria2):\/\//m.test(
+      decoded,
+    );
   } catch {
     return false;
   }
@@ -102,7 +104,7 @@ function parseVlessUrl(url: string): ParsedProxy | null {
     server,
     port,
     uuid,
-    udp: true
+    udp: true,
   };
 
   // 处理传输层
@@ -115,14 +117,14 @@ function parseVlessUrl(url: string): ParsedProxy | null {
   if (network === "ws") {
     proxy["ws-opts"] = {
       path: params.path ? decodeURIComponent(params.path) : "/",
-      headers: params.host ? { Host: params.host } : undefined
+      headers: params.host ? { Host: params.host } : undefined,
     };
   }
 
   // 处理 gRPC
   if (network === "grpc") {
     proxy["grpc-opts"] = {
-      "grpc-service-name": params.serviceName || ""
+      "grpc-service-name": params.serviceName || "",
     };
   }
 
@@ -148,7 +150,7 @@ function parseVlessUrl(url: string): ParsedProxy | null {
     proxy.tls = true;
     proxy["reality-opts"] = {
       "public-key": params.pbk || "",
-      "short-id": params.sid || ""
+      "short-id": params.sid || "",
     };
     if (params.sni) {
       proxy.sni = params.sni;
@@ -176,7 +178,9 @@ function parseVmessUrl(url: string): ParsedProxy | null {
 
   // 尝试 Base64 JSON 格式
   try {
-    const decoded = Buffer.from(content.split("#")[0], "base64").toString("utf-8");
+    const decoded = Buffer.from(content.split("#")[0], "base64").toString(
+      "utf-8",
+    );
     const config = JSON.parse(decoded);
 
     const proxy: ParsedProxy = {
@@ -187,7 +191,7 @@ function parseVmessUrl(url: string): ParsedProxy | null {
       uuid: config.id,
       alterId: Number.parseInt(String(config.aid || 0), 10),
       cipher: config.scy || "auto",
-      udp: true
+      udp: true,
     };
 
     // 处理传输层
@@ -200,14 +204,14 @@ function parseVmessUrl(url: string): ParsedProxy | null {
     if (network === "ws") {
       proxy["ws-opts"] = {
         path: config.path || "/",
-        headers: config.host ? { Host: config.host } : undefined
+        headers: config.host ? { Host: config.host } : undefined,
       };
     }
 
     // 处理 gRPC
     if (network === "grpc") {
       proxy["grpc-opts"] = {
-        "grpc-service-name": config.path || ""
+        "grpc-service-name": config.path || "",
       };
     }
 
@@ -218,7 +222,10 @@ function parseVmessUrl(url: string): ParsedProxy | null {
         proxy.servername = config.sni;
       }
       if (config.alpn) {
-        proxy.alpn = typeof config.alpn === "string" ? config.alpn.split(",") : config.alpn;
+        proxy.alpn =
+          typeof config.alpn === "string"
+            ? config.alpn.split(",")
+            : config.alpn;
       }
       if (config.fp) {
         proxy["client-fingerprint"] = config.fp;
@@ -236,7 +243,8 @@ function parseVmessUrl(url: string): ParsedProxy | null {
     const uuid = parsed.username;
     const server = parsed.hostname;
     const port = Number.parseInt(parsed.port, 10);
-    const name = decodeURIComponent(parsed.hash.slice(1)) || `${server}:${port}`;
+    const name =
+      decodeURIComponent(parsed.hash.slice(1)) || `${server}:${port}`;
 
     return {
       name,
@@ -246,7 +254,7 @@ function parseVmessUrl(url: string): ParsedProxy | null {
       uuid,
       alterId: 0,
       cipher: "auto",
-      udp: true
+      udp: true,
     };
   } catch {
     return null;
@@ -260,7 +268,8 @@ function parseVmessUrl(url: string): ParsedProxy | null {
  */
 function parseShadowsocksUrl(url: string): ParsedProxy | null {
   const hashIndex = url.indexOf("#");
-  const name = hashIndex !== -1 ? decodeURIComponent(url.slice(hashIndex + 1)) : "";
+  const name =
+    hashIndex !== -1 ? decodeURIComponent(url.slice(hashIndex + 1)) : "";
   const mainPart = hashIndex !== -1 ? url.slice(5, hashIndex) : url.slice(5);
 
   // 尝试格式 1: ss://base64@server:port
@@ -285,7 +294,7 @@ function parseShadowsocksUrl(url: string): ParsedProxy | null {
         port,
         cipher: method,
         password,
-        udp: true
+        udp: true,
       };
     } catch {
       // 继续尝试其他格式
@@ -305,7 +314,7 @@ function parseShadowsocksUrl(url: string): ParsedProxy | null {
         port: Number.parseInt(portStr, 10),
         cipher: method,
         password,
-        udp: true
+        udp: true,
       };
     }
   } catch {
@@ -333,7 +342,7 @@ function parseTrojanUrl(url: string): ParsedProxy | null {
     server,
     port,
     password,
-    udp: true
+    udp: true,
   };
 
   // 处理 SNI
@@ -362,14 +371,14 @@ function parseTrojanUrl(url: string): ParsedProxy | null {
     proxy.network = "ws";
     proxy["ws-opts"] = {
       path: params.path ? decodeURIComponent(params.path) : "/",
-      headers: params.host ? { Host: params.host } : undefined
+      headers: params.host ? { Host: params.host } : undefined,
     };
   }
 
   if (network === "grpc") {
     proxy.network = "grpc";
     proxy["grpc-opts"] = {
-      "grpc-service-name": params.serviceName || ""
+      "grpc-service-name": params.serviceName || "",
     };
   }
 
@@ -394,7 +403,7 @@ function parseHysteria2Url(url: string): ParsedProxy | null {
     type: "hysteria2",
     server,
     port,
-    password
+    password,
   };
 
   // 处理 SNI

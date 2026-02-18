@@ -4,6 +4,6 @@ import { ProxySubscribeService, ProxyRuleService } from "./proxy.service";
 
 @Module({
   providers: [ProxySubscribeService, ProxyRuleService, ProxyRouter],
-  exports: [ProxySubscribeService, ProxyRuleService, ProxyRouter]
+  exports: [ProxySubscribeService, ProxyRuleService, ProxyRouter],
 })
 export class ProxyModule {}

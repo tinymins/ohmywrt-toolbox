@@ -5,6 +5,6 @@ import { NetworkPublicController } from "./network.public.controller";
 @Module({
   providers: [NetworkService],
   controllers: [NetworkPublicController],
-  exports: [NetworkService]
+  exports: [NetworkService],
 })
 export class NetworkModule {}

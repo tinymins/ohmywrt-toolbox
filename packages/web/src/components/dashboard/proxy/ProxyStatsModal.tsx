@@ -1,6 +1,21 @@
 import { forwardRef, useImperativeHandle, useState, useEffect } from "react";
-import { Modal, Spin, Table, Tag, Statistic, Row, Col, Card, Empty } from "antd";
-import { BarChartOutlined, CloudServerOutlined, ClockCircleOutlined, GlobalOutlined } from "@ant-design/icons";
+import {
+  Modal,
+  Spin,
+  Table,
+  Tag,
+  Statistic,
+  Row,
+  Col,
+  Card,
+  Empty,
+} from "antd";
+import {
+  BarChartOutlined,
+  CloudServerOutlined,
+  ClockCircleOutlined,
+  GlobalOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -42,15 +57,17 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
 
   const { data: stats, isLoading } = trpc.proxy.getStats.useQuery(
     { id: subscribeId },
-    { enabled: !!subscribeId && visible }
+    { enabled: !!subscribeId && visible },
   );
 
   useImperativeHandle(ref, () => ({
     open: (id: string, remark?: string | null) => {
       setSubscribeId(id);
-      setSubscribeRemark(remark || (lang === "zh" ? "未命名订阅" : "Unnamed Subscription"));
+      setSubscribeRemark(
+        remark || (lang === "zh" ? "未命名订阅" : "Unnamed Subscription"),
+      );
       setVisible(true);
-    }
+    },
   }));
 
   const handleClose = () => {
@@ -63,7 +80,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
     {
       title: lang === "zh" ? "时间" : "Time",
       dataIndex: "createdAt",
-      render: (text: string) => dayjs(text).format("MM-DD HH:mm")
+      render: (text: string) => dayjs(text).format("MM-DD HH:mm"),
     },
     {
       title: lang === "zh" ? "类型" : "Type",
@@ -73,14 +90,14 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
         <Tag color={type === "clash" ? "blue" : "green"} className="!m-0">
           {type.toUpperCase()}
         </Tag>
-      )
+      ),
     },
     {
       title: "IP",
       dataIndex: "ip",
       ellipsis: true,
-      render: (ip: string | null) => ip || "-"
-    }
+      render: (ip: string | null) => ip || "-",
+    },
   ];
 
   // PC端访问记录列
@@ -89,7 +106,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       title: lang === "zh" ? "时间" : "Time",
       dataIndex: "createdAt",
       width: 180,
-      render: (text: string) => dayjs(text).format("YYYY-MM-DD HH:mm:ss")
+      render: (text: string) => dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
     },
     {
       title: lang === "zh" ? "类型" : "Type",
@@ -99,21 +116,21 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
         <Tag color={type === "clash" ? "blue" : "green"}>
           {type.toUpperCase()}
         </Tag>
-      )
+      ),
     },
     {
       title: lang === "zh" ? "节点数" : "Nodes",
       dataIndex: "nodeCount",
       width: 80,
-      align: "center" as const
+      align: "center" as const,
     },
     {
       title: "IP",
       dataIndex: "ip",
       width: 140,
       ellipsis: true,
-      render: (ip: string | null) => ip || "-"
-    }
+      render: (ip: string | null) => ip || "-",
+    },
   ];
 
   return (
@@ -123,7 +140,9 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           <BarChartOutlined />
           <span>{lang === "zh" ? "订阅统计" : "Statistics"}</span>
           {!isMobile && (
-            <span className="text-sm font-normal text-slate-500">- {subscribeRemark}</span>
+            <span className="text-sm font-normal text-slate-500">
+              - {subscribeRemark}
+            </span>
           )}
         </div>
       }
@@ -131,7 +150,11 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       onCancel={handleClose}
       footer={null}
       width={isMobile ? "100%" : 800}
-      style={isMobile ? { top: 20, maxWidth: "100%", margin: "0 auto", padding: "0 8px" } : undefined}
+      style={
+        isMobile
+          ? { top: 20, maxWidth: "100%", margin: "0 auto", padding: "0 8px" }
+          : undefined
+      }
       destroyOnClose
     >
       <Spin spinning={isLoading}>
@@ -139,7 +162,9 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           <div className="space-y-4 md:space-y-6">
             {/* 移动端显示订阅名称 */}
             {isMobile && (
-              <div className="text-sm text-slate-500 -mt-2">{subscribeRemark}</div>
+              <div className="text-sm text-slate-500 -mt-2">
+                {subscribeRemark}
+              </div>
             )}
 
             {/* 统计卡片 */}
@@ -160,7 +185,11 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                     title={lang === "zh" ? "今日" : "Today"}
                     value={stats.todayAccess}
                     prefix={<ClockCircleOutlined />}
-                    valueStyle={isMobile ? { fontSize: 20, color: "#3f8600" } : { color: "#3f8600" }}
+                    valueStyle={
+                      isMobile
+                        ? { fontSize: 20, color: "#3f8600" }
+                        : { color: "#3f8600" }
+                    }
                   />
                 </Card>
               </Col>
@@ -170,7 +199,11 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                     title={lang === "zh" ? "活跃节点" : "Nodes"}
                     value={stats.cachedNodeCount}
                     prefix={<CloudServerOutlined />}
-                    valueStyle={isMobile ? { fontSize: 20, color: "#1677ff" } : { color: "#1677ff" }}
+                    valueStyle={
+                      isMobile
+                        ? { fontSize: 20, color: "#1677ff" }
+                        : { color: "#1677ff" }
+                    }
                   />
                 </Card>
               </Col>
@@ -178,7 +211,11 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                 <Card size="small" className="text-center h-full">
                   <Statistic
                     title={lang === "zh" ? "最后访问" : "Last"}
-                    value={stats.lastAccessAt ? dayjs(stats.lastAccessAt).fromNow() : "-"}
+                    value={
+                      stats.lastAccessAt
+                        ? dayjs(stats.lastAccessAt).fromNow()
+                        : "-"
+                    }
                     valueStyle={{ fontSize: isMobile ? 14 : 16 }}
                   />
                 </Card>
@@ -222,7 +259,9 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                 />
               ) : (
                 <Empty
-                  description={lang === "zh" ? "暂无访问记录" : "No access records"}
+                  description={
+                    lang === "zh" ? "暂无访问记录" : "No access records"
+                  }
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
               )}

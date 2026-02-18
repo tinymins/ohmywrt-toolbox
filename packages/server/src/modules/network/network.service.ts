@@ -20,7 +20,9 @@ export class NetworkService {
     try {
       const [response1, response2] = await Promise.all([
         fetch("http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest"),
-        fetch("https://raw.githubusercontent.com/ChanthMiao/China-IPv4-List/release/cn.txt")
+        fetch(
+          "https://raw.githubusercontent.com/ChanthMiao/China-IPv4-List/release/cn.txt",
+        ),
       ]);
 
       const data1 = await response1.text();
@@ -83,13 +85,17 @@ export class NetworkService {
       "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/china-list.txt",
       "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/google-cn.txt",
       "https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/China/China_Domain.list",
-      "https://raw.githubusercontent.com/v2fly/domain-list-community/release/cn.txt"
+      "https://raw.githubusercontent.com/v2fly/domain-list-community/release/cn.txt",
     ];
 
     const domains: Record<string, true> = { cn: true, lan: true };
 
     const results = await Promise.all(
-      sites.map((site) => fetch(site).then((response) => response.text()).catch(() => ""))
+      sites.map((site) =>
+        fetch(site)
+          .then((response) => response.text())
+          .catch(() => ""),
+      ),
     );
 
     for (const item of results) {
@@ -97,7 +103,9 @@ export class NetworkService {
       for (const line of arr) {
         if (line && !line.startsWith("#")) {
           // 提取域名
-          const domainMatch = line.match(/([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}/);
+          const domainMatch = line.match(
+            /([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}/,
+          );
           if (domainMatch) {
             domains[domainMatch[0]] = true;
           }

@@ -1,11 +1,34 @@
 import { useState, useRef } from "react";
-import { Table, Button, Space, Input, Popconfirm, Typography, message, Spin, Tooltip, Card } from "antd";
-import { ExportOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, EyeOutlined, BarChartOutlined } from "@ant-design/icons";
+import {
+  Table,
+  Button,
+  Space,
+  Input,
+  Popconfirm,
+  Typography,
+  message,
+  Spin,
+  Tooltip,
+  Card,
+} from "antd";
+import {
+  ExportOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CopyOutlined,
+  EyeOutlined,
+  BarChartOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { trpc } from "../../../lib/trpc";
-import ProxySubscribeModal, { type ProxySubscribeModalRef } from "./ProxySubscribeModal";
-import ProxyPreviewModal, { type ProxyPreviewModalRef } from "./ProxyPreviewModal";
+import ProxySubscribeModal, {
+  type ProxySubscribeModalRef,
+} from "./ProxySubscribeModal";
+import ProxyPreviewModal, {
+  type ProxyPreviewModalRef,
+} from "./ProxyPreviewModal";
 import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
 
 const { Text } = Typography;
@@ -30,7 +53,12 @@ interface ProxySubscribeWithUser {
   remark: string | null;
   subscribeUrl: string[];
   ruleList: Record<string, { name: string; url: string; type?: string }[]>;
-  group: { name: string; type: string; proxies: string[]; readonly?: boolean }[];
+  group: {
+    name: string;
+    type: string;
+    proxies: string[];
+    readonly?: boolean;
+  }[];
   filter: string[];
   servers: unknown[];
   customConfig: unknown[];
@@ -59,7 +87,7 @@ export default function ProxySubscribeList() {
     },
     onError: (error) => {
       messageApi.error(error.message || t("proxy.deleteFailed"));
-    }
+    },
   });
 
   const handleCopyUrl = (url: string) => {
@@ -102,14 +130,22 @@ export default function ProxySubscribeList() {
         {isMobile ? (
           <div className="flex flex-col gap-3 -mx-6">
             {(list ?? []).map((record) => (
-              <Card key={record.id} size="small" className="!rounded-none !border-x-0 !shadow-none" styles={{ body: { padding: "12px 24px" } }}>
+              <Card
+                key={record.id}
+                size="small"
+                className="!rounded-none !border-x-0 !shadow-none"
+                styles={{ body: { padding: "12px 24px" } }}
+              >
                 <div className="space-y-2.5">
                   {/* Header: Creator & Remark */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <Text strong>{record.remark || t("proxy.preview.unnamed")}</Text>
+                      <Text strong>
+                        {record.remark || t("proxy.preview.unnamed")}
+                      </Text>
                       <div className="text-xs text-gray-500 mt-0.5">
-                        {record.user.name} · {dayjs(record.updatedAt).format("MM-DD HH:mm")}
+                        {record.user.name} ·{" "}
+                        {dayjs(record.updatedAt).format("MM-DD HH:mm")}
                       </div>
                     </div>
                   </div>
@@ -127,7 +163,9 @@ export default function ProxySubscribeList() {
                           <CopyOutlined
                             className="cursor-pointer"
                             style={{ color: "#3b82f6" }}
-                            onClick={() => handleCopyUrl(getClashUrl(record.url))}
+                            onClick={() =>
+                              handleCopyUrl(getClashUrl(record.url))
+                            }
                           />
                           <ExportOutlined
                             className="cursor-pointer"
@@ -152,12 +190,16 @@ export default function ProxySubscribeList() {
                           <CopyOutlined
                             className="cursor-pointer"
                             style={{ color: "#3b82f6" }}
-                            onClick={() => handleCopyUrl(getSingboxUrl(record.url))}
+                            onClick={() =>
+                              handleCopyUrl(getSingboxUrl(record.url))
+                            }
                           />
                           <ExportOutlined
                             className="cursor-pointer"
                             style={{ color: "#22c55e" }}
-                            onClick={() => window.open(getSingboxUrl(record.url))}
+                            onClick={() =>
+                              window.open(getSingboxUrl(record.url))
+                            }
                           />
                         </Space>
                       }
@@ -170,13 +212,17 @@ export default function ProxySubscribeList() {
                       type="link"
                       size="small"
                       icon={<BarChartOutlined />}
-                      onClick={() => statsModalRef.current?.open(record.id, record.remark)}
+                      onClick={() =>
+                        statsModalRef.current?.open(record.id, record.remark)
+                      }
                     />
                     <Button
                       type="link"
                       size="small"
                       icon={<EyeOutlined />}
-                      onClick={() => previewModalRef.current?.open(record.id, record.remark)}
+                      onClick={() =>
+                        previewModalRef.current?.open(record.id, record.remark)
+                      }
                     />
                     <Button
                       type="link"
@@ -212,140 +258,148 @@ export default function ProxySubscribeList() {
         ) : (
           /* Desktop Table View */
           <Table
-          rowKey="id"
-          size="small"
-          bordered
-          pagination={false}
-          dataSource={list ?? []}
-          scroll={{ x: 800 }}
-          columns={[
-            {
-              title: t("proxy.columns.creator"),
-              dataIndex: ["user", "name"],
-              width: 100,
-              ellipsis: true
-            },
-            {
-              title: t("proxy.columns.remark"),
-              dataIndex: "remark",
-              width: 150,
-              ellipsis: true,
-              render: (text) => text || "-"
-            },
-            {
-              title: t("proxy.columns.clashUrl"),
-              dataIndex: "url",
-              render: (uuid: string) => {
-                const url = getClashUrl(uuid);
-                return (
-                  <Input
-                    readOnly
-                    value={url}
-                    onClick={(e) => e.currentTarget.select()}
-                    addonAfter={
-                      <Space size={12}>
-                        <CopyOutlined
-                          className="cursor-pointer"
-                          style={{ color: "#3b82f6" }}
-                          onClick={() => handleCopyUrl(url)}
-                        />
-                        <ExportOutlined
-                          className="cursor-pointer"
-                          style={{ color: "#22c55e" }}
-                          onClick={() => window.open(url)}
-                        />
-                      </Space>
-                    }
-                  />
-                );
-              }
-            },
-            {
-              title: t("proxy.columns.singboxUrl"),
-              dataIndex: "url",
-              render: (uuid: string) => {
-                const url = getSingboxUrl(uuid);
-                return (
-                  <Input
-                    readOnly
-                    value={url}
-                    onClick={(e) => e.currentTarget.select()}
-                    addonAfter={
-                      <Space size={12}>
-                        <CopyOutlined
-                          className="cursor-pointer"
-                          style={{ color: "#3b82f6" }}
-                          onClick={() => handleCopyUrl(url)}
-                        />
-                        <ExportOutlined
-                          className="cursor-pointer"
-                          style={{ color: "#22c55e" }}
-                          onClick={() => window.open(url)}
-                        />
-                      </Space>
-                    }
-                  />
-                );
-              }
-            },
-            {
-              title: t("proxy.columns.lastUpdate"),
-              dataIndex: "updatedAt",
-              width: 160,
-              render: (text: string) => dayjs(text).format("YYYY-MM-DD HH:mm:ss")
-            },
-            {
-              title: t("proxy.columns.actions"),
-              align: "center",
-              width: 160,
-              fixed: "right",
-              render: (_, record) => (
-                <Space size="middle">
-                  <Tooltip title={t("proxy.actions.stats")}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<BarChartOutlined />}
-                      onClick={() => statsModalRef.current?.open(record.id, record.remark)}
+            rowKey="id"
+            size="small"
+            bordered
+            pagination={false}
+            dataSource={list ?? []}
+            scroll={{ x: 800 }}
+            columns={[
+              {
+                title: t("proxy.columns.creator"),
+                dataIndex: ["user", "name"],
+                width: 100,
+                ellipsis: true,
+              },
+              {
+                title: t("proxy.columns.remark"),
+                dataIndex: "remark",
+                width: 150,
+                ellipsis: true,
+                render: (text) => text || "-",
+              },
+              {
+                title: t("proxy.columns.clashUrl"),
+                dataIndex: "url",
+                render: (uuid: string) => {
+                  const url = getClashUrl(uuid);
+                  return (
+                    <Input
+                      readOnly
+                      value={url}
+                      onClick={(e) => e.currentTarget.select()}
+                      addonAfter={
+                        <Space size={12}>
+                          <CopyOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#3b82f6" }}
+                            onClick={() => handleCopyUrl(url)}
+                          />
+                          <ExportOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#22c55e" }}
+                            onClick={() => window.open(url)}
+                          />
+                        </Space>
+                      }
                     />
-                  </Tooltip>
-                  <Tooltip title={t("proxy.actions.preview")}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<EyeOutlined />}
-                      onClick={() => previewModalRef.current?.open(record.id, record.remark)}
+                  );
+                },
+              },
+              {
+                title: t("proxy.columns.singboxUrl"),
+                dataIndex: "url",
+                render: (uuid: string) => {
+                  const url = getSingboxUrl(uuid);
+                  return (
+                    <Input
+                      readOnly
+                      value={url}
+                      onClick={(e) => e.currentTarget.select()}
+                      addonAfter={
+                        <Space size={12}>
+                          <CopyOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#3b82f6" }}
+                            onClick={() => handleCopyUrl(url)}
+                          />
+                          <ExportOutlined
+                            className="cursor-pointer"
+                            style={{ color: "#22c55e" }}
+                            onClick={() => window.open(url)}
+                          />
+                        </Space>
+                      }
                     />
-                  </Tooltip>
-                  <Tooltip title={t("proxy.actions.edit")}>
-                    <Button
-                      type="link"
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => modalRef.current?.open(record.id)}
-                    />
-                  </Tooltip>
-                  <Popconfirm
-                    title={t("proxy.confirmDelete")}
-                    description={t("proxy.confirmDeleteDesc")}
-                    onConfirm={() => deleteMutation.mutate({ id: record.id })}
-                    okText={t("proxy.common.confirm")}
-                    cancelText={t("proxy.common.cancel")}
-                  >
-                    <Tooltip title={t("proxy.actions.delete")}>
+                  );
+                },
+              },
+              {
+                title: t("proxy.columns.lastUpdate"),
+                dataIndex: "updatedAt",
+                width: 160,
+                render: (text: string) =>
+                  dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
+              },
+              {
+                title: t("proxy.columns.actions"),
+                align: "center",
+                width: 160,
+                fixed: "right",
+                render: (_, record) => (
+                  <Space size="middle">
+                    <Tooltip title={t("proxy.actions.stats")}>
                       <Button
                         type="link"
-                        danger
                         size="small"
-                        icon={<DeleteOutlined />}
-                        loading={deleteMutation.isPending}
+                        icon={<BarChartOutlined />}
+                        onClick={() =>
+                          statsModalRef.current?.open(record.id, record.remark)
+                        }
                       />
                     </Tooltip>
-                  </Popconfirm>
-                </Space>
-              )
-            }
-          ]}
+                    <Tooltip title={t("proxy.actions.preview")}>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<EyeOutlined />}
+                        onClick={() =>
+                          previewModalRef.current?.open(
+                            record.id,
+                            record.remark,
+                          )
+                        }
+                      />
+                    </Tooltip>
+                    <Tooltip title={t("proxy.actions.edit")}>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => modalRef.current?.open(record.id)}
+                      />
+                    </Tooltip>
+                    <Popconfirm
+                      title={t("proxy.confirmDelete")}
+                      description={t("proxy.confirmDeleteDesc")}
+                      onConfirm={() => deleteMutation.mutate({ id: record.id })}
+                      okText={t("proxy.common.confirm")}
+                      cancelText={t("proxy.common.cancel")}
+                    >
+                      <Tooltip title={t("proxy.actions.delete")}>
+                        <Button
+                          type="link"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          loading={deleteMutation.isPending}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  </Space>
+                ),
+              },
+            ]}
           />
         )}
       </Spin>

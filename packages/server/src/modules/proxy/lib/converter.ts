@@ -22,16 +22,20 @@ import {
   type SingboxOutboundTUIC,
   type SingboxOutboundVmess,
   type SingboxOutboundVLESS,
-  type SingboxOutbounds
+  type SingboxOutbounds,
 } from "./types";
 
 /**
  * 将 Clash 配置转换为 Sing-box outbounds
  */
-export function convertClashToSingbox(input: string | object): SingboxOutbounds {
+export function convertClashToSingbox(
+  input: string | object,
+): SingboxOutbounds {
   let clash: Clash;
   try {
-    clash = ClashSchema.parse(typeof input === "string" ? yaml.parse(input) : input);
+    clash = ClashSchema.parse(
+      typeof input === "string" ? yaml.parse(input) : input,
+    );
   } catch (e) {
     // 如果验证失败，尝试直接使用 proxies 数组
     const rawData = typeof input === "string" ? yaml.parse(input) : input;
@@ -88,11 +92,11 @@ export function convertClashToSingbox(input: string | object): SingboxOutbounds 
 }
 
 const convertVmessOrVLESSTransport = (
-  proxy: ClashProxyBaseVmessOrVLESS
+  proxy: ClashProxyBaseVmessOrVLESS,
 ): SingboxOutboundCommonVmessOrVLESSTransport | undefined => {
   if (proxy["http-opts"] !== undefined) {
     const transport: SingboxOutboundCommonVmessOrVLESSTransport = {
-      type: "http"
+      type: "http",
     };
     if (proxy["http-opts"].path !== undefined) {
       transport.path = proxy["http-opts"].path[0]!;
@@ -110,7 +114,7 @@ const convertVmessOrVLESSTransport = (
   }
   if (proxy["h2-opts"] !== undefined) {
     const transport: SingboxOutboundCommonVmessOrVLESSTransport = {
-      type: "http"
+      type: "http",
     };
     if (proxy["h2-opts"].host !== undefined) {
       transport.host = proxy["h2-opts"].host!;
@@ -122,7 +126,7 @@ const convertVmessOrVLESSTransport = (
   }
   if (proxy["ws-opts"] !== undefined) {
     const transport: SingboxOutboundCommonVmessOrVLESSTransport = {
-      type: "ws"
+      type: "ws",
     };
     if (proxy["ws-opts"].path !== undefined) {
       transport.path = proxy["ws-opts"].path!;
@@ -133,14 +137,15 @@ const convertVmessOrVLESSTransport = (
         transport.max_early_data = proxy["ws-opts"]["max-early-data"]!;
       }
       if (proxy["ws-opts"]["early-data-header-name"] !== undefined) {
-        transport.early_data_header_name = proxy["ws-opts"]["early-data-header-name"]!;
+        transport.early_data_header_name =
+          proxy["ws-opts"]["early-data-header-name"]!;
       }
     }
     return transport;
   }
   if (proxy["grpc-opts"] !== undefined) {
     const transport: SingboxOutboundCommonVmessOrVLESSTransport = {
-      type: "grpc"
+      type: "grpc",
     };
     if (proxy["grpc-opts"]["grpc-service-name"] !== undefined) {
       transport.service_name = proxy["grpc-opts"]["grpc-service-name"]!;
@@ -156,7 +161,7 @@ const convertHttp = (proxy: ClashProxyHttp): SingboxOutboundHttp => {
     type: "http",
     tag: proxy.name,
     server: proxy.server,
-    server_port: proxy.port
+    server_port: proxy.port,
   };
 
   if (proxy.username !== undefined) {
@@ -167,7 +172,10 @@ const convertHttp = (proxy: ClashProxyHttp): SingboxOutboundHttp => {
   }
   if (proxy.tls !== undefined && proxy.tls === true) {
     outbound.tls = { enabled: true };
-    if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+    if (
+      proxy["skip-cert-verify"] !== undefined &&
+      proxy["skip-cert-verify"] === true
+    ) {
       outbound.tls.insecure = true;
     }
     if (proxy.sni !== undefined) {
@@ -178,7 +186,9 @@ const convertHttp = (proxy: ClashProxyHttp): SingboxOutboundHttp => {
   return outbound;
 };
 
-const convertHysteria = (proxy: ClashProxyHysteria): SingboxOutboundHysteria => {
+const convertHysteria = (
+  proxy: ClashProxyHysteria,
+): SingboxOutboundHysteria => {
   const outbound: SingboxOutboundHysteria = {
     type: "hysteria",
     tag: proxy.name,
@@ -186,7 +196,7 @@ const convertHysteria = (proxy: ClashProxyHysteria): SingboxOutboundHysteria => 
     server_port: proxy.port,
     up: proxy.up,
     down: proxy.down,
-    tls: { enabled: true }
+    tls: { enabled: true },
   };
 
   if (proxy.protocol !== undefined && proxy.protocol !== "udp") {
@@ -200,7 +210,10 @@ const convertHysteria = (proxy: ClashProxyHysteria): SingboxOutboundHysteria => 
   if (proxy.alpn !== undefined) {
     outbound.tls.alpn = proxy.alpn!;
   }
-  if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+  if (
+    proxy["skip-cert-verify"] !== undefined &&
+    proxy["skip-cert-verify"] === true
+  ) {
     outbound.tls.insecure = true;
   }
   if (proxy.obfs !== undefined) {
@@ -213,7 +226,9 @@ const convertHysteria = (proxy: ClashProxyHysteria): SingboxOutboundHysteria => 
   return outbound;
 };
 
-const convertHysteria2 = (proxy: ClashProxyHysteria2): SingboxOutboundHysteria2 => {
+const convertHysteria2 = (
+  proxy: ClashProxyHysteria2,
+): SingboxOutboundHysteria2 => {
   const outbound: SingboxOutboundHysteria2 = {
     type: "hysteria2",
     tag: proxy.name,
@@ -221,8 +236,8 @@ const convertHysteria2 = (proxy: ClashProxyHysteria2): SingboxOutboundHysteria2 
     server_port: proxy.port,
     password: proxy.password,
     tls: {
-      enabled: true
-    }
+      enabled: true,
+    },
   };
 
   if (proxy.sni !== undefined) {
@@ -231,21 +246,26 @@ const convertHysteria2 = (proxy: ClashProxyHysteria2): SingboxOutboundHysteria2 
     outbound.tls.server_name = proxy.server;
   }
 
-  if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+  if (
+    proxy["skip-cert-verify"] !== undefined &&
+    proxy["skip-cert-verify"] === true
+  ) {
     outbound.tls.insecure = true;
   }
 
   return outbound;
 };
 
-const convertShadowsocks = (proxy: ClashProxyShadowsocks): SingboxOutboundShadowsocks => {
+const convertShadowsocks = (
+  proxy: ClashProxyShadowsocks,
+): SingboxOutboundShadowsocks => {
   const outbound: SingboxOutboundShadowsocks = {
     type: "shadowsocks",
     tag: proxy.name,
     server: proxy.server,
     server_port: proxy.port,
     method: proxy.cipher,
-    password: proxy.password
+    password: proxy.password,
   };
 
   if (proxy.udp !== undefined && proxy.udp === false) {
@@ -256,7 +276,7 @@ const convertShadowsocks = (proxy: ClashProxyShadowsocks): SingboxOutboundShadow
       if (proxy["plugin-opts"]) {
         outbound.tls = {
           enabled: true,
-          server_name: proxy["plugin-opts"].host
+          server_name: proxy["plugin-opts"].host,
         };
         outbound.type = "shadowtls";
         outbound.password = proxy["plugin-opts"].password!;
@@ -276,7 +296,10 @@ const convertShadowsocks = (proxy: ClashProxyShadowsocks): SingboxOutboundShadow
           outbound.plugin_opts += `;host=${proxy["plugin-opts"].host!}`;
         }
         if (proxy.plugin === "v2ray-plugin") {
-          if (proxy["plugin-opts"].tls !== undefined && proxy["plugin-opts"].tls === true) {
+          if (
+            proxy["plugin-opts"].tls !== undefined &&
+            proxy["plugin-opts"].tls === true
+          ) {
             outbound.plugin_opts += ";tls";
           }
           if (proxy["plugin-opts"].path !== undefined) {
@@ -293,12 +316,14 @@ const convertShadowsocks = (proxy: ClashProxyShadowsocks): SingboxOutboundShadow
   return outbound;
 };
 
-const convertSocks5ToSocks = (proxy: ClashProxySocks5): SingboxOutboundSocks => {
+const convertSocks5ToSocks = (
+  proxy: ClashProxySocks5,
+): SingboxOutboundSocks => {
   const outbound: SingboxOutboundSocks = {
     type: "socks",
     tag: proxy.name,
     server: proxy.server,
-    server_port: proxy.port
+    server_port: proxy.port,
   };
 
   if (proxy.udp !== undefined && proxy.udp === false) {
@@ -325,18 +350,20 @@ const convertTrojan = (proxy: ClashProxyTrojan): SingboxOutboundTrojan => {
     server_port: proxy.port,
     password: proxy.password,
     tls: { enabled: true },
-    multiplex: proxy.multiplex ? {
-      enabled: true,
-      protocol: "h2mux",
-      max_connections: 8,
-      min_streams: 16,
-      padding: true,
-      brutal: {
-        enabled: true,
-        up_mbps: 1000,
-        down_mbps: 1000
-      }
-    } : undefined
+    multiplex: proxy.multiplex
+      ? {
+          enabled: true,
+          protocol: "h2mux",
+          max_connections: 8,
+          min_streams: 16,
+          padding: true,
+          brutal: {
+            enabled: true,
+            up_mbps: 1000,
+            down_mbps: 1000,
+          },
+        }
+      : undefined,
   };
 
   if (proxy.udp !== undefined && proxy.udp === false) {
@@ -345,7 +372,10 @@ const convertTrojan = (proxy: ClashProxyTrojan): SingboxOutboundTrojan => {
   if (proxy.sni !== undefined) {
     outbound.tls!.server_name = proxy.sni!;
   }
-  if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+  if (
+    proxy["skip-cert-verify"] !== undefined &&
+    proxy["skip-cert-verify"] === true
+  ) {
     outbound.tls!.insecure = true;
   }
   if (proxy.alpn !== undefined) {
@@ -354,7 +384,7 @@ const convertTrojan = (proxy: ClashProxyTrojan): SingboxOutboundTrojan => {
   if (proxy["client-fingerprint"]) {
     outbound.tls!.utls = {
       enabled: true,
-      fingerprint: proxy["client-fingerprint"]
+      fingerprint: proxy["client-fingerprint"],
     };
   }
 
@@ -368,7 +398,7 @@ const convertTUIC = (proxy: ClashProxyTUIC): SingboxOutboundTUIC => {
     server: proxy.server,
     server_port: proxy.port,
     uuid: proxy.uuid,
-    tls: { enabled: true }
+    tls: { enabled: true },
   };
 
   if (proxy.password !== undefined) {
@@ -386,13 +416,19 @@ const convertTUIC = (proxy: ClashProxyTUIC): SingboxOutboundTUIC => {
   if (proxy["congestion-controller"] !== undefined) {
     outbound.congestion_control = proxy["congestion-controller"];
   }
-  if (proxy["udp-over-stream"] !== undefined && proxy["udp-over-stream"] === true) {
+  if (
+    proxy["udp-over-stream"] !== undefined &&
+    proxy["udp-over-stream"] === true
+  ) {
     outbound.udp_over_stream = true;
   }
   if (proxy.sni !== undefined) {
     outbound.tls!.server_name = proxy.sni!;
   }
-  if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+  if (
+    proxy["skip-cert-verify"] !== undefined &&
+    proxy["skip-cert-verify"] === true
+  ) {
     outbound.tls!.insecure = true;
   }
   if (proxy.alpn !== undefined) {
@@ -414,13 +450,15 @@ const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess => {
     security: proxy.cipher,
     alter_id: proxy.alterId,
     transport,
-    multiplex: proxy.multiplex ? {
-      enabled: true,
-      protocol: "h2mux",
-      max_connections: 8,
-      min_streams: 16,
-      padding: true
-    } : undefined
+    multiplex: proxy.multiplex
+      ? {
+          enabled: true,
+          protocol: "h2mux",
+          max_connections: 8,
+          min_streams: 16,
+          padding: true,
+        }
+      : undefined,
   };
 
   if (proxy.udp !== undefined && proxy.udp === false) {
@@ -431,7 +469,10 @@ const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess => {
     if (proxy.servername !== undefined) {
       outbound.tls.server_name = proxy.servername!;
     }
-    if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+    if (
+      proxy["skip-cert-verify"] !== undefined &&
+      proxy["skip-cert-verify"] === true
+    ) {
       outbound.tls.insecure = true;
     }
   }
@@ -448,13 +489,15 @@ const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS => {
     server_port: proxy.port,
     uuid: proxy.uuid,
     transport,
-    multiplex: proxy.multiplex ? {
-      enabled: true,
-      protocol: "h2mux",
-      max_connections: 8,
-      min_streams: 16,
-      padding: true
-    } : undefined
+    multiplex: proxy.multiplex
+      ? {
+          enabled: true,
+          protocol: "h2mux",
+          max_connections: 8,
+          min_streams: 16,
+          padding: true,
+        }
+      : undefined,
   };
 
   if (proxy.flow) {
@@ -468,20 +511,23 @@ const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS => {
     if (proxy.servername !== undefined) {
       outbound.tls.server_name = proxy.servername!;
     }
-    if (proxy["skip-cert-verify"] !== undefined && proxy["skip-cert-verify"] === true) {
+    if (
+      proxy["skip-cert-verify"] !== undefined &&
+      proxy["skip-cert-verify"] === true
+    ) {
       outbound.tls.insecure = true;
     }
     if (proxy["client-fingerprint"]) {
       outbound.tls.utls = {
         enabled: true,
-        fingerprint: proxy["client-fingerprint"]
+        fingerprint: proxy["client-fingerprint"],
       };
     }
     if (proxy["reality-opts"]) {
       outbound.tls.reality = {
         enabled: true,
         public_key: proxy["reality-opts"]["public-key"],
-        short_id: proxy["reality-opts"]["short-id"]
+        short_id: proxy["reality-opts"]["short-id"],
       };
     }
   }

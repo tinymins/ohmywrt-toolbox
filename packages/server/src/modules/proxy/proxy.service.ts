@@ -6,9 +6,22 @@ import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
 import { db } from "../../db/client";
 import { proxySubscribes, proxyAccessLogs, users } from "../../db/schema";
-import type { CreateProxySubscribeInput, UpdateProxySubscribeInput, ProxyPreviewNode } from "@acme/types";
-import { appendIcon, DEFAULT_GROUPS, DEFAULT_RULE_PROVIDERS, DEFAULT_FILTER, DEFAULT_CUSTOM_CONFIG } from "./lib/config";
-import { isBase64Subscription, parseBase64Subscription } from "./lib/subscription-parser";
+import type {
+  CreateProxySubscribeInput,
+  UpdateProxySubscribeInput,
+  ProxyPreviewNode,
+} from "@acme/types";
+import {
+  appendIcon,
+  DEFAULT_GROUPS,
+  DEFAULT_RULE_PROVIDERS,
+  DEFAULT_FILTER,
+  DEFAULT_CUSTOM_CONFIG,
+} from "./lib/config";
+import {
+  isBase64Subscription,
+  parseBase64Subscription,
+} from "./lib/subscription-parser";
 
 type ProxySubscribeRow = typeof proxySubscribes.$inferSelect;
 type UserRow = Pick<typeof users.$inferSelect, "id" | "name" | "email">;
@@ -37,7 +50,7 @@ export interface ProxySubscribeWithUser {
 const toProxySubscribeOutput = (
   row: ProxySubscribeRow,
   user: UserRow,
-  authorizedUsers: UserRow[] = []
+  authorizedUsers: UserRow[] = [],
 ): ProxySubscribeWithUser => ({
   id: row.id,
   userId: row.userId,
@@ -54,7 +67,7 @@ const toProxySubscribeOutput = (
   createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
   updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
   user,
-  authorizedUsers
+  authorizedUsers,
 });
 
 export class ProxySubscribeService {
@@ -67,8 +80,8 @@ export class ProxySubscribeService {
         user: {
           id: users.id,
           name: users.name,
-          email: users.email
-        }
+          email: users.email,
+        },
       })
       .from(proxySubscribes)
       .leftJoin(users, eq(proxySubscribes.userId, users.id));
@@ -76,14 +89,16 @@ export class ProxySubscribeService {
     // 过滤出用户创建的或被授权的订阅
     const filteredSubscribes = allSubscribes.filter((row) => {
       if (row.subscribe.userId === userId) return true;
-      const authorizedUserIds = (row.subscribe.authorizedUserIds as string[] | null) ?? [];
+      const authorizedUserIds =
+        (row.subscribe.authorizedUserIds as string[] | null) ?? [];
       return authorizedUserIds.includes(userId);
     });
 
     // 获取所有授权用户信息
     const result: ProxySubscribeWithUser[] = [];
     for (const row of filteredSubscribes) {
-      const authorizedUserIds = (row.subscribe.authorizedUserIds as string[] | null) ?? [];
+      const authorizedUserIds =
+        (row.subscribe.authorizedUserIds as string[] | null) ?? [];
       let authorizedUsers: UserRow[] = [];
       if (authorizedUserIds.length > 0) {
         authorizedUsers = await db
@@ -91,11 +106,13 @@ export class ProxySubscribeService {
           .from(users)
           .where(inArray(users.id, authorizedUserIds));
       }
-      result.push(toProxySubscribeOutput(
-        row.subscribe,
-        row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
-        authorizedUsers
-      ));
+      result.push(
+        toProxySubscribeOutput(
+          row.subscribe,
+          row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
+          authorizedUsers,
+        ),
+      );
     }
 
     return result;
@@ -109,8 +126,8 @@ export class ProxySubscribeService {
         user: {
           id: users.id,
           name: users.name,
-          email: users.email
-        }
+          email: users.email,
+        },
       })
       .from(proxySubscribes)
       .leftJoin(users, eq(proxySubscribes.userId, users.id))
@@ -119,7 +136,8 @@ export class ProxySubscribeService {
 
     if (!row) return null;
 
-    const authorizedUserIds = (row.subscribe.authorizedUserIds as string[] | null) ?? [];
+    const authorizedUserIds =
+      (row.subscribe.authorizedUserIds as string[] | null) ?? [];
     let authorizedUsers: UserRow[] = [];
     if (authorizedUserIds.length > 0) {
       authorizedUsers = await db
@@ -131,7 +149,7 @@ export class ProxySubscribeService {
     return toProxySubscribeOutput(
       row.subscribe,
       row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
-      authorizedUsers
+      authorizedUsers,
     );
   }
 
@@ -147,7 +165,10 @@ export class ProxySubscribeService {
   }
 
   /** 创建订阅 */
-  async create(userId: string, input: CreateProxySubscribeInput): Promise<ProxySubscribeWithUser> {
+  async create(
+    userId: string,
+    input: CreateProxySubscribeInput,
+  ): Promise<ProxySubscribeWithUser> {
     const [created] = await db
       .insert(proxySubscribes)
       .values({
@@ -159,19 +180,26 @@ export class ProxySubscribeService {
         filter: input.filter ?? null,
         servers: input.servers ?? null,
         customConfig: input.customConfig ?? null,
-        authorizedUserIds: input.authorizedUserIds ?? []
+        authorizedUserIds: input.authorizedUserIds ?? [],
       })
       .returning();
 
     const result = await this.getById(created.id);
     if (!result) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create subscribe" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create subscribe",
+      });
     }
     return result;
   }
 
   /** 更新订阅 */
-  async update(id: string, userId: string, input: UpdateProxySubscribeInput): Promise<ProxySubscribeWithUser> {
+  async update(
+    id: string,
+    userId: string,
+    input: UpdateProxySubscribeInput,
+  ): Promise<ProxySubscribeWithUser> {
     // 检查权限
     const existing = await this.getById(id);
     if (!existing) {
@@ -186,16 +214,18 @@ export class ProxySubscribeService {
     }
 
     const updateData: Partial<typeof proxySubscribes.$inferInsert> = {
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     if (input.remark !== undefined) updateData.remark = input.remark;
-    if (input.subscribeUrl !== undefined) updateData.subscribeUrl = input.subscribeUrl;
+    if (input.subscribeUrl !== undefined)
+      updateData.subscribeUrl = input.subscribeUrl;
     if (input.ruleList !== undefined) updateData.ruleList = input.ruleList;
     if (input.group !== undefined) updateData.group = input.group;
     if (input.filter !== undefined) updateData.filter = input.filter;
     if (input.servers !== undefined) updateData.servers = input.servers;
-    if (input.customConfig !== undefined) updateData.customConfig = input.customConfig;
+    if (input.customConfig !== undefined)
+      updateData.customConfig = input.customConfig;
     // 只有创建者可以修改授权用户列表
     if (input.authorizedUserIds !== undefined && isOwner) {
       updateData.authorizedUserIds = input.authorizedUserIds;
@@ -208,7 +238,10 @@ export class ProxySubscribeService {
 
     const result = await this.getById(id);
     if (!result) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update subscribe" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to update subscribe",
+      });
     }
     return result;
   }
@@ -223,42 +256,52 @@ export class ProxySubscribeService {
       throw new TRPCError({ code: "FORBIDDEN", message: "无权删除此订阅" });
     }
 
-    await db
-      .delete(proxySubscribes)
-      .where(eq(proxySubscribes.id, id));
+    await db.delete(proxySubscribes).where(eq(proxySubscribes.id, id));
   }
 
   /** 更新最后访问时间和缓存节点数 */
-  async updateAccessInfo(id: string, nodeCount: number, accessType: string, ip?: string, userAgent?: string): Promise<void> {
+  async updateAccessInfo(
+    id: string,
+    nodeCount: number,
+    accessType: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<void> {
     // 更新订阅表
     await db
       .update(proxySubscribes)
       .set({
         lastAccessAt: new Date(),
-        cachedNodeCount: nodeCount
+        cachedNodeCount: nodeCount,
       })
       .where(eq(proxySubscribes.id, id));
 
     // 记录访问日志
-    await db
-      .insert(proxyAccessLogs)
-      .values({
-        subscribeId: id,
-        accessType,
-        ip,
-        userAgent,
-        nodeCount
-      });
+    await db.insert(proxyAccessLogs).values({
+      subscribeId: id,
+      accessType,
+      ip,
+      userAgent,
+      nodeCount,
+    });
   }
 
   /** 获取订阅统计信息 */
-  async getStats(id: string, userId: string): Promise<{
+  async getStats(
+    id: string,
+    userId: string,
+  ): Promise<{
     totalAccess: number;
     todayAccess: number;
     cachedNodeCount: number;
     lastAccessAt: string | null;
     accessByType: { type: string; count: number }[];
-    recentAccess: { createdAt: string; accessType: string; ip: string | null; nodeCount: number }[];
+    recentAccess: {
+      createdAt: string;
+      accessType: string;
+      ip: string | null;
+      nodeCount: number;
+    }[];
   }> {
     const subscribe = await this.getById(id);
     if (!subscribe) {
@@ -266,7 +309,10 @@ export class ProxySubscribeService {
     }
 
     // 检查权限
-    if (subscribe.userId !== userId && !subscribe.authorizedUserIds.includes(userId)) {
+    if (
+      subscribe.userId !== userId &&
+      !subscribe.authorizedUserIds.includes(userId)
+    ) {
       throw new TRPCError({ code: "FORBIDDEN", message: "无权访问此订阅" });
     }
 
@@ -289,16 +335,18 @@ export class ProxySubscribeService {
     const [todayResult] = await db
       .select({ count: count() })
       .from(proxyAccessLogs)
-      .where(and(
-        eq(proxyAccessLogs.subscribeId, id),
-        gte(proxyAccessLogs.createdAt, today)
-      ));
+      .where(
+        and(
+          eq(proxyAccessLogs.subscribeId, id),
+          gte(proxyAccessLogs.createdAt, today),
+        ),
+      );
 
     // 获取按类型统计
     const accessByType = await db
       .select({
         type: proxyAccessLogs.accessType,
-        count: count()
+        count: count(),
       })
       .from(proxyAccessLogs)
       .where(eq(proxyAccessLogs.subscribeId, id))
@@ -310,7 +358,7 @@ export class ProxySubscribeService {
         createdAt: proxyAccessLogs.createdAt,
         accessType: proxyAccessLogs.accessType,
         ip: proxyAccessLogs.ip,
-        nodeCount: proxyAccessLogs.nodeCount
+        nodeCount: proxyAccessLogs.nodeCount,
       })
       .from(proxyAccessLogs)
       .where(eq(proxyAccessLogs.subscribeId, id))
@@ -322,16 +370,16 @@ export class ProxySubscribeService {
       todayAccess: todayResult?.count ?? 0,
       cachedNodeCount: rawSubscribe?.cachedNodeCount ?? 0,
       lastAccessAt: subscribe.lastAccessAt,
-      accessByType: accessByType.map(item => ({
+      accessByType: accessByType.map((item) => ({
         type: item.type,
-        count: Number(item.count)
+        count: Number(item.count),
       })),
-      recentAccess: recentAccess.map(item => ({
+      recentAccess: recentAccess.map((item) => ({
         createdAt: item.createdAt?.toISOString() ?? new Date().toISOString(),
         accessType: item.accessType,
         ip: item.ip,
-        nodeCount: item.nodeCount ?? 0
-      }))
+        nodeCount: item.nodeCount ?? 0,
+      })),
     };
   }
 
@@ -343,14 +391,14 @@ export class ProxySubscribeService {
   }> {
     // 获取用户可见的所有订阅
     const subscriptions = await this.listByUser(userId);
-    const subscribeIds = subscriptions.map(s => s.id);
+    const subscribeIds = subscriptions.map((s) => s.id);
 
     // 如果没有订阅，直接返回 0
     if (subscribeIds.length === 0) {
       return {
         totalSubscriptions: 0,
         totalNodes: 0,
-        todayRequests: 0
+        todayRequests: 0,
       };
     }
 
@@ -366,15 +414,17 @@ export class ProxySubscribeService {
     const [todayResult] = await db
       .select({ count: count() })
       .from(proxyAccessLogs)
-      .where(and(
-        inArray(proxyAccessLogs.subscribeId, subscribeIds),
-        gte(proxyAccessLogs.createdAt, today)
-      ));
+      .where(
+        and(
+          inArray(proxyAccessLogs.subscribeId, subscribeIds),
+          gte(proxyAccessLogs.createdAt, today),
+        ),
+      );
 
     return {
       totalSubscriptions: subscriptions.length,
       totalNodes: Number(nodesResult?.total ?? 0),
-      todayRequests: todayResult?.count ?? 0
+      todayRequests: todayResult?.count ?? 0,
     };
   }
 
@@ -389,7 +439,7 @@ export class ProxySubscribeService {
       ruleList: JSON.stringify(DEFAULT_RULE_PROVIDERS, null, 2),
       group: JSON.stringify(DEFAULT_GROUPS, null, 2),
       filter: JSON.stringify(DEFAULT_FILTER, null, 2),
-      customConfig: JSON.stringify(DEFAULT_CUSTOM_CONFIG, null, 2)
+      customConfig: JSON.stringify(DEFAULT_CUSTOM_CONFIG, null, 2),
     };
   }
 
@@ -416,7 +466,10 @@ export class ProxySubscribeService {
     }
 
     // 检查权限：是创建者或被授权用户
-    if (subscribe.userId !== userId && !subscribe.authorizedUserIds.includes(userId)) {
+    if (
+      subscribe.userId !== userId &&
+      !subscribe.authorizedUserIds.includes(userId)
+    ) {
       throw new TRPCError({ code: "FORBIDDEN", message: "无权访问此订阅" });
     }
 
@@ -439,13 +492,16 @@ export class ProxySubscribeService {
           port: proxy.port || 0,
           sourceIndex: 0,
           sourceUrl: "手动添加",
-          raw: proxy
+          raw: proxy,
         });
       }
     }
 
     // 2. 获取远程订阅（从 JSONC 字符串解析）
-    const subscribeUrls = this.safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const subscribeUrls = this.safeParseJsonc<string[]>(
+      subscribe.subscribeUrl,
+      [],
+    );
     const filters = this.safeParseJsonc<string[]>(subscribe.filter, []);
 
     for (let i = 0; i < subscribeUrls.length; i++) {
@@ -467,7 +523,9 @@ export class ProxySubscribeService {
 
         // 遍历所有节点，标记被过滤的
         for (const proxy of proxies) {
-          const matchedFilter = filters.find((f) => proxy.name && proxy.name.includes(f));
+          const matchedFilter = filters.find(
+            (f) => proxy.name && proxy.name.includes(f),
+          );
           nodes.push({
             name: this.appendIcon(proxy.name || ""),
             type: proxy.type || "unknown",
@@ -477,7 +535,7 @@ export class ProxySubscribeService {
             sourceUrl: url,
             raw: proxy,
             filtered: !!matchedFilter,
-            filteredBy: matchedFilter
+            filteredBy: matchedFilter,
           });
         }
       } catch (e) {
@@ -507,16 +565,19 @@ export class ProxyRuleService {
     if (!clashWsUrl || !clashWsToken) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
-        message: "Clash WebSocket 未配置"
+        message: "Clash WebSocket 未配置",
       });
     }
 
     return new Promise((resolve, reject) => {
       const abortController = new AbortController();
 
-      const ws = new WebSocket(`${clashWsUrl}/logs?level=info&token=${clashWsToken}`, {
-        signal: abortController.signal
-      });
+      const ws = new WebSocket(
+        `${clashWsUrl}/logs?level=info&token=${clashWsToken}`,
+        {
+          signal: abortController.signal,
+        },
+      );
 
       ws.on("error", reject);
       ws.on("open", () => {
@@ -532,7 +593,11 @@ export class ProxyRuleService {
       setTimeout(() => {
         ws.close();
         abortController.abort();
-        reject(new Error("查询超时，当前请求不在规则内，有两个原因造成\n1、iptables开启了跳过CN列表，被前置DNS解析为CN。\n2、toolbox客户端主动将域名解析为IP地址。查询不到与当前域名相关的记录。"));
+        reject(
+          new Error(
+            "查询超时，当前请求不在规则内，有两个原因造成\n1、iptables开启了跳过CN列表，被前置DNS解析为CN。\n2、toolbox客户端主动将域名解析为IP地址。查询不到与当前域名相关的记录。",
+          ),
+        );
       }, 5500);
     });
   }

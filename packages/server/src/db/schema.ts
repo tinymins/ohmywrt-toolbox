@@ -118,8 +118,13 @@ export const testRequirements = pgTable("test_requirements", {
 // ============================================
 export const proxySubscribes = pgTable("proxy_subscribes", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id").references(() => users.id).notNull(),
-  url: text("url").notNull().unique().$defaultFn(() => crypto.randomUUID()),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  url: text("url")
+    .notNull()
+    .unique()
+    .$defaultFn(() => crypto.randomUUID()),
   remark: text("remark"),
   // 订阅地址 (JSONC 字符串)
   subscribeUrl: text("subscribe_url"),
@@ -140,7 +145,7 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
   // 最后访问时间
   lastAccessAt: timestamp("last_access_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
 // ============================================
@@ -148,7 +153,9 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
 // ============================================
 export const proxyAccessLogs = pgTable("proxy_access_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
-  subscribeId: uuid("subscribe_id").references(() => proxySubscribes.id, { onDelete: "cascade" }).notNull(),
+  subscribeId: uuid("subscribe_id")
+    .references(() => proxySubscribes.id, { onDelete: "cascade" })
+    .notNull(),
   // 访问类型：clash, sing-box
   accessType: text("access_type").notNull(),
   // 访问者 IP
@@ -157,5 +164,5 @@ export const proxyAccessLogs = pgTable("proxy_access_logs", {
   userAgent: text("user_agent"),
   // 节点数量
   nodeCount: integer("node_count").default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

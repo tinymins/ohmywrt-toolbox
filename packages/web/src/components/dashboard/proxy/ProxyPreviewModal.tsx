@@ -1,5 +1,15 @@
 import { useState, forwardRef, useImperativeHandle, useEffect } from "react";
-import { Modal, Table, Tooltip, Tag, Typography, Spin, Empty, Descriptions, Card } from "antd";
+import {
+  Modal,
+  Table,
+  Tooltip,
+  Tag,
+  Typography,
+  Spin,
+  Empty,
+  Descriptions,
+  Card,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { EyeOutlined } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
@@ -46,11 +56,14 @@ const typeColorMap: Record<string, string> = {
   hysteria: "red",
   tuic: "cyan",
   socks5: "default",
-  http: "default"
+  http: "default",
 };
 
 /** 不同协议的关键字段配置 */
-const protocolFields: Record<string, { key: string; label: string; sensitive?: boolean }[]> = {
+const protocolFields: Record<
+  string,
+  { key: string; label: string; sensitive?: boolean }[]
+> = {
   vmess: [
     { key: "uuid", label: "UUID", sensitive: true },
     { key: "alterId", label: "Alter ID" },
@@ -59,7 +72,7 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "tls", label: "TLS" },
     { key: "servername", label: "SNI" },
     { key: "ws-opts", label: "WebSocket 配置" },
-    { key: "grpc-opts", label: "gRPC 配置" }
+    { key: "grpc-opts", label: "gRPC 配置" },
   ],
   vless: [
     { key: "uuid", label: "UUID", sensitive: true },
@@ -70,14 +83,14 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "client-fingerprint", label: "指纹" },
     { key: "reality-opts", label: "Reality 配置" },
     { key: "ws-opts", label: "WebSocket 配置" },
-    { key: "grpc-opts", label: "gRPC 配置" }
+    { key: "grpc-opts", label: "gRPC 配置" },
   ],
   ss: [
     { key: "cipher", label: "加密方式" },
     { key: "password", label: "密码", sensitive: true },
     { key: "plugin", label: "插件" },
     { key: "plugin-opts", label: "插件配置" },
-    { key: "udp", label: "UDP" }
+    { key: "udp", label: "UDP" },
   ],
   trojan: [
     { key: "password", label: "密码", sensitive: true },
@@ -87,7 +100,7 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "client-fingerprint", label: "指纹" },
     { key: "network", label: "传输协议" },
     { key: "ws-opts", label: "WebSocket 配置" },
-    { key: "grpc-opts", label: "gRPC 配置" }
+    { key: "grpc-opts", label: "gRPC 配置" },
   ],
   hysteria2: [
     { key: "password", label: "密码", sensitive: true },
@@ -95,7 +108,7 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "obfs", label: "混淆类型" },
     { key: "obfs-password", label: "混淆密码", sensitive: true },
     { key: "alpn", label: "ALPN" },
-    { key: "skip-cert-verify", label: "跳过证书验证" }
+    { key: "skip-cert-verify", label: "跳过证书验证" },
   ],
   hysteria: [
     { key: "auth-str", label: "认证字符串", sensitive: true },
@@ -104,7 +117,7 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "up", label: "上行带宽" },
     { key: "down", label: "下行带宽" },
     { key: "sni", label: "SNI" },
-    { key: "alpn", label: "ALPN" }
+    { key: "alpn", label: "ALPN" },
   ],
   tuic: [
     { key: "uuid", label: "UUID", sensitive: true },
@@ -113,12 +126,16 @@ const protocolFields: Record<string, { key: string; label: string; sensitive?: b
     { key: "udp-relay-mode", label: "UDP 中继模式" },
     { key: "sni", label: "SNI" },
     { key: "alpn", label: "ALPN" },
-    { key: "reduce-rtt", label: "减少 RTT" }
-  ]
+    { key: "reduce-rtt", label: "减少 RTT" },
+  ],
 };
 
 /** 格式化值显示 */
-const formatValue = (value: unknown, yesText = "Yes", noText = "No"): string => {
+const formatValue = (
+  value: unknown,
+  yesText = "Yes",
+  noText = "No",
+): string => {
   if (value === undefined || value === null) return "-";
   if (typeof value === "boolean") return value ? yesText : noText;
   if (typeof value === "object") return JSON.stringify(value, null, 2);
@@ -126,7 +143,19 @@ const formatValue = (value: unknown, yesText = "Yes", noText = "No"): string => 
 };
 
 /** 渲染展开行内容 */
-const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }: { record: ProxyNode; noDetailText: string; clickToCopyText: string; yesText: string; noText: string }) => {
+const ExpandedRow = ({
+  record,
+  noDetailText,
+  clickToCopyText,
+  yesText,
+  noText,
+}: {
+  record: ProxyNode;
+  noDetailText: string;
+  clickToCopyText: string;
+  yesText: string;
+  noText: string;
+}) => {
   const fields = protocolFields[record.type] || [];
   const raw = record.raw || {};
 
@@ -135,7 +164,7 @@ const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }:
   // 获取 raw 中存在但未在 fields 中定义的字段（排除基本字段）
   const basicKeys = ["name", "type", "server", "port"];
   const extraKeys = Object.keys(raw).filter(
-    (k) => !definedKeys.includes(k) && !basicKeys.includes(k)
+    (k) => !definedKeys.includes(k) && !basicKeys.includes(k),
   );
 
   if (fields.length === 0 && extraKeys.length === 0) {
@@ -160,7 +189,10 @@ const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }:
           return (
             <Descriptions.Item key={field.key} label={field.label}>
               {field.sensitive ? (
-                <Text copyable={{ text: formatValue(value, yesText, noText) }} className="font-mono text-xs">
+                <Text
+                  copyable={{ text: formatValue(value, yesText, noText) }}
+                  className="font-mono text-xs"
+                >
                   <Tooltip title={clickToCopyText}>
                     {typeof value === "string" && value.length > 20
                       ? `${value.slice(0, 8)}...${value.slice(-8)}`
@@ -172,7 +204,9 @@ const ExpandedRow = ({ record, noDetailText, clickToCopyText, yesText, noText }:
                   {formatValue(value, yesText, noText)}
                 </pre>
               ) : (
-                <Text className="font-mono text-xs">{formatValue(value, yesText, noText)}</Text>
+                <Text className="font-mono text-xs">
+                  {formatValue(value, yesText, noText)}
+                </Text>
               )}
             </Descriptions.Item>
           );
@@ -206,7 +240,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
   const { data, isLoading } = trpc.proxy.previewNodes.useQuery(
     { id: subscribeId },
-    { enabled: !!subscribeId && visible }
+    { enabled: !!subscribeId && visible },
   );
 
   useImperativeHandle(ref, () => ({
@@ -214,7 +248,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       setSubscribeId(id);
       setSubscribeRemark(remark ?? t("proxy.preview.unnamed"));
       setVisible(true);
-    }
+    },
   }));
 
   const handleClose = () => {
@@ -237,9 +271,9 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       ),
       filters: [
         { text: t("proxy.preview.filters.validNodes"), value: false },
-        { text: t("proxy.preview.filters.filtered"), value: true }
+        { text: t("proxy.preview.filters.filtered"), value: true },
       ],
-      onFilter: (value, record) => record.filtered === value
+      onFilter: (value, record) => record.filtered === value,
     },
     {
       title: t("proxy.preview.protocol"),
@@ -247,7 +281,9 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       width: 100,
       align: "center",
       render: (type: string, record) => (
-        <Tag color={record.filtered ? "default" : (typeColorMap[type] || "default")}>
+        <Tag
+          color={record.filtered ? "default" : typeColorMap[type] || "default"}
+        >
           {type.toUpperCase()}
         </Tag>
       ),
@@ -258,21 +294,30 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
         { text: "Trojan", value: "trojan" },
         { text: "Hysteria2", value: "hysteria2" },
         { text: "Hysteria", value: "hysteria" },
-        { text: "TUIC", value: "tuic" }
+        { text: "TUIC", value: "tuic" },
       ],
-      onFilter: (value, record) => record.type === value
+      onFilter: (value, record) => record.type === value,
     },
     {
       title: t("proxy.preview.nodeName"),
       dataIndex: "name",
       ellipsis: true,
       render: (name: string, record) => (
-        <Tooltip title={record.filtered ? `${name}\n\n⚠️ ${t("proxy.preview.filteredBy", { rule: record.filteredBy })}` : name}>
-          <Text delete={record.filtered} type={record.filtered ? "secondary" : undefined}>
+        <Tooltip
+          title={
+            record.filtered
+              ? `${name}\n\n⚠️ ${t("proxy.preview.filteredBy", { rule: record.filteredBy })}`
+              : name
+          }
+        >
+          <Text
+            delete={record.filtered}
+            type={record.filtered ? "secondary" : undefined}
+          >
             {name}
           </Text>
         </Tooltip>
-      )
+      ),
     },
     {
       title: t("proxy.preview.server"),
@@ -289,7 +334,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             {server}
           </Text>
         </Tooltip>
-      )
+      ),
     },
     {
       title: t("proxy.preview.port"),
@@ -297,10 +342,13 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       width: 80,
       align: "center",
       render: (port: number, record) => (
-        <Text className="font-mono text-xs" type={record.filtered ? "secondary" : undefined}>
+        <Text
+          className="font-mono text-xs"
+          type={record.filtered ? "secondary" : undefined}
+        >
           {port}
         </Text>
-      )
+      ),
     },
     {
       title: t("proxy.preview.transport"),
@@ -317,14 +365,16 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             {!network && !tls && "-"}
           </span>
         );
-      }
+      },
     },
     {
       title: t("proxy.preview.secret"),
       dataIndex: "raw",
       width: 180,
       render: (raw: Record<string, unknown>, record) => {
-        const secret = (raw?.uuid || raw?.password || raw?.["auth-str"]) as string | undefined;
+        const secret = (raw?.uuid || raw?.password || raw?.["auth-str"]) as
+          | string
+          | undefined;
         if (!secret) return <Text type="secondary">-</Text>;
         return (
           <Text
@@ -333,12 +383,14 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             type={record.filtered ? "secondary" : undefined}
           >
             <Tooltip title={t("proxy.preview.clickToCopyFull")}>
-              {secret.length > 16 ? `${secret.slice(0, 8)}...${secret.slice(-4)}` : secret}
+              {secret.length > 16
+                ? `${secret.slice(0, 8)}...${secret.slice(-4)}`
+                : secret}
             </Tooltip>
           </Text>
         );
-      }
-    }
+      },
+    },
   ];
 
   const nodes: ProxyNode[] = data?.nodes ?? [];
@@ -351,20 +403,29 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   // 统计各协议的节点数量（仅有效节点）
   const typeCounts = nodes
     .filter((n: ProxyNode) => !n.filtered)
-    .reduce<Record<string, number>>((acc: Record<string, number>, node: ProxyNode) => {
-      acc[node.type] = (acc[node.type] || 0) + 1;
-      return acc;
-    }, {});
+    .reduce<Record<string, number>>(
+      (acc: Record<string, number>, node: ProxyNode) => {
+        acc[node.type] = (acc[node.type] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
 
   // 移动端卡片视图（带展开详情）
-  const MobileNodeCard = ({ node, index }: { node: ProxyNode; index: number }) => {
+  const MobileNodeCard = ({
+    node,
+    index,
+  }: {
+    node: ProxyNode;
+    index: number;
+  }) => {
     const [expanded, setExpanded] = useState(false);
     const fields = protocolFields[node.type] || [];
     const raw = node.raw || {};
     const definedKeys = fields.map((f) => f.key);
     const basicKeys = ["name", "type", "server", "port"];
     const extraKeys = Object.keys(raw).filter(
-      (k) => !definedKeys.includes(k) && !basicKeys.includes(k)
+      (k) => !definedKeys.includes(k) && !basicKeys.includes(k),
     );
     const hasDetails = fields.length > 0 || extraKeys.length > 0;
 
@@ -379,101 +440,137 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               type={node.filtered ? "secondary" : undefined}
               className="truncate flex-1"
               title={node.name}
-          >
-            {node.name}
-          </Text>
-          <Tag color={node.filtered ? "default" : (typeColorMap[node.type] || "default")} className="!m-0 shrink-0">
-            {node.type.toUpperCase()}
-          </Tag>
-        </div>
-      }
-    >
-      <div className="space-y-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-gray-500">{t("proxy.preview.server")}:</span>
-          <Text copyable={{ text: node.server }} className="font-mono truncate max-w-[180px]" title={node.server}>
-            {node.server}
-          </Text>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-500">{t("proxy.preview.port")}:</span>
-          <span className="font-mono">{node.port}</span>
-        </div>
-        {node.raw?.network && (
+            >
+              {node.name}
+            </Text>
+            <Tag
+              color={
+                node.filtered ? "default" : typeColorMap[node.type] || "default"
+              }
+              className="!m-0 shrink-0"
+            >
+              {node.type.toUpperCase()}
+            </Tag>
+          </div>
+        }
+      >
+        <div className="space-y-2 text-xs">
           <div className="flex justify-between">
-            <span className="text-gray-500">{t("proxy.preview.transport")}:</span>
-            <span>
-              <Tag className="!m-0">{String(node.raw.network).toUpperCase()}</Tag>
-              {node.raw?.tls && <Tag color="green" className="!m-0 !ml-1">TLS</Tag>}
-            </span>
+            <span className="text-gray-500">{t("proxy.preview.server")}:</span>
+            <Text
+              copyable={{ text: node.server }}
+              className="font-mono truncate max-w-[180px]"
+              title={node.server}
+            >
+              {node.server}
+            </Text>
           </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-gray-500">{t("proxy.preview.source")}:</span>
-          <Tag color={node.sourceIndex === 0 ? "default" : "blue"} className="!m-0">
-            {node.sourceIndex === 0 ? t("proxy.preview.manual") : `#${node.sourceIndex}`}
-          </Tag>
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("proxy.preview.port")}:</span>
+            <span className="font-mono">{node.port}</span>
+          </div>
+          {Boolean(node.raw?.network) && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">
+                {t("proxy.preview.transport")}:
+              </span>
+              <span>
+                <Tag className="!m-0">
+                  {String(node.raw.network).toUpperCase()}
+                </Tag>
+                {Boolean(node.raw?.tls) && (
+                  <Tag color="green" className="!m-0 !ml-1">
+                    TLS
+                  </Tag>
+                )}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-gray-500">{t("proxy.preview.source")}:</span>
+            <Tag
+              color={node.sourceIndex === 0 ? "default" : "blue"}
+              className="!m-0"
+            >
+              {node.sourceIndex === 0
+                ? t("proxy.preview.manual")
+                : `#${node.sourceIndex}`}
+            </Tag>
+          </div>
+          {node.filtered && node.filteredBy && (
+            <div className="text-orange-500 text-xs mt-1">
+              ⚠️ {t("proxy.preview.filteredBy", { rule: node.filteredBy })}
+            </div>
+          )}
+
+          {/* 展开/收起按钮 */}
+          {hasDetails && (
+            <div
+              className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-2 cursor-pointer text-blue-500"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded
+                ? t("proxy.preview.collapse") || "收起"
+                : t("proxy.preview.expand") || "展开详情"}
+            </div>
+          )}
+
+          {/* 详情区域 */}
+          {expanded && (
+            <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+              {fields.map((field) => {
+                const value = raw[field.key];
+                if (value === undefined) return null;
+                return (
+                  <div
+                    key={field.key}
+                    className="flex justify-between items-start"
+                  >
+                    <span className="text-gray-500 shrink-0">
+                      {field.label}:
+                    </span>
+                    {field.sensitive ? (
+                      <Text
+                        copyable={{ text: formatValue(value) }}
+                        className="font-mono text-xs text-right max-w-[60%] break-all"
+                      >
+                        {typeof value === "string" && value.length > 20
+                          ? `${value.slice(0, 8)}...${value.slice(-8)}`
+                          : formatValue(value)}
+                      </Text>
+                    ) : typeof value === "object" ? (
+                      <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
+                        {formatValue(value)}
+                      </pre>
+                    ) : (
+                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
+                        {formatValue(value)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {extraKeys.map((key) => {
+                const value = raw[key];
+                return (
+                  <div key={key} className="flex justify-between items-start">
+                    <span className="text-gray-500 shrink-0">{key}:</span>
+                    {typeof value === "object" ? (
+                      <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
+                        {formatValue(value)}
+                      </pre>
+                    ) : (
+                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
+                        {formatValue(value)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {node.filtered && node.filteredBy && (
-          <div className="text-orange-500 text-xs mt-1">
-            ⚠️ {t("proxy.preview.filteredBy", { rule: node.filteredBy })}
-          </div>
-        )}
-
-        {/* 展开/收起按钮 */}
-        {hasDetails && (
-          <div
-            className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-2 cursor-pointer text-blue-500"
-            onClick={() => setExpanded(!expanded)}
-          >
-            {expanded ? t("proxy.preview.collapse") || "收起" : t("proxy.preview.expand") || "展开详情"}
-          </div>
-        )}
-
-        {/* 详情区域 */}
-        {expanded && (
-          <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-            {fields.map((field) => {
-              const value = raw[field.key];
-              if (value === undefined) return null;
-              return (
-                <div key={field.key} className="flex justify-between items-start">
-                  <span className="text-gray-500 shrink-0">{field.label}:</span>
-                  {field.sensitive ? (
-                    <Text copyable={{ text: formatValue(value) }} className="font-mono text-xs text-right max-w-[60%] break-all">
-                      {typeof value === "string" && value.length > 20
-                        ? `${value.slice(0, 8)}...${value.slice(-8)}`
-                        : formatValue(value)}
-                    </Text>
-                  ) : typeof value === "object" ? (
-                    <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
-                      {formatValue(value)}
-                    </pre>
-                  ) : (
-                    <span className="font-mono text-xs text-right max-w-[60%] break-all">{formatValue(value)}</span>
-                  )}
-                </div>
-              );
-            })}
-            {extraKeys.map((key) => {
-              const value = raw[key];
-              return (
-                <div key={key} className="flex justify-between items-start">
-                  <span className="text-gray-500 shrink-0">{key}:</span>
-                  {typeof value === "object" ? (
-                    <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
-                      {formatValue(value)}
-                    </pre>
-                  ) : (
-                    <span className="font-mono text-xs text-right max-w-[60%] break-all">{formatValue(value)}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </Card>
+      </Card>
     );
   };
 
@@ -490,10 +587,21 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       onCancel={handleClose}
       footer={null}
       width={isMobile ? "100vw" : "95vw"}
-      style={isMobile ? { top: 0, left: 0, maxWidth: "100vw", margin: 0, padding: 0, paddingBottom: 0 } : { top: 20, maxWidth: 1600 }}
+      style={
+        isMobile
+          ? {
+              top: 0,
+              left: 0,
+              maxWidth: "100vw",
+              margin: 0,
+              padding: 0,
+              paddingBottom: 0,
+            }
+          : { top: 20, maxWidth: 1600 }
+      }
       styles={{
         body: { padding: isMobile ? "12px 8px" : "16px 0" },
-        wrapper: isMobile ? { overflow: "hidden" } : undefined
+        wrapper: isMobile ? { overflow: "hidden" } : undefined,
       }}
       className={isMobile ? "mobile-fullscreen-modal" : ""}
     >
@@ -504,18 +612,32 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
           <>
             {/* 移动端显示订阅名称 */}
             {isMobile && (
-              <div className="text-sm text-slate-500 mb-2">{subscribeRemark}</div>
+              <div className="text-sm text-slate-500 mb-2">
+                {subscribeRemark}
+              </div>
             )}
 
             {/* 统计信息 */}
             <div className="mb-4 px-2 md:px-4 flex items-center gap-2 flex-wrap">
               <Text type="secondary" className="text-xs md:text-sm">
-                {t("proxy.preview.totalNodes", { total: totalCount, active: activeCount })}
-                {filteredCount > 0 && <span>, {t("proxy.preview.filtered")} <Text type="warning">{filteredCount}</Text></span>}
+                {t("proxy.preview.totalNodes", {
+                  total: totalCount,
+                  active: activeCount,
+                })}
+                {filteredCount > 0 && (
+                  <span>
+                    , {t("proxy.preview.filtered")}{" "}
+                    <Text type="warning">{filteredCount}</Text>
+                  </span>
+                )}
                 {!isMobile && <>({t("proxy.preview.clickToExpand")}):</>}
               </Text>
               {Object.entries(typeCounts).map(([type, count]) => (
-                <Tag key={type} color={typeColorMap[type] || "default"} className="!text-xs">
+                <Tag
+                  key={type}
+                  color={typeColorMap[type] || "default"}
+                  className="!text-xs"
+                >
                   {type.toUpperCase()}: {String(count)}
                 </Tag>
               ))}
@@ -523,20 +645,29 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
             {isMobile ? (
               /* 移动端卡片列表 */
-              <div className="flex flex-col gap-2 overflow-y-auto" style={{ maxHeight: "calc(100vh - 160px)" }}>
+              <div
+                className="flex flex-col gap-2 overflow-y-auto"
+                style={{ maxHeight: "calc(100vh - 160px)" }}
+              >
                 {nodes.map((node, index) => (
-                  <MobileNodeCard key={`${node.sourceIndex}-${node.server}-${node.port}-${index}`} node={node} index={index} />
+                  <MobileNodeCard
+                    key={`${node.sourceIndex}-${node.server}-${node.port}-${index}`}
+                    node={node}
+                    index={index}
+                  />
                 ))}
               </div>
             ) : (
               /* PC端表格 */
               <Table<ProxyNode>
-                rowKey={(record, index) => `${record.sourceIndex}-${record.server}-${record.port}-${index}`}
+                rowKey={(record, index) =>
+                  `${record.sourceIndex}-${record.server}-${record.port}-${index}`
+                }
                 size="small"
                 bordered
                 columns={columns}
                 dataSource={nodes}
-                rowClassName={(record) => record.filtered ? "opacity-60" : ""}
+                rowClassName={(record) => (record.filtered ? "opacity-60" : "")}
                 expandable={{
                   expandedRowRender: (record) => (
                     <ExpandedRow
@@ -547,13 +678,21 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                       noText={t("proxy.common.cancel")}
                     />
                   ),
-                  rowExpandable: () => true
+                  rowExpandable: () => true,
                 }}
                 pagination={{
                   defaultPageSize: 500,
                   showSizeChanger: true,
-                  pageSizeOptions: ["20", "50", "100", "200", "300", "400", "500"],
-                  showTotal: (total) => `${total}`
+                  pageSizeOptions: [
+                    "20",
+                    "50",
+                    "100",
+                    "200",
+                    "300",
+                    "400",
+                    "500",
+                  ],
+                  showTotal: (total) => `${total}`,
                 }}
                 scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
               />

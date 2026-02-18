@@ -8,7 +8,7 @@ export const ClashProxySchema = z.object({
   name: z.string(),
   server: z.string(),
   port: z.number(),
-  multiplex: z.optional(z.any())
+  multiplex: z.optional(z.any()),
 });
 
 export const ClashProxyBaseVmessOrVLESSSchema = ClashProxySchema.extend({
@@ -18,24 +18,32 @@ export const ClashProxyBaseVmessOrVLESSSchema = ClashProxySchema.extend({
   "skip-cert-verify": z.optional(z.boolean()),
   servername: z.optional(z.string()),
   network: z.optional(z.enum(["ws", "h2", "http", "grpc", "tcp"])),
-  "ws-opts": z.optional(z.object({
-    path: z.optional(z.string()),
-    headers: z.optional(z.record(z.string(), z.string())),
-    "max-early-data": z.optional(z.number()),
-    "early-data-header-name": z.optional(z.string())
-  })),
-  "h2-opts": z.optional(z.object({
-    host: z.optional(z.array(z.string())),
-    path: z.optional(z.string())
-  })),
-  "http-opts": z.optional(z.object({
-    method: z.optional(z.string()),
-    path: z.optional(z.array(z.string())),
-    headers: z.optional(z.record(z.string(), z.array(z.string())))
-  })),
-  "grpc-opts": z.optional(z.object({
-    "grpc-service-name": z.optional(z.string())
-  }))
+  "ws-opts": z.optional(
+    z.object({
+      path: z.optional(z.string()),
+      headers: z.optional(z.record(z.string(), z.string())),
+      "max-early-data": z.optional(z.number()),
+      "early-data-header-name": z.optional(z.string()),
+    }),
+  ),
+  "h2-opts": z.optional(
+    z.object({
+      host: z.optional(z.array(z.string())),
+      path: z.optional(z.string()),
+    }),
+  ),
+  "http-opts": z.optional(
+    z.object({
+      method: z.optional(z.string()),
+      path: z.optional(z.array(z.string())),
+      headers: z.optional(z.record(z.string(), z.array(z.string()))),
+    }),
+  ),
+  "grpc-opts": z.optional(
+    z.object({
+      "grpc-service-name": z.optional(z.string()),
+    }),
+  ),
 });
 
 export const ClashProxyHttpSchema = ClashProxySchema.extend({
@@ -44,7 +52,7 @@ export const ClashProxyHttpSchema = ClashProxySchema.extend({
   password: z.optional(z.string()),
   tls: z.optional(z.boolean()),
   "skip-cert-verify": z.optional(z.boolean()),
-  sni: z.optional(z.string())
+  sni: z.optional(z.string()),
 });
 
 export const ClashProxyHysteriaSchema = ClashProxySchema.extend({
@@ -57,7 +65,7 @@ export const ClashProxyHysteriaSchema = ClashProxySchema.extend({
   down: z.string(),
   sni: z.optional(z.string()),
   tls: z.optional(z.boolean()),
-  "skip-cert-verify": z.optional(z.boolean())
+  "skip-cert-verify": z.optional(z.boolean()),
 });
 
 export const ClashProxyHysteria2Schema = ClashProxySchema.extend({
@@ -65,7 +73,7 @@ export const ClashProxyHysteria2Schema = ClashProxySchema.extend({
   password: z.optional(z.string()),
   server: z.string(),
   sni: z.optional(z.string()),
-  "skip-cert-verify": z.optional(z.boolean())
+  "skip-cert-verify": z.optional(z.boolean()),
 });
 
 export const ClashProxySocks5Schema = ClashProxySchema.extend({
@@ -74,7 +82,7 @@ export const ClashProxySocks5Schema = ClashProxySchema.extend({
   password: z.optional(z.string()),
   tls: z.optional(z.boolean()),
   "skip-cert-verify": z.optional(z.boolean()),
-  udp: z.optional(z.boolean())
+  udp: z.optional(z.boolean()),
 });
 
 export const ClashProxyShadowsocksSchema = ClashProxySchema.extend({
@@ -96,20 +104,22 @@ export const ClashProxyShadowsocksSchema = ClashProxySchema.extend({
     "chacha20-ietf",
     "xchacha20",
     "chacha20-ietf-poly1305",
-    "xchacha20-ietf-poly1305"
+    "xchacha20-ietf-poly1305",
   ]),
   password: z.string(),
   udp: z.optional(z.boolean()),
   plugin: z.optional(z.enum(["obfs", "v2ray-plugin", "shadow-tls"])),
-  "plugin-opts": z.optional(z.object({
-    mode: z.optional(z.enum(["http", "tls", "websocket"])),
-    tls: z.optional(z.boolean()),
-    host: z.optional(z.string()),
-    path: z.optional(z.string()),
-    mux: z.optional(z.boolean()),
-    password: z.optional(z.string()),
-    version: z.optional(z.number())
-  }))
+  "plugin-opts": z.optional(
+    z.object({
+      mode: z.optional(z.enum(["http", "tls", "websocket"])),
+      tls: z.optional(z.boolean()),
+      host: z.optional(z.string()),
+      path: z.optional(z.string()),
+      mux: z.optional(z.boolean()),
+      password: z.optional(z.string()),
+      version: z.optional(z.number()),
+    }),
+  ),
 });
 
 export const ClashProxyTrojanSchema = ClashProxySchema.extend({
@@ -119,7 +129,7 @@ export const ClashProxyTrojanSchema = ClashProxySchema.extend({
   sni: z.optional(z.string()),
   alpn: z.optional(z.array(z.string())),
   "skip-cert-verify": z.optional(z.boolean()),
-  "client-fingerprint": z.optional(z.string())
+  "client-fingerprint": z.optional(z.string()),
 });
 
 export const ClashProxyTUICSchema = ClashProxySchema.extend({
@@ -133,37 +143,41 @@ export const ClashProxyTUICSchema = ClashProxySchema.extend({
   "congestion-controller": z.optional(z.enum(["cubic", "new_reno", "bbr"])),
   "skip-cert-verify": z.optional(z.boolean()),
   sni: z.optional(z.string()),
-  "udp-over-stream": z.optional(z.boolean())
+  "udp-over-stream": z.optional(z.boolean()),
 });
 
 export const ClashProxyVmessSchema = ClashProxyBaseVmessOrVLESSSchema.extend({
   type: z.literal("vmess"),
   alterId: z.coerce.number(),
-  cipher: z.enum(["aes-128-gcm", "chacha20-poly1305", "auto", "none", "zero"])
+  cipher: z.enum(["aes-128-gcm", "chacha20-poly1305", "auto", "none", "zero"]),
 });
 
 export const ClashProxyVLESSSchema = ClashProxyBaseVmessOrVLESSSchema.extend({
   type: z.literal("vless"),
   flow: z.optional(z.enum(["xtls-rprx-vision", "xtls-rprx-vision-udp443"])),
   "client-fingerprint": z.optional(z.string()),
-  "reality-opts": z.optional(z.object({
-    "short-id": z.optional(z.string()),
-    "public-key": z.string()
-  }))
+  "reality-opts": z.optional(
+    z.object({
+      "short-id": z.optional(z.string()),
+      "public-key": z.string(),
+    }),
+  ),
 });
 
 export const ClashSchema = z.object({
-  proxies: z.array(z.discriminatedUnion("type", [
-    ClashProxyHttpSchema,
-    ClashProxyHysteriaSchema,
-    ClashProxyHysteria2Schema,
-    ClashProxyShadowsocksSchema,
-    ClashProxySocks5Schema,
-    ClashProxyTrojanSchema,
-    ClashProxyTUICSchema,
-    ClashProxyVmessSchema,
-    ClashProxyVLESSSchema
-  ]))
+  proxies: z.array(
+    z.discriminatedUnion("type", [
+      ClashProxyHttpSchema,
+      ClashProxyHysteriaSchema,
+      ClashProxyHysteria2Schema,
+      ClashProxyShadowsocksSchema,
+      ClashProxySocks5Schema,
+      ClashProxyTrojanSchema,
+      ClashProxyTUICSchema,
+      ClashProxyVmessSchema,
+      ClashProxyVLESSSchema,
+    ]),
+  ),
 });
 
 // ============================================
@@ -175,7 +189,7 @@ export const SingboxOutboundSchema = z.object({
   server: z.string(),
   server_port: z.number(),
   network: z.optional(z.enum(["tcp", "udp", "tcp,udp"])),
-  multiplex: z.optional(z.any())
+  multiplex: z.optional(z.any()),
 });
 
 export const SingboxOutboundCommonTlsSchema = z.object({
@@ -184,20 +198,24 @@ export const SingboxOutboundCommonTlsSchema = z.object({
   server_name: z.optional(z.string()),
   insecure: z.optional(z.boolean()),
   alpn: z.optional(z.array(z.string())),
-  utls: z.optional(z.object({
-    enabled: z.boolean(),
-    fingerprint: z.string()
-  })),
-  reality: z.optional(z.object({
-    enabled: z.boolean(),
-    public_key: z.string(),
-    short_id: z.optional(z.string())
-  }))
+  utls: z.optional(
+    z.object({
+      enabled: z.boolean(),
+      fingerprint: z.string(),
+    }),
+  ),
+  reality: z.optional(
+    z.object({
+      enabled: z.boolean(),
+      public_key: z.string(),
+      short_id: z.optional(z.string()),
+    }),
+  ),
 });
 
 export const SingboxOutboundCommonVmessOrVLESSTransportGrpcSchema = z.object({
   type: z.literal("grpc"),
-  service_name: z.optional(z.string())
+  service_name: z.optional(z.string()),
 });
 
 export const SingboxOutboundCommonVmessOrVLESSTransportHttpSchema = z.object({
@@ -205,29 +223,31 @@ export const SingboxOutboundCommonVmessOrVLESSTransportHttpSchema = z.object({
   host: z.optional(z.array(z.string())),
   path: z.optional(z.string()),
   method: z.optional(z.string()),
-  headers: z.optional(z.record(z.string(), z.string()))
-});
-
-export const SingboxOutboundCommonVmessOrVLESSTransportWebSocketSchema = z.object({
-  type: z.literal("ws"),
-  host: z.optional(z.array(z.string())),
-  path: z.optional(z.string()),
   headers: z.optional(z.record(z.string(), z.string())),
-  max_early_data: z.optional(z.number()),
-  early_data_header_name: z.optional(z.string())
 });
 
-export const SingboxOutboundCommonVmessOrVLESSTransportSchema = z.discriminatedUnion("type", [
-  SingboxOutboundCommonVmessOrVLESSTransportGrpcSchema,
-  SingboxOutboundCommonVmessOrVLESSTransportHttpSchema,
-  SingboxOutboundCommonVmessOrVLESSTransportWebSocketSchema
-]);
+export const SingboxOutboundCommonVmessOrVLESSTransportWebSocketSchema =
+  z.object({
+    type: z.literal("ws"),
+    host: z.optional(z.array(z.string())),
+    path: z.optional(z.string()),
+    headers: z.optional(z.record(z.string(), z.string())),
+    max_early_data: z.optional(z.number()),
+    early_data_header_name: z.optional(z.string()),
+  });
+
+export const SingboxOutboundCommonVmessOrVLESSTransportSchema =
+  z.discriminatedUnion("type", [
+    SingboxOutboundCommonVmessOrVLESSTransportGrpcSchema,
+    SingboxOutboundCommonVmessOrVLESSTransportHttpSchema,
+    SingboxOutboundCommonVmessOrVLESSTransportWebSocketSchema,
+  ]);
 
 export const SingboxOutboundHttpSchema = SingboxOutboundSchema.extend({
   type: z.literal("http"),
   username: z.optional(z.string()),
   password: z.optional(z.string()),
-  tls: z.optional(SingboxOutboundCommonTlsSchema)
+  tls: z.optional(SingboxOutboundCommonTlsSchema),
 });
 
 export const SingboxOutboundHysteriaSchema = SingboxOutboundSchema.extend({
@@ -236,7 +256,7 @@ export const SingboxOutboundHysteriaSchema = SingboxOutboundSchema.extend({
   down: z.string(),
   obfs: z.optional(z.string()),
   auth_str: z.optional(z.string()),
-  tls: SingboxOutboundCommonTlsSchema
+  tls: SingboxOutboundCommonTlsSchema,
 });
 
 export const SingboxOutboundHysteria2Schema = SingboxOutboundSchema.extend({
@@ -245,71 +265,73 @@ export const SingboxOutboundHysteria2Schema = SingboxOutboundSchema.extend({
   down: z.optional(z.string()),
   obfs: z.optional(z.string()),
   password: z.optional(z.string()),
-  tls: SingboxOutboundCommonTlsSchema
+  tls: SingboxOutboundCommonTlsSchema,
 });
 
 export const SingboxOutboundSelectorSchema = z.object({
   type: z.literal("selector"),
   tag: z.string(),
   outbounds: z.array(z.string()),
-  default: z.optional(z.string())
+  default: z.optional(z.string()),
 });
 
 // Simple outbound types (no server/port required)
 export const SingboxOutboundDirectSchema = z.object({
   type: z.literal("direct"),
-  tag: z.string()
+  tag: z.string(),
 });
 
 export const SingboxOutboundDnsSchema = z.object({
   type: z.literal("dns"),
-  tag: z.string()
+  tag: z.string(),
 });
 
 export const SingboxOutboundBlockSchema = z.object({
   type: z.literal("block"),
-  tag: z.string()
+  tag: z.string(),
 });
 
 export const SingboxOutboundSocksSchema = SingboxOutboundSchema.extend({
   type: z.literal("socks"),
   username: z.optional(z.string()),
-  password: z.optional(z.string())
+  password: z.optional(z.string()),
 });
 
 export const SingboxOutboundShadowsocksSchema = SingboxOutboundSchema.extend({
   type: z.enum(["shadowsocks", "shadowtls"]),
   version: z.optional(z.number()),
-  method: z.optional(z.enum([
-    "2022-blake3-aes-128-gcm",
-    "2022-blake3-aes-256-gcm",
-    "2022-blake3-chacha20-poly1305",
-    "none",
-    "aes-128-gcm",
-    "aes-192-gcm",
-    "aes-256-gcm",
-    "chacha20-ietf-poly1305",
-    "xchacha20-ietf-poly1305",
-    "aes-128-ctr",
-    "aes-192-ctr",
-    "aes-256-ctr",
-    "aes-128-cfb",
-    "aes-192-cfb",
-    "aes-256-cfb",
-    "rc4-md5",
-    "chacha20-ietf",
-    "xchacha20"
-  ])),
+  method: z.optional(
+    z.enum([
+      "2022-blake3-aes-128-gcm",
+      "2022-blake3-aes-256-gcm",
+      "2022-blake3-chacha20-poly1305",
+      "none",
+      "aes-128-gcm",
+      "aes-192-gcm",
+      "aes-256-gcm",
+      "chacha20-ietf-poly1305",
+      "xchacha20-ietf-poly1305",
+      "aes-128-ctr",
+      "aes-192-ctr",
+      "aes-256-ctr",
+      "aes-128-cfb",
+      "aes-192-cfb",
+      "aes-256-cfb",
+      "rc4-md5",
+      "chacha20-ietf",
+      "xchacha20",
+    ]),
+  ),
   password: z.string(),
   plugin: z.optional(z.string()),
   plugin_opts: z.optional(z.string()),
-  tls: z.optional(SingboxOutboundCommonTlsSchema)
+  tls: z.optional(SingboxOutboundCommonTlsSchema),
 });
 
 export const SingboxOutboundTrojanSchema = SingboxOutboundSchema.extend({
   type: z.literal("trojan"),
   password: z.string(),
-  tls: SingboxOutboundCommonTlsSchema
+  tls: SingboxOutboundCommonTlsSchema,
 });
 
 export const SingboxOutboundTUICSchema = SingboxOutboundSchema.extend({
@@ -321,16 +343,18 @@ export const SingboxOutboundTUICSchema = SingboxOutboundSchema.extend({
   udp_over_stream: z.optional(z.boolean()),
   zero_rtt_handshake: z.optional(z.boolean()),
   heartbeat: z.optional(z.string()),
-  tls: SingboxOutboundCommonTlsSchema
+  tls: SingboxOutboundCommonTlsSchema,
 });
 
 export const SingboxOutboundVmessSchema = SingboxOutboundSchema.extend({
   type: z.literal("vmess"),
   uuid: z.string(),
-  security: z.optional(z.enum(["auto", "none", "zero", "aes-128-gcm", "chacha20-poly1305"])),
+  security: z.optional(
+    z.enum(["auto", "none", "zero", "aes-128-gcm", "chacha20-poly1305"]),
+  ),
   alter_id: z.optional(z.number()),
   tls: z.optional(SingboxOutboundCommonTlsSchema),
-  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema)
+  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema),
 });
 
 export const SingboxOutboundVLESSSchema = SingboxOutboundSchema.extend({
@@ -338,40 +362,46 @@ export const SingboxOutboundVLESSSchema = SingboxOutboundSchema.extend({
   uuid: z.string(),
   flow: z.optional(z.enum(["xtls-rprx-vision", "xtls-rprx-vision-udp443"])),
   tls: z.optional(SingboxOutboundCommonTlsSchema),
-  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema)
+  transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema),
 });
 
-export const SingboxOutboundsSchema = z.array(z.discriminatedUnion("type", [
-  SingboxOutboundDirectSchema,
-  SingboxOutboundDnsSchema,
-  SingboxOutboundBlockSchema,
-  SingboxOutboundHttpSchema,
-  SingboxOutboundHysteriaSchema,
-  SingboxOutboundHysteria2Schema,
-  SingboxOutboundSelectorSchema,
-  SingboxOutboundShadowsocksSchema,
-  SingboxOutboundSocksSchema,
-  SingboxOutboundTrojanSchema,
-  SingboxOutboundTUICSchema,
-  SingboxOutboundVmessSchema,
-  SingboxOutboundVLESSSchema
-]));
+export const SingboxOutboundsSchema = z.array(
+  z.discriminatedUnion("type", [
+    SingboxOutboundDirectSchema,
+    SingboxOutboundDnsSchema,
+    SingboxOutboundBlockSchema,
+    SingboxOutboundHttpSchema,
+    SingboxOutboundHysteriaSchema,
+    SingboxOutboundHysteria2Schema,
+    SingboxOutboundSelectorSchema,
+    SingboxOutboundShadowsocksSchema,
+    SingboxOutboundSocksSchema,
+    SingboxOutboundTrojanSchema,
+    SingboxOutboundTUICSchema,
+    SingboxOutboundVmessSchema,
+    SingboxOutboundVLESSSchema,
+  ]),
+);
 
 export const SingboxExperimentalSchema = z.object({
-  cache_file: z.optional(z.object({
-    enabled: z.optional(z.boolean()),
-    path: z.optional(z.string()),
-    cache_id: z.optional(z.string()),
-    store_fakeip: z.optional(z.boolean()),
-    store_rdrc: z.optional(z.boolean())
-  })),
-  clash_api: z.optional(z.object({
-    external_controller: z.optional(z.string()),
-    external_ui: z.optional(z.string()),
-    external_ui_download_url: z.optional(z.string()),
-    secret: z.optional(z.string()),
-    default_mode: z.optional(z.string())
-  }))
+  cache_file: z.optional(
+    z.object({
+      enabled: z.optional(z.boolean()),
+      path: z.optional(z.string()),
+      cache_id: z.optional(z.string()),
+      store_fakeip: z.optional(z.boolean()),
+      store_rdrc: z.optional(z.boolean()),
+    }),
+  ),
+  clash_api: z.optional(
+    z.object({
+      external_controller: z.optional(z.string()),
+      external_ui: z.optional(z.string()),
+      external_ui_download_url: z.optional(z.string()),
+      secret: z.optional(z.string()),
+      default_mode: z.optional(z.string()),
+    }),
+  ),
 });
 
 export const SingBoxRuleSchema = z.object({
@@ -406,29 +436,35 @@ export const SingBoxRuleSchema = z.object({
   rule_set: z.array(z.string()).optional(),
   rule_set_ipcidr_match_source: z.boolean().optional(),
   invert: z.boolean().optional(),
-  outbound: z.string()
+  outbound: z.string(),
 });
 
 export const SingboxSchema = z.object({
-  log: z.optional(z.object({
-    disabled: z.optional(z.boolean()),
-    level: z.optional(z.string()),
-    timestamp: z.optional(z.boolean())
-  })),
+  log: z.optional(
+    z.object({
+      disabled: z.optional(z.boolean()),
+      level: z.optional(z.string()),
+      timestamp: z.optional(z.boolean()),
+    }),
+  ),
   dns: z.optional(z.any()),
   inbounds: z.optional(z.array(z.any())),
   experimental: z.optional(SingboxExperimentalSchema),
   outbounds: SingboxOutboundsSchema,
-  route: z.optional(z.object({
-    rules: z.array(SingBoxRuleSchema),
-    rule_set: z.optional(z.array(z.any())),
-    final: z.optional(z.string())
-  }))
+  route: z.optional(
+    z.object({
+      rules: z.array(SingBoxRuleSchema),
+      rule_set: z.optional(z.array(z.any())),
+      final: z.optional(z.string()),
+    }),
+  ),
 });
 
 // Type exports
 export type ClashProxy = z.infer<typeof ClashProxySchema>;
-export type ClashProxyBaseVmessOrVLESS = z.infer<typeof ClashProxyBaseVmessOrVLESSSchema>;
+export type ClashProxyBaseVmessOrVLESS = z.infer<
+  typeof ClashProxyBaseVmessOrVLESSSchema
+>;
 export type ClashProxyHttp = z.infer<typeof ClashProxyHttpSchema>;
 export type ClashProxyHysteria = z.infer<typeof ClashProxyHysteriaSchema>;
 export type ClashProxyHysteria2 = z.infer<typeof ClashProxyHysteria2Schema>;
@@ -441,13 +477,25 @@ export type ClashProxyVLESS = z.infer<typeof ClashProxyVLESSSchema>;
 export type Clash = z.infer<typeof ClashSchema>;
 
 export type SingboxOutbound = z.infer<typeof SingboxOutboundSchema>;
-export type SingboxOutboundCommonTls = z.infer<typeof SingboxOutboundCommonTlsSchema>;
-export type SingboxOutboundCommonVmessOrVLESSTransport = z.infer<typeof SingboxOutboundCommonVmessOrVLESSTransportSchema>;
+export type SingboxOutboundCommonTls = z.infer<
+  typeof SingboxOutboundCommonTlsSchema
+>;
+export type SingboxOutboundCommonVmessOrVLESSTransport = z.infer<
+  typeof SingboxOutboundCommonVmessOrVLESSTransportSchema
+>;
 export type SingboxOutboundHttp = z.infer<typeof SingboxOutboundHttpSchema>;
-export type SingboxOutboundHysteria = z.infer<typeof SingboxOutboundHysteriaSchema>;
-export type SingboxOutboundHysteria2 = z.infer<typeof SingboxOutboundHysteria2Schema>;
-export type SingboxOutboundSelector = z.infer<typeof SingboxOutboundSelectorSchema>;
-export type SingboxOutboundShadowsocks = z.infer<typeof SingboxOutboundShadowsocksSchema>;
+export type SingboxOutboundHysteria = z.infer<
+  typeof SingboxOutboundHysteriaSchema
+>;
+export type SingboxOutboundHysteria2 = z.infer<
+  typeof SingboxOutboundHysteria2Schema
+>;
+export type SingboxOutboundSelector = z.infer<
+  typeof SingboxOutboundSelectorSchema
+>;
+export type SingboxOutboundShadowsocks = z.infer<
+  typeof SingboxOutboundShadowsocksSchema
+>;
 export type SingboxOutboundSocks = z.infer<typeof SingboxOutboundSocksSchema>;
 export type SingboxOutboundTrojan = z.infer<typeof SingboxOutboundTrojanSchema>;
 export type SingboxOutboundTUIC = z.infer<typeof SingboxOutboundTUICSchema>;

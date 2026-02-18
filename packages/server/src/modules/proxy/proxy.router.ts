@@ -1,7 +1,13 @@
 import { Logger } from "@nestjs/common";
 import { z } from "zod";
 import type { Context } from "../../trpc/context";
-import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
+import {
+  Ctx,
+  Mutation,
+  Query,
+  Router,
+  UseMiddlewares,
+} from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { proxySubscribeService, proxyRuleService } from "./proxy.service";
 import {
@@ -11,14 +17,14 @@ import {
   DeleteProxySubscribeInputSchema,
   ProxyRuleTestInputSchema,
   ProxyPreviewInputSchema,
-  ProxyPreviewOutputSchema
+  ProxyPreviewOutputSchema,
 } from "@acme/types";
 
 // 简化的用户 schema
 const SimpleUserSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string()
+  email: z.string(),
 });
 
 // 订阅输出 schema（JSONC 字符串）
@@ -39,10 +45,12 @@ export const ProxySubscribeOutputSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   user: SimpleUserSchema,
-  authorizedUsers: z.array(SimpleUserSchema)
+  authorizedUsers: z.array(SimpleUserSchema),
 });
 
-export const ProxySubscribeListOutputSchema = z.array(ProxySubscribeOutputSchema);
+export const ProxySubscribeListOutputSchema = z.array(
+  ProxySubscribeOutputSchema,
+);
 
 @Router({ alias: "proxy" })
 export class ProxyRouter {
@@ -63,14 +71,17 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Query({
     input: z.object({ id: z.string() }),
-    output: ProxySubscribeOutputSchema.nullable()
+    output: ProxySubscribeOutputSchema.nullable(),
   })
   async getById(input: { id: string }, @Ctx() ctx: Context) {
     const subscribe = await proxySubscribeService.getById(input.id);
     if (!subscribe) return null;
 
     // 检查权限：是创建者或被授权用户
-    if (subscribe.userId !== ctx.userId && !subscribe.authorizedUserIds.includes(ctx.userId!)) {
+    if (
+      subscribe.userId !== ctx.userId &&
+      !subscribe.authorizedUserIds.includes(ctx.userId!)
+    ) {
       return null;
     }
 
@@ -81,9 +92,12 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Mutation({
     input: CreateProxySubscribeInputSchema,
-    output: ProxySubscribeOutputSchema
+    output: ProxySubscribeOutputSchema,
   })
-  async create(input: z.infer<typeof CreateProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+  async create(
+    input: z.infer<typeof CreateProxySubscribeInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
     return proxySubscribeService.create(ctx.userId!, input);
   }
 
@@ -91,9 +105,12 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Mutation({
     input: UpdateProxySubscribeInputSchema,
-    output: ProxySubscribeOutputSchema
+    output: ProxySubscribeOutputSchema,
   })
-  async update(input: z.infer<typeof UpdateProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+  async update(
+    input: z.infer<typeof UpdateProxySubscribeInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
     return proxySubscribeService.update(input.id, ctx.userId!, input);
   }
 
@@ -101,9 +118,12 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Mutation({
     input: DeleteProxySubscribeInputSchema,
-    output: z.object({ success: z.boolean() })
+    output: z.object({ success: z.boolean() }),
   })
-  async delete(input: z.infer<typeof DeleteProxySubscribeInputSchema>, @Ctx() ctx: Context) {
+  async delete(
+    input: z.infer<typeof DeleteProxySubscribeInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
     await proxySubscribeService.delete(input.id, ctx.userId!);
     return { success: true };
   }
@@ -112,7 +132,7 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Query({
     input: ProxyRuleTestInputSchema,
-    output: z.object({ result: z.string() })
+    output: z.object({ result: z.string() }),
   })
   async testRule(input: z.infer<typeof ProxyRuleTestInputSchema>) {
     const result = await proxyRuleService.testRule(input.url);
@@ -123,10 +143,16 @@ export class ProxyRouter {
   @UseMiddlewares(requireUser)
   @Query({
     input: ProxyPreviewInputSchema,
-    output: ProxyPreviewOutputSchema
+    output: ProxyPreviewOutputSchema,
   })
-  async previewNodes(input: z.infer<typeof ProxyPreviewInputSchema>, @Ctx() ctx: Context) {
-    const nodes = await proxySubscribeService.previewNodes(input.id, ctx.userId!);
+  async previewNodes(
+    input: z.infer<typeof ProxyPreviewInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
+    const nodes = await proxySubscribeService.previewNodes(
+      input.id,
+      ctx.userId!,
+    );
     return { nodes };
   }
 
@@ -139,17 +165,21 @@ export class ProxyRouter {
       todayAccess: z.number(),
       cachedNodeCount: z.number(),
       lastAccessAt: z.string().nullable(),
-      accessByType: z.array(z.object({
-        type: z.string(),
-        count: z.number()
-      })),
-      recentAccess: z.array(z.object({
-        createdAt: z.string(),
-        accessType: z.string(),
-        ip: z.string().nullable(),
-        nodeCount: z.number()
-      }))
-    })
+      accessByType: z.array(
+        z.object({
+          type: z.string(),
+          count: z.number(),
+        }),
+      ),
+      recentAccess: z.array(
+        z.object({
+          createdAt: z.string(),
+          accessType: z.string(),
+          ip: z.string().nullable(),
+          nodeCount: z.number(),
+        }),
+      ),
+    }),
   })
   async getStats(input: { id: string }, @Ctx() ctx: Context) {
     return proxySubscribeService.getStats(input.id, ctx.userId!);
@@ -161,8 +191,8 @@ export class ProxyRouter {
     output: z.object({
       totalSubscriptions: z.number(),
       totalNodes: z.number(),
-      todayRequests: z.number()
-    })
+      todayRequests: z.number(),
+    }),
   })
   async getUserStats(@Ctx() ctx: Context) {
     return proxySubscribeService.getUserStats(ctx.userId!);
@@ -175,8 +205,8 @@ export class ProxyRouter {
       ruleList: z.string(),
       group: z.string(),
       filter: z.string(),
-      customConfig: z.string()
-    })
+      customConfig: z.string(),
+    }),
   })
   async getDefaults() {
     return proxySubscribeService.getDefaults();
