@@ -1,6 +1,9 @@
 import "reflect-metadata";
 import "dotenv/config";
 
+// 永久启用单空间模式
+process.env.SINGLE_WORKSPACE_MODE_OVERRIDE = "true";
+
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
