@@ -217,31 +217,8 @@ export class ProxyPublicController {
 ${yaml.stringify(data)}`);
   }
 
-  /** 生成 Sing-box 订阅配置 (JSON) */
-  @Get("proxy/sing-box/:uuid")
-  async getSingboxConfig(
-    @Param("uuid") uuid: string,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, [
-      "ssr",
-    ]);
-
-    // 构建规则提供者（从 JSONC 字符串解析）
-    const ruleProviders: any[] = [];
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
-      subscribe.ruleList,
-      {},
-    );
-    const ruleProvidersList =
-      rawRuleList && Object.keys(rawRuleList).length > 0
-        ? rawRuleList
-        : DEFAULT_RULE_PROVIDERS;
-    const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups =
-      rawGroups && rawGroups.length > 0 ? rawGroups : SB_DEFAULT_GROUPS;
-    // 从环境变量获取公网服务器地址，或从请求自动检测
+  /** 获取公网服务器地址 */
+  private getPublicServerUrl(req: Request): string {
     let publicServerUrl = process.env.PUBLIC_SERVER_URL;
     if (!publicServerUrl) {
       const forwardedProto = req.headers["x-forwarded-proto"] as
@@ -258,7 +235,18 @@ ${yaml.stringify(data)}`);
       const protocol = forwardedProto || (req.secure ? "https" : "http");
       publicServerUrl = `${protocol}://${host}`;
     }
+    return publicServerUrl;
+  }
 
+  /** 构建 sing-box 1.11 格式配置 */
+  private buildSingboxV11(
+    proxies: any[],
+    nodes: string[],
+    groups: ProxyGroup[],
+    ruleProvidersList: ProxyRuleProvidersList,
+    ruleProviders: any[],
+    publicServerUrl: string,
+  ): Singbox {
     const select = groups.map((item) => {
       const outbounds = item.readonly
         ? item.proxies
@@ -272,19 +260,7 @@ ${yaml.stringify(data)}`);
       };
     });
 
-    for (const [key, items] of Object.entries(ruleProvidersList)) {
-      for (const item of items) {
-        ruleProviders.push({
-          type: "remote",
-          url: `${publicServerUrl}/public/proxy/sing-box/convert/rule?url=${encodeURIComponent(item.url)}`,
-          tag: item.name,
-          format: "source",
-          download_detour: "🚀 直接连接",
-        });
-      }
-    }
-
-    const data: Singbox = {
+    return {
       log: {
         disabled: false,
         level: "info",
@@ -431,6 +407,280 @@ ${yaml.stringify(data)}`);
         },
       },
     };
+  }
+
+  /** 构建 sing-box 1.12 格式配置（使用新 DNS 格式、rule action 替代 block/dns outbound） */
+  private buildSingboxV12(
+    proxies: any[],
+    nodes: string[],
+    groups: ProxyGroup[],
+    ruleProvidersList: ProxyRuleProvidersList,
+    ruleProviders: any[],
+    publicServerUrl: string,
+  ): any {
+    const select = groups.map((item) => {
+      const outbounds = item.readonly
+        ? item.proxies
+        : [...item.proxies, ...nodes];
+      return {
+        type: "selector" as const,
+        tag: item.name,
+        outbounds,
+        default: outbounds[0],
+        interrupt_exist_connections: true,
+      };
+    });
+
+    return {
+      log: {
+        disabled: false,
+        level: "info",
+        timestamp: true,
+      },
+      dns: {
+        servers: [
+          { type: "local", tag: "local" },
+          {
+            type: "fakeip",
+            tag: "fakeip",
+            inet4_range: "198.18.0.0/15",
+            inet6_range: "fc00::/18",
+          },
+          {
+            type: "udp",
+            tag: "local_v4",
+            server: "127.0.0.1",
+            server_port: 53,
+          },
+        ],
+        rules: [
+          { query_type: ["HTTPS"], action: "reject" },
+          {
+            ip_cidr: [
+              "127.0.0.0/8",
+              "10.0.0.0/8",
+              "172.16.0.0/12",
+              "192.168.0.0/16",
+            ],
+            action: "route",
+            server: "local",
+          },
+          { rule_set: ["geosite-cn"], action: "route", server: "local" },
+          {
+            type: "logical",
+            mode: "and",
+            rules: [
+              { rule_set: ["geoip-cn"] },
+              { rule_set: ["geoip-hk"], invert: true },
+              { rule_set: ["geoip-gfwblack"], invert: true },
+            ],
+            action: "route",
+            server: "local",
+          },
+          {
+            disable_cache: false,
+            rewrite_ttl: 300,
+            query_type: ["A", "AAAA"],
+            action: "route",
+            server: "fakeip",
+          },
+        ],
+        independent_cache: false,
+      },
+      inbounds: [
+        {
+          type: "direct",
+          tag: "dns-in",
+          listen: "::",
+          listen_port: 1053,
+        },
+        {
+          type: "tproxy",
+          listen: "::",
+          listen_port: 7893,
+          tcp_multi_path: false,
+          tcp_fast_open: true,
+          udp_fragment: true,
+        },
+      ],
+      outbounds: [
+        { type: "direct", tag: "DIRECT" },
+        ...convertClashToSingbox({ proxies }),
+        ...select,
+      ],
+      route: {
+        default_domain_resolver: "local",
+        rules: [
+          {
+            action: "route",
+            outbound: "🚀 直接连接",
+            rule_set: ["geoip-cn", "geosite-cn"],
+            ip_is_private: true,
+          },
+        ],
+        rule_set: [
+          ...ruleProviders,
+          {
+            tag: "geoip-cn",
+            type: "remote",
+            format: "binary",
+            url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs",
+            download_detour: "🚀 直接连接",
+          },
+          {
+            tag: "geoip-hk",
+            type: "remote",
+            format: "binary",
+            url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.srs",
+            download_detour: "🚀 直接连接",
+          },
+          {
+            tag: "geosite-openai",
+            type: "remote",
+            format: "binary",
+            url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.srs",
+            download_detour: "🚀 直接连接",
+          },
+          {
+            tag: "geosite-cn",
+            type: "remote",
+            format: "binary",
+            url: "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs",
+            download_detour: "🚀 直接连接",
+          },
+          {
+            tag: "geoip-gfwblack",
+            type: "remote",
+            url: `${publicServerUrl}/public/proxy/sing-box/convert/rule/12?url=${encodeURIComponent("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")}`,
+            format: "source",
+            download_detour: "🚀 直接连接",
+          },
+        ],
+        final: "⚓️ 其他流量",
+      },
+      experimental: {
+        cache_file: {
+          enabled: true,
+          store_fakeip: true,
+          store_rdrc: false,
+        },
+        clash_api: {
+          external_controller: "0.0.0.0:9999",
+          external_ui: "/etc/sb/ui",
+          external_ui_download_url:
+            "https://mirror.ghproxy.com/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+          secret: "123456",
+          default_mode: "rule",
+        },
+      },
+    };
+  }
+
+  /** 将 Clash 规则转换为 Sing-box 格式 - 带版本号路径 */
+  @Get("proxy/sing-box/convert/rule/:version")
+  async convertRuleVersioned(
+    @Query("url") url: string,
+    @Param("version") versionParam: string,
+    @Res() res: Response,
+  ) {
+    return this.handleConvertRule(url, versionParam, res);
+  }
+
+  /** 将 Clash 规则转换为 Sing-box 格式 - 默认版本 */
+  @Get("proxy/sing-box/convert/rule")
+  async convertRule(
+    @Query("url") url: string,
+    @Res() res: Response,
+  ) {
+    return this.handleConvertRule(url, undefined, res);
+  }
+
+  /** 生成 Sing-box 订阅配置 (JSON) - 带版本号路径 */
+  @Get("proxy/sing-box/:version/:uuid")
+  async getSingboxConfigVersioned(
+    @Param("uuid") uuid: string,
+    @Param("version") versionParam: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.handleSingboxConfig(uuid, versionParam, req, res);
+  }
+
+  /** 生成 Sing-box 订阅配置 (JSON) - 默认版本（兼容历史链接） */
+  @Get("proxy/sing-box/:uuid")
+  async getSingboxConfig(
+    @Param("uuid") uuid: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.handleSingboxConfig(uuid, undefined, req, res);
+  }
+
+  /** 生成 Sing-box 订阅配置 - 内部处理 */
+  private async handleSingboxConfig(
+    uuid: string,
+    versionParam: string | undefined,
+    req: Request,
+    res: Response,
+  ) {
+    // 解析版本参数，默认为 11（sing-box 1.11 格式）
+    const version = versionParam === "12" ? 12 : 11;
+
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, [
+      "ssr",
+    ]);
+
+    // 构建规则提供者（从 JSONC 字符串解析）
+    const ruleProviders: any[] = [];
+    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+      subscribe.ruleList,
+      {},
+    );
+    const ruleProvidersList =
+      rawRuleList && Object.keys(rawRuleList).length > 0
+        ? rawRuleList
+        : DEFAULT_RULE_PROVIDERS;
+    const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
+    const groups =
+      rawGroups && rawGroups.length > 0 ? rawGroups : SB_DEFAULT_GROUPS;
+
+    const publicServerUrl = this.getPublicServerUrl(req);
+
+    // 构建规则提供者中的远程规则集
+    const convertRuleBase = version === 12
+      ? `${publicServerUrl}/public/proxy/sing-box/convert/rule/12`
+      : `${publicServerUrl}/public/proxy/sing-box/convert/rule`;
+    for (const [key, items] of Object.entries(ruleProvidersList)) {
+      for (const item of items) {
+        ruleProviders.push({
+          type: "remote",
+          url: `${convertRuleBase}?url=${encodeURIComponent(item.url)}`,
+          tag: item.name,
+          format: "source",
+          download_detour: "🚀 直接连接",
+        });
+      }
+    }
+
+    // 根据版本构建配置
+    const data =
+      version === 12
+        ? this.buildSingboxV12(
+            proxies,
+            nodes,
+            groups,
+            ruleProvidersList,
+            ruleProviders,
+            publicServerUrl,
+          )
+        : this.buildSingboxV11(
+            proxies,
+            nodes,
+            groups,
+            ruleProvidersList,
+            ruleProviders,
+            publicServerUrl,
+          );
 
     // 处理自定义规则（从 JSONC 字符串解析）
     const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
@@ -492,7 +742,7 @@ ${yaml.stringify(data)}`);
     await proxySubscribeService.updateAccessInfo(
       subscribe.id,
       proxies.length,
-      "sing-box",
+      version === 12 ? "sing-box-v12" : "sing-box",
       clientIp,
       userAgent,
     );
@@ -501,12 +751,18 @@ ${yaml.stringify(data)}`);
     res.send(JSON.stringify(data, null, 2));
   }
 
-  /** 将 Clash 规则转换为 Sing-box 格式 */
-  @Get("proxy/sing-box/convert/rule")
-  async convertRule(@Query("url") url: string, @Res() res: Response) {
+  /** 规则转换 - 内部处理 */
+  private async handleConvertRule(
+    url: string,
+    versionParam: string | undefined,
+    res: Response,
+  ) {
     if (!url) {
       throw new BadRequestException("url is required");
     }
+
+    // 版本 12 使用 rule-set version 3，默认使用 version 1
+    const ruleSetVersion = versionParam === "12" ? 3 : 1;
 
     const response = await fetch(url);
     const text = await response.text();
@@ -527,7 +783,7 @@ ${yaml.stringify(data)}`);
           process_path: [],
         },
       ],
-      version: 1,
+      version: ruleSetVersion,
     };
 
     const arr = Array.isArray(object) ? object : object.payload;

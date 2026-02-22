@@ -10,6 +10,7 @@ import {
   Spin,
   Tooltip,
   Card,
+  Select,
 } from "antd";
 import {
   ExportOutlined,
@@ -77,6 +78,7 @@ export default function ProxySubscribeList() {
   const statsModalRef = useRef<ProxyStatsModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const isMobile = useIsMobile();
+  const [singboxVersion, setSingboxVersion] = useState<"11" | "12">("11");
 
   const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
 
@@ -101,8 +103,23 @@ export default function ProxySubscribeList() {
   };
 
   const getSingboxUrl = (uuid: string) => {
-    return `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/${uuid}`;
+    return singboxVersion === "12"
+      ? `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/12/${uuid}`
+      : `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/${uuid}`;
   };
+
+  const singboxVersionSelector = (
+    <Select
+      size="small"
+      value={singboxVersion}
+      onChange={setSingboxVersion}
+      style={{ width: 78 }}
+      options={[
+        { label: "v1.11", value: "11" },
+        { label: "v1.12", value: "12" },
+      ]}
+    />
+  );
 
   return (
     <div>
@@ -179,7 +196,10 @@ export default function ProxySubscribeList() {
 
                   {/* Sing-box URL */}
                   <div>
-                    <div className="text-xs text-gray-500 mb-1">Sing-box</div>
+                    <div className="text-xs text-gray-500 mb-1 flex items-center gap-2">
+                      <span>Sing-box</span>
+                      {singboxVersionSelector}
+                    </div>
                     <Input
                       size="small"
                       readOnly
@@ -307,7 +327,12 @@ export default function ProxySubscribeList() {
                 },
               },
               {
-                title: t("proxy.columns.singboxUrl"),
+                title: (
+                  <Space size={4}>
+                    <span>{t("proxy.columns.singboxUrl")}</span>
+                    {singboxVersionSelector}
+                  </Space>
+                ),
                 dataIndex: "url",
                 render: (uuid: string) => {
                   const url = getSingboxUrl(uuid);
