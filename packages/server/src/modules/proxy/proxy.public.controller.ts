@@ -418,10 +418,20 @@ ${yaml.stringify(data)}`);
     ruleProviders: any[],
     publicServerUrl: string,
   ): any {
+    // v1.12 中 block outbound 已 deprecated（1.14 移除），但仍可用
+    // 保留 reject outbound 让用户可在 selector 中手动切换
+    // 需要将 REJECT/DIRECT 等 Clash 关键字统一映射为 sing-box tag
+    const singboxKeywordMap: Record<string, string> = {
+      REJECT: "reject",
+      DIRECT: "DIRECT",
+    };
+    const normalizeProxy = (p: string) => singboxKeywordMap[p] ?? p;
+
     const select = groups.map((item) => {
+      const mappedProxies = item.proxies.map(normalizeProxy);
       const outbounds = item.readonly
-        ? item.proxies
-        : [...item.proxies, ...nodes];
+        ? mappedProxies
+        : [...mappedProxies, ...nodes];
       return {
         type: "selector" as const,
         tag: item.name,
@@ -505,6 +515,7 @@ ${yaml.stringify(data)}`);
       ],
       outbounds: [
         { type: "direct", tag: "DIRECT" },
+        { type: "block", tag: "reject" },
         ...convertClashToSingbox({ proxies }),
         ...select,
       ],
