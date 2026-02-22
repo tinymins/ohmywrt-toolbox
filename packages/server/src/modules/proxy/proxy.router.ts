@@ -176,6 +176,7 @@ export class ProxyRouter {
           createdAt: z.string(),
           accessType: z.string(),
           ip: z.string().nullable(),
+          userAgent: z.string().nullable(),
           nodeCount: z.number(),
         }),
       ),

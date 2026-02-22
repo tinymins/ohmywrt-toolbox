@@ -300,6 +300,7 @@ export class ProxySubscribeService {
       createdAt: string;
       accessType: string;
       ip: string | null;
+      userAgent: string | null;
       nodeCount: number;
     }[];
   }> {
@@ -358,6 +359,7 @@ export class ProxySubscribeService {
         createdAt: proxyAccessLogs.createdAt,
         accessType: proxyAccessLogs.accessType,
         ip: proxyAccessLogs.ip,
+        userAgent: proxyAccessLogs.userAgent,
         nodeCount: proxyAccessLogs.nodeCount,
       })
       .from(proxyAccessLogs)
@@ -378,6 +380,7 @@ export class ProxySubscribeService {
         createdAt: item.createdAt?.toISOString() ?? new Date().toISOString(),
         accessType: item.accessType,
         ip: item.ip,
+        userAgent: item.userAgent ?? null,
         nodeCount: item.nodeCount ?? 0,
       })),
     };

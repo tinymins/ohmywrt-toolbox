@@ -98,6 +98,16 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       ellipsis: true,
       render: (ip: string | null) => ip || "-",
     },
+    {
+      title: "UA",
+      dataIndex: "userAgent",
+      ellipsis: true,
+      render: (ua: string | null) => (
+        <span title={ua || undefined} className="text-xs text-slate-500">
+          {ua || "-"}
+        </span>
+      ),
+    },
   ];
 
   // PC端访问记录列
@@ -130,6 +140,17 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       width: 140,
       ellipsis: true,
       render: (ip: string | null) => ip || "-",
+    },
+    {
+      title: "User-Agent",
+      dataIndex: "userAgent",
+      width: 200,
+      ellipsis: true,
+      render: (ua: string | null) => (
+        <span title={ua || undefined} className="text-xs text-slate-500">
+          {ua || "-"}
+        </span>
+      ),
     },
   ];
 
