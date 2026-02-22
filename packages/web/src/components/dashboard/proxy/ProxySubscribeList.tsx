@@ -3,23 +3,21 @@ import {
   Table,
   Button,
   Space,
-  Input,
   Popconfirm,
   Typography,
   message,
   Spin,
   Tooltip,
   Card,
-  Select,
+  Tag,
 } from "antd";
 import {
-  ExportOutlined,
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  CopyOutlined,
   EyeOutlined,
   BarChartOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
@@ -31,6 +29,7 @@ import ProxyPreviewModal, {
   type ProxyPreviewModalRef,
 } from "./ProxyPreviewModal";
 import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
+import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
 
 const { Text } = Typography;
 
@@ -76,9 +75,9 @@ export default function ProxySubscribeList() {
   const modalRef = useRef<ProxySubscribeModalRef>(null);
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const statsModalRef = useRef<ProxyStatsModalRef>(null);
+  const linksModalRef = useRef<ProxyLinksModalRef>(null);
   const [messageApi, contextHolder] = message.useMessage();
   const isMobile = useIsMobile();
-  const [singboxVersion, setSingboxVersion] = useState<"11" | "12">("11");
 
   const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
 
@@ -92,34 +91,7 @@ export default function ProxySubscribeList() {
     },
   });
 
-  const handleCopyUrl = (url: string) => {
-    navigator.clipboard.writeText(url).then(() => {
-      messageApi.success(t("proxy.copiedToClipboard"));
-    });
-  };
 
-  const getClashUrl = (uuid: string) => {
-    return `${window.location.protocol}//${window.location.host}/public/proxy/clash/${uuid}`;
-  };
-
-  const getSingboxUrl = (uuid: string) => {
-    return singboxVersion === "12"
-      ? `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/12/${uuid}`
-      : `${window.location.protocol}//${window.location.host}/public/proxy/sing-box/${uuid}`;
-  };
-
-  const singboxVersionSelector = (
-    <Select
-      size="small"
-      value={singboxVersion}
-      onChange={setSingboxVersion}
-      style={{ width: 78 }}
-      options={[
-        { label: "v1.11", value: "11" },
-        { label: "v1.12", value: "12" },
-      ]}
-    />
-  );
 
   return (
     <div>
@@ -127,6 +99,7 @@ export default function ProxySubscribeList() {
       <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
       <ProxyStatsModal ref={statsModalRef} />
+      <ProxyLinksModal ref={linksModalRef} />
 
       <div className="flex justify-between items-center mb-3 md:mb-4">
         <Typography.Title level={4} className="!mb-0 !text-lg md:!text-xl">
@@ -165,69 +138,26 @@ export default function ProxySubscribeList() {
                         {dayjs(record.updatedAt).format("MM-DD HH:mm")}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Clash URL */}
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1">Clash</div>
-                    <Input
-                      size="small"
-                      readOnly
-                      value={getClashUrl(record.url)}
-                      onClick={(e) => e.currentTarget.select()}
-                      addonAfter={
-                        <Space size={8}>
-                          <CopyOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#3b82f6" }}
-                            onClick={() =>
-                              handleCopyUrl(getClashUrl(record.url))
-                            }
-                          />
-                          <ExportOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#22c55e" }}
-                            onClick={() => window.open(getClashUrl(record.url))}
-                          />
-                        </Space>
-                      }
-                    />
-                  </div>
-
-                  {/* Sing-box URL */}
-                  <div>
-                    <div className="text-xs text-gray-500 mb-1 flex items-center gap-2">
-                      <span>Sing-box</span>
-                      {singboxVersionSelector}
+                    <div className="flex gap-2">
+                      <Tag color="blue">
+                        {t("proxy.columns.nodeCount")}: {record.cachedNodeCount}
+                      </Tag>
+                      <Tag color="green">
+                        {t("proxy.columns.accessCount")}: {record.totalAccessCount}
+                      </Tag>
                     </div>
-                    <Input
-                      size="small"
-                      readOnly
-                      value={getSingboxUrl(record.url)}
-                      onClick={(e) => e.currentTarget.select()}
-                      addonAfter={
-                        <Space size={8}>
-                          <CopyOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#3b82f6" }}
-                            onClick={() =>
-                              handleCopyUrl(getSingboxUrl(record.url))
-                            }
-                          />
-                          <ExportOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#22c55e" }}
-                            onClick={() =>
-                              window.open(getSingboxUrl(record.url))
-                            }
-                          />
-                        </Space>
-                      }
-                    />
                   </div>
 
                   {/* Actions */}
                   <div className="flex justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <Button
+                      type="link"
+                      size="small"
+                      icon={<LinkOutlined />}
+                      onClick={() =>
+                        linksModalRef.current?.open(record.url, record.remark)
+                      }
+                    />
                     <Button
                       type="link"
                       size="small"
@@ -299,80 +229,51 @@ export default function ProxySubscribeList() {
                 render: (text) => text || "-",
               },
               {
-                title: t("proxy.columns.clashUrl"),
-                dataIndex: "url",
-                render: (uuid: string) => {
-                  const url = getClashUrl(uuid);
-                  return (
-                    <Input
-                      readOnly
-                      value={url}
-                      onClick={(e) => e.currentTarget.select()}
-                      addonAfter={
-                        <Space size={12}>
-                          <CopyOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#3b82f6" }}
-                            onClick={() => handleCopyUrl(url)}
-                          />
-                          <ExportOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#22c55e" }}
-                            onClick={() => window.open(url)}
-                          />
-                        </Space>
-                      }
-                    />
-                  );
-                },
+                title: t("proxy.columns.nodeCount"),
+                dataIndex: "cachedNodeCount",
+                width: 90,
+                align: "center",
+                render: (val: number) => (
+                  <Tag color="blue">{val}</Tag>
+                ),
               },
               {
-                title: (
-                  <Space size={4}>
-                    <span>{t("proxy.columns.singboxUrl")}</span>
-                    {singboxVersionSelector}
-                  </Space>
+                title: t("proxy.columns.accessCount"),
+                dataIndex: "totalAccessCount",
+                width: 90,
+                align: "center",
+                render: (val: number) => (
+                  <Tag color="green">{val}</Tag>
                 ),
-                dataIndex: "url",
-                render: (uuid: string) => {
-                  const url = getSingboxUrl(uuid);
-                  return (
-                    <Input
-                      readOnly
-                      value={url}
-                      onClick={(e) => e.currentTarget.select()}
-                      addonAfter={
-                        <Space size={12}>
-                          <CopyOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#3b82f6" }}
-                            onClick={() => handleCopyUrl(url)}
-                          />
-                          <ExportOutlined
-                            className="cursor-pointer"
-                            style={{ color: "#22c55e" }}
-                            onClick={() => window.open(url)}
-                          />
-                        </Space>
-                      }
-                    />
-                  );
-                },
               },
               {
                 title: t("proxy.columns.lastUpdate"),
                 dataIndex: "updatedAt",
                 width: 160,
+                align: "center",
                 render: (text: string) =>
                   dayjs(text).format("YYYY-MM-DD HH:mm:ss"),
               },
               {
                 title: t("proxy.columns.actions"),
                 align: "center",
-                width: 160,
+                width: 200,
                 fixed: "right",
                 render: (_, record) => (
                   <Space size="middle">
+                    <Tooltip title={t("proxy.links.title")}>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<LinkOutlined />}
+                        onClick={() =>
+                          linksModalRef.current?.open(
+                            record.url,
+                            record.remark,
+                          )
+                        }
+                      />
+                    </Tooltip>
                     <Tooltip title={t("proxy.actions.stats")}>
                       <Button
                         type="link"

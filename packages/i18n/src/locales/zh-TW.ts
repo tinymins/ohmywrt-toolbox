@@ -946,6 +946,8 @@ export const zhTW = {
         clashUrl: "Clash 訂閱連結",
         singboxUrl: "Sing-box 訂閱連結",
         lastUpdate: "最後更新",
+        nodeCount: "節點數",
+        accessCount: "訂閱次數",
         actions: "操作",
       },
       actions: {
@@ -953,6 +955,11 @@ export const zhTW = {
         preview: "預覽節點",
         edit: "編輯",
         delete: "刪除",
+      },
+      links: {
+        title: "訂閱地址",
+        copy: "複製",
+        open: "開啟",
       },
       tabs: {
         basic: "基礎資訊",

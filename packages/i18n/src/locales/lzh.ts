@@ -894,6 +894,8 @@ export const lzh = {
         clashUrl: "Clash 訂閱鏈",
         singboxUrl: "Sing-box 訂閱鏈",
         lastUpdate: "末次更新",
+        nodeCount: "節點數",
+        accessCount: "訂閱次數",
         actions: "操作",
       },
       actions: {
@@ -901,8 +903,11 @@ export const lzh = {
         preview: "預覽節點",
         edit: "編輯",
         delete: "刪除",
-      },
-      tabs: {
+      },      links: {
+        title: "訂閱之址",
+        copy: "錄之",
+        open: "啟之",
+      },      tabs: {
         basic: "基礎",
         subscribeUrl: "訂閱地址",
         ruleList: "規則列表",

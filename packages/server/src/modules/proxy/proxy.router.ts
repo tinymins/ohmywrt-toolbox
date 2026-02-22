@@ -41,6 +41,8 @@ export const ProxySubscribeOutputSchema = z.object({
   servers: z.string().nullable(),
   customConfig: z.string().nullable(),
   authorizedUserIds: z.array(z.string()),
+  cachedNodeCount: z.number(),
+  totalAccessCount: z.number(),
   lastAccessAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),

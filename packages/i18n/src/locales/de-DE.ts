@@ -951,6 +951,8 @@ export const deDE = {
         clashUrl: "Clash-Abonnement-URL",
         singboxUrl: "Sing-box-Abonnement-URL",
         lastUpdate: "Letzte Aktualisierung",
+        nodeCount: "Knoten",
+        accessCount: "Zugriffe",
         actions: "Aktionen",
       },
       actions: {
@@ -958,6 +960,11 @@ export const deDE = {
         preview: "Knoten-Vorschau",
         edit: "Bearbeiten",
         delete: "Löschen",
+      },
+      links: {
+        title: "Abonnement-Links",
+        copy: "Kopieren",
+        open: "Öffnen",
       },
       tabs: {
         basic: "Grundlegende Infos",

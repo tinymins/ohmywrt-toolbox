@@ -682,6 +682,8 @@ export const enUS: TranslationSchema = {
         clashUrl: "Clash Subscribe URL",
         singboxUrl: "Sing-box Subscribe URL",
         lastUpdate: "Last Update",
+        nodeCount: "Nodes",
+        accessCount: "Access",
         actions: "Actions",
       },
       actions: {
@@ -689,6 +691,11 @@ export const enUS: TranslationSchema = {
         preview: "Preview Nodes",
         edit: "Edit",
         delete: "Delete",
+      },
+      links: {
+        title: "Subscription Links",
+        copy: "Copy",
+        open: "Open",
       },
       tabs: {
         basic: "Basic Info",

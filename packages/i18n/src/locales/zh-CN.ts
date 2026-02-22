@@ -663,6 +663,8 @@ export const zhCN = {
         clashUrl: "Clash 订阅链接",
         singboxUrl: "Sing-box 订阅链接",
         lastUpdate: "最后更新",
+        nodeCount: "节点数",
+        accessCount: "订阅次数",
         actions: "操作",
       },
       actions: {
@@ -670,6 +672,11 @@ export const zhCN = {
         preview: "预览节点",
         edit: "编辑",
         delete: "删除",
+      },
+      links: {
+        title: "订阅地址",
+        copy: "复制",
+        open: "打开",
       },
       tabs: {
         basic: "基础信息",

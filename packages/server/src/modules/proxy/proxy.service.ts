@@ -39,6 +39,8 @@ export interface ProxySubscribeWithUser {
   servers: string | null;
   customConfig: string | null;
   authorizedUserIds: string[];
+  cachedNodeCount: number;
+  totalAccessCount: number;
   lastAccessAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -51,6 +53,7 @@ const toProxySubscribeOutput = (
   row: ProxySubscribeRow,
   user: UserRow,
   authorizedUsers: UserRow[] = [],
+  totalAccessCount = 0,
 ): ProxySubscribeWithUser => ({
   id: row.id,
   userId: row.userId,
@@ -63,6 +66,8 @@ const toProxySubscribeOutput = (
   servers: row.servers,
   customConfig: row.customConfig,
   authorizedUserIds: (row.authorizedUserIds as string[] | null) ?? [],
+  cachedNodeCount: row.cachedNodeCount ?? 0,
+  totalAccessCount,
   lastAccessAt: row.lastAccessAt?.toISOString() ?? null,
   createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
   updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
@@ -94,6 +99,23 @@ export class ProxySubscribeService {
       return authorizedUserIds.includes(userId);
     });
 
+    // 批量获取所有订阅的访问次数
+    const subscribeIds = filteredSubscribes.map((r) => r.subscribe.id);
+    const accessCounts: Record<string, number> = {};
+    if (subscribeIds.length > 0) {
+      const counts = await db
+        .select({
+          subscribeId: proxyAccessLogs.subscribeId,
+          count: count(),
+        })
+        .from(proxyAccessLogs)
+        .where(inArray(proxyAccessLogs.subscribeId, subscribeIds))
+        .groupBy(proxyAccessLogs.subscribeId);
+      for (const c of counts) {
+        accessCounts[c.subscribeId] = Number(c.count);
+      }
+    }
+
     // 获取所有授权用户信息
     const result: ProxySubscribeWithUser[] = [];
     for (const row of filteredSubscribes) {
@@ -111,6 +133,7 @@ export class ProxySubscribeService {
           row.subscribe,
           row.user ?? { id: row.subscribe.userId, name: "Unknown", email: "" },
           authorizedUsers,
+          accessCounts[row.subscribe.id] ?? 0,
         ),
       );
     }

@@ -908,6 +908,8 @@ export const jaJP = {
         clashUrl: "Clash サブスクリプションURL",
         singboxUrl: "Sing-box サブスクリプションURL",
         lastUpdate: "最終更新",
+        nodeCount: "ノード数",
+        accessCount: "アクセス数",
         actions: "操作",
       },
       actions: {
@@ -915,6 +917,11 @@ export const jaJP = {
         preview: "ノードプレビュー",
         edit: "編集",
         delete: "削除",
+      },
+      links: {
+        title: "サブスクリプションリンク",
+        copy: "コピー",
+        open: "開く",
       },
       tabs: {
         basic: "基本情報",
