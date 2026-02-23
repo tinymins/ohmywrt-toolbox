@@ -8,6 +8,7 @@ import {
   Button,
   Form,
   Input,
+  InputNumber,
   Modal,
   message,
   Segmented,
@@ -179,6 +180,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
       form.setFieldsValue({
         remark: existingData.remark ?? "",
         subscribeUrl: existingData.subscribeUrl ?? "",
+        cacheTtlMinutes: existingData.cacheTtlMinutes ?? null,
         ruleList: existingData.ruleList ?? "",
         group: existingData.group ?? "",
         filter: existingData.filter ?? "",
@@ -232,6 +234,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           customConfig: values.customConfig || null,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
+          cacheTtlMinutes: values.cacheTtlMinutes ?? null,
         };
 
         if (id) {
@@ -338,6 +341,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 >
                   <JsoncEditor
                     placeholder={t("proxy.form.subscribeUrlPlaceholder")}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label={t("proxy.form.cacheTtlLabel")}
+                  name="cacheTtlMinutes"
+                  tooltip={t("proxy.form.cacheTtlTooltip")}
+                >
+                  <InputNumber
+                    min={0}
+                    max={1440}
+                    placeholder={t("proxy.form.cacheTtlPlaceholder")}
+                    suffix={t("proxy.form.cacheTtlUnit")}
+                    style={{ width: 260 }}
                   />
                 </Form.Item>
               </div>

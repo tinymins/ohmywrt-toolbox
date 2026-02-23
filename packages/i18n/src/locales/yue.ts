@@ -931,6 +931,9 @@ export const yue = {
         afterFilter: "過濾後",
         sourceUrl: "來源地址",
         noManualServers: "冇額外服務器",
+        dataSource: "數據來源",
+        cached: "緩存",
+        liveFetch: "即時拉取",
       },
       tabs: {
         basic: "基本資訊",
@@ -967,6 +970,11 @@ export const yue = {
         resetToDefault: "恢復預設",
         resetSuccess: "已恢復為預設配置",
         resetFailed: "攞唔到預設配置",
+        cacheTtlLabel: "訂閱緩存時間",
+        cacheTtlPlaceholder: "留空或 0 表示唔緩存",
+        cacheTtlTooltip:
+          "設定之後，拉取上游訂閱地址嘅結果會緩存指定時間，避免頻繁請求俾上游封咗",
+        cacheTtlUnit: "分鐘",
       },
       preview: {
         title: "節點預覽",

@@ -235,6 +235,13 @@ export const SourceResultStepContent = ({
         <Descriptions.Item label={t("proxy.debug.detectedFormat")}>
           <Tag color="processing">{data.format}</Tag>
         </Descriptions.Item>
+        <Descriptions.Item label={t("proxy.debug.dataSource")}>
+          {data.cached ? (
+            <Tag color="green">{t("proxy.debug.cached")}</Tag>
+          ) : (
+            <Tag color="blue">{t("proxy.debug.liveFetch")}</Tag>
+          )}
+        </Descriptions.Item>
         <Descriptions.Item label={t("proxy.debug.fetchDuration")}>
           {data.fetchDurationMs}ms
         </Descriptions.Item>

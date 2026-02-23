@@ -741,6 +741,9 @@ export const enUS: TranslationSchema = {
         afterFilter: "After Filter",
         sourceUrl: "Source URL",
         noManualServers: "No manual servers",
+        dataSource: "Data Source",
+        cached: "Cached",
+        liveFetch: "Live Fetch",
       },
       tabs: {
         basic: "Basic Info",
@@ -777,6 +780,11 @@ export const enUS: TranslationSchema = {
         resetToDefault: "Reset to Default",
         resetSuccess: "Reset to default configuration",
         resetFailed: "Failed to get default configuration",
+        cacheTtlLabel: "Cache Duration",
+        cacheTtlPlaceholder: "Empty or 0 means no cache",
+        cacheTtlTooltip:
+          "When set, upstream subscription responses are cached for the specified duration to avoid being blocked by upstream",
+        cacheTtlUnit: "min",
       },
       preview: {
         title: "Node Preview",

@@ -1010,6 +1010,9 @@ export const deDE = {
         afterFilter: "Nach Filter",
         sourceUrl: "Quell-URL",
         noManualServers: "Keine manuellen Server",
+        dataSource: "Datenquelle",
+        cached: "Zwischengespeichert",
+        liveFetch: "Live-Abruf",
       },
       tabs: {
         basic: "Grundlegende Infos",
@@ -1050,6 +1053,11 @@ export const deDE = {
         resetToDefault: "Auf Standard zurücksetzen",
         resetSuccess: "Auf Standardkonfiguration zurückgesetzt",
         resetFailed: "Standardkonfiguration konnte nicht abgerufen werden",
+        cacheTtlLabel: "Cache-Dauer",
+        cacheTtlPlaceholder: "Leer oder 0 bedeutet kein Cache",
+        cacheTtlTooltip:
+          "Wenn gesetzt, werden Upstream-Abonnement-Antworten für die angegebene Dauer zwischengespeichert, um Blockierungen zu vermeiden",
+        cacheTtlUnit: "Min.",
       },
       preview: {
         title: "Knoten-Vorschau",

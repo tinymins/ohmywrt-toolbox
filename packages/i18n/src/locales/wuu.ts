@@ -921,6 +921,9 @@ export const wuu = {
         afterFilter: "过滤后",
         sourceUrl: "来源地址",
         noManualServers: "没有额外服务器",
+        dataSource: "数据来源",
+        cached: "缓存",
+        liveFetch: "实时拉取",
       },
       tabs: {
         basic: "基础信息",
@@ -957,6 +960,11 @@ export const wuu = {
         resetToDefault: "恢复默认",
         resetSuccess: "已恢复为默认配置",
         resetFailed: "获取默认配置失败",
+        cacheTtlLabel: "订阅缓存辰光",
+        cacheTtlPlaceholder: "留空或 0 表示弗缓存",
+        cacheTtlTooltip:
+          "设定后，拉取上游订阅地址个结果会缓存指定辰光，免得频繁请求拨上游封脱",
+        cacheTtlUnit: "分钟",
       },
       preview: {
         title: "节点预览",

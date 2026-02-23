@@ -140,6 +140,8 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
   customConfig: text("custom_config"),
   // 授权用户ID列表
   authorizedUserIds: jsonb("authorized_user_ids").$type<string[]>().default([]),
+  // 订阅缓存时间（分钟），null 或 0 表示不缓存
+  cacheTtlMinutes: integer("cache_ttl_minutes"),
   // 缓存的节点数量（每次 fetch 订阅时更新）
   cachedNodeCount: integer("cached_node_count").default(0),
   // 最后访问时间

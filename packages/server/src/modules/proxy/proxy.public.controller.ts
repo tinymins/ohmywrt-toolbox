@@ -24,6 +24,7 @@ import {
   parseBase64Subscription,
 } from "./lib/subscription-parser";
 import type { SingBoxRule, Singbox } from "./lib/types";
+import { subscriptionCache } from "./lib/subscription-cache";
 import { proxySubscribeService } from "./proxy.service";
 
 /** 安全解析 JSONC 字符串 */
@@ -66,6 +67,7 @@ export class ProxyPublicController {
     // 获取远程订阅（从 JSONC 字符串解析）
     const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
     const filters = safeParseJsonc<string[]>(subscribe.filter, []);
+    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
 
     if (subscribeUrls.length > 0) {
       const results = await Promise.all(
@@ -73,8 +75,23 @@ export class ProxyPublicController {
           .filter((url) => typeof url === "string" && url)
           .map(async (url) => {
             try {
-              const response = await fetch(url);
-              const text = await response.text();
+              // 检查缓存
+              const cached = subscriptionCache.get(url, cacheTtl);
+              let text: string;
+              if (cached) {
+                text = cached.text;
+              } else {
+                const response = await fetch(url);
+                text = await response.text();
+                // 写入缓存
+                if (cacheTtl && cacheTtl > 0) {
+                  subscriptionCache.set(url, {
+                    text,
+                    headers: {},
+                    status: response.status,
+                  });
+                }
+              }
               // 支持 Base64 编码的订阅格式
               if (isBase64Subscription(text)) {
                 return { proxies: parseBase64Subscription(text) };

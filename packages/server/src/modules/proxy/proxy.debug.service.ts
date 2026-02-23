@@ -20,6 +20,7 @@ import {
   parseBase64Subscription,
 } from "./lib/subscription-parser";
 import type { SingBoxRule } from "./lib/types";
+import { subscriptionCache } from "./lib/subscription-cache";
 import { proxySubscribeService } from "./proxy.service";
 
 /** 安全解析 JSONC 字符串 */
@@ -137,6 +138,7 @@ export class ProxyDebugService {
     // ──────────────────────────────────────────
     let totalBeforeFilter = manualNodes.length;
     let totalFiltered = 0;
+    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
 
     for (let i = 0; i < subscribeUrls.length; i++) {
       const url = subscribeUrls[i];
@@ -159,24 +161,43 @@ export class ProxyDebugService {
       const filteredNodes: { node: ProxyPreviewNode; matchedRule: string }[] =
         [];
       let error: string | null = null;
+      let isCached = false;
 
       try {
-        const response = await fetch(url);
-        httpStatus = response.status;
+        // 检查缓存
+        const cachedEntry = subscriptionCache.get(url, cacheTtl);
+        if (cachedEntry) {
+          isCached = true;
+          httpStatus = cachedEntry.status;
+          Object.assign(httpHeaders, cachedEntry.headers);
+          rawText = cachedEntry.text;
+        } else {
+          const response = await fetch(url);
+          httpStatus = response.status;
 
-        // 收集关键响应头
-        for (const key of [
-          "content-type",
-          "content-length",
-          "subscription-userinfo",
-          "profile-update-interval",
-          "content-disposition",
-        ]) {
-          const val = response.headers.get(key);
-          if (val) httpHeaders[key] = val;
+          // 收集关键响应头
+          for (const key of [
+            "content-type",
+            "content-length",
+            "subscription-userinfo",
+            "profile-update-interval",
+            "content-disposition",
+          ]) {
+            const val = response.headers.get(key);
+            if (val) httpHeaders[key] = val;
+          }
+
+          rawText = await response.text();
+
+          // 写入缓存
+          if (cacheTtl && cacheTtl > 0) {
+            subscriptionCache.set(url, {
+              text: rawText,
+              headers: { ...httpHeaders },
+              status: httpStatus,
+            });
+          }
         }
-
-        rawText = await response.text();
 
         // 检测格式
         let proxies: any[] = [];
@@ -250,6 +271,7 @@ export class ProxyDebugService {
           filteredNodes,
           error,
           fetchDurationMs,
+          cached: isCached,
         },
       };
     }

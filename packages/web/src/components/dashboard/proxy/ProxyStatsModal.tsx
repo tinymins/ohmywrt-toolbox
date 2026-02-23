@@ -138,9 +138,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           "sing-box-v12": "cyan",
         };
         return (
-          <Tag color={colorMap[type] ?? "default"}>
-            {type.toUpperCase()}
-          </Tag>
+          <Tag color={colorMap[type] ?? "default"}>{type.toUpperCase()}</Tag>
         );
       },
     },

@@ -1005,6 +1005,9 @@ export const zhTW = {
         afterFilter: "篩選後",
         sourceUrl: "來源網址",
         noManualServers: "無額外伺服器",
+        dataSource: "資料來源",
+        cached: "快取",
+        liveFetch: "即時拉取",
       },
       tabs: {
         basic: "基礎資訊",
@@ -1041,6 +1044,11 @@ export const zhTW = {
         resetToDefault: "恢復預設",
         resetSuccess: "已恢復為預設配置",
         resetFailed: "取得預設配置失敗",
+        cacheTtlLabel: "訂閱快取時間",
+        cacheTtlPlaceholder: "留空或 0 表示不快取",
+        cacheTtlTooltip:
+          "設定後，拉取上游訂閱地址的結果將被快取指定時間，避免頻繁請求導致被上游封鎖",
+        cacheTtlUnit: "分鐘",
       },
       preview: {
         title: "節點預覽",

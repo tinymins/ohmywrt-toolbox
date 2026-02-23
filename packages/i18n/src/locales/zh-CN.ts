@@ -722,6 +722,9 @@ export const zhCN = {
         afterFilter: "过滤后",
         sourceUrl: "来源地址",
         noManualServers: "没有额外服务器",
+        dataSource: "数据来源",
+        cached: "缓存",
+        liveFetch: "实时拉取",
       },
       tabs: {
         basic: "基础信息",
@@ -758,6 +761,11 @@ export const zhCN = {
         resetToDefault: "恢复默认",
         resetSuccess: "已恢复为默认配置",
         resetFailed: "获取默认配置失败",
+        cacheTtlLabel: "订阅缓存时间",
+        cacheTtlPlaceholder: "留空或 0 表示不缓存",
+        cacheTtlTooltip:
+          "设置后，拉取上游订阅地址的结果将被缓存指定时间，避免频繁请求导致被上游封禁",
+        cacheTtlUnit: "分钟",
       },
       preview: {
         title: "节点预览",

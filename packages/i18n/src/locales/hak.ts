@@ -930,6 +930,9 @@ export const hak = {
         afterFilter: "過濾後",
         sourceUrl: "來源地址",
         noManualServers: "無額外服務器",
+        dataSource: "數據來源",
+        cached: "緩存",
+        liveFetch: "實時拉取",
       },
       tabs: {
         basic: "基礎信息",
@@ -966,6 +969,11 @@ export const hak = {
         resetToDefault: "恢復默認",
         resetSuccess: "已恢復為默認配置",
         resetFailed: "獲取默認配置失敗",
+        cacheTtlLabel: "訂閱緩存時間",
+        cacheTtlPlaceholder: "留空或 0 表示毋使緩存",
+        cacheTtlTooltip:
+          "設定後，拉取上游訂閱地址嘅結果會緩存指定時間，避免頻繁請求導致分上游封禁",
+        cacheTtlUnit: "分鐘",
       },
       preview: {
         title: "節點預覽",

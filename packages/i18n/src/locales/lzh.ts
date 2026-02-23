@@ -953,6 +953,9 @@ export const lzh = {
         afterFilter: "濾後",
         sourceUrl: "源址",
         noManualServers: "無額外服務器",
+        dataSource: "數據來源",
+        cached: "緩存",
+        liveFetch: "即時取",
       },
       tabs: {
         basic: "基礎",
@@ -989,6 +992,10 @@ export const lzh = {
         resetToDefault: "恢復默認",
         resetSuccess: "已恢復為默認配置",
         resetFailed: "獲取默認配置失敗",
+        cacheTtlLabel: "訂閱緩存時",
+        cacheTtlPlaceholder: "空或零則不緩存",
+        cacheTtlTooltip: "設之則上游訂閱之應答緩存指定時，免頻繁請求致被封",
+        cacheTtlUnit: "分",
       },
       preview: {
         title: "節點預覽",

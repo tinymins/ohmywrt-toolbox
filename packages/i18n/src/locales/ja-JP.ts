@@ -967,6 +967,9 @@ export const jaJP = {
         afterFilter: "フィルター後",
         sourceUrl: "ソースURL",
         noManualServers: "手動サーバーなし",
+        dataSource: "データソース",
+        cached: "キャッシュ",
+        liveFetch: "リアルタイム取得",
       },
       tabs: {
         basic: "基本情報",
@@ -1003,6 +1006,11 @@ export const jaJP = {
         resetToDefault: "デフォルトに戻す",
         resetSuccess: "デフォルト設定に戻しました",
         resetFailed: "デフォルト設定の取得に失敗しました",
+        cacheTtlLabel: "キャッシュ時間",
+        cacheTtlPlaceholder: "空または0はキャッシュなし",
+        cacheTtlTooltip:
+          "設定すると、上流サブスクリプションの応答が指定時間キャッシュされ、頻繁なリクエストによるブロックを防ぎます",
+        cacheTtlUnit: "分",
       },
       preview: {
         title: "ノードプレビュー",

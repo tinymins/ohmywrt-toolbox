@@ -22,6 +22,7 @@ import {
   isBase64Subscription,
   parseBase64Subscription,
 } from "./lib/subscription-parser";
+import { subscriptionCache } from "./lib/subscription-cache";
 
 type ProxySubscribeRow = typeof proxySubscribes.$inferSelect;
 type UserRow = Pick<typeof users.$inferSelect, "id" | "name" | "email">;
@@ -39,6 +40,7 @@ export interface ProxySubscribeWithUser {
   servers: string | null;
   customConfig: string | null;
   authorizedUserIds: string[];
+  cacheTtlMinutes: number | null;
   cachedNodeCount: number;
   totalAccessCount: number;
   lastAccessAt: string | null;
@@ -66,6 +68,7 @@ const toProxySubscribeOutput = (
   servers: row.servers,
   customConfig: row.customConfig,
   authorizedUserIds: (row.authorizedUserIds as string[] | null) ?? [],
+  cacheTtlMinutes: row.cacheTtlMinutes ?? null,
   cachedNodeCount: row.cachedNodeCount ?? 0,
   totalAccessCount,
   lastAccessAt: row.lastAccessAt?.toISOString() ?? null,
@@ -204,6 +207,7 @@ export class ProxySubscribeService {
         servers: input.servers ?? null,
         customConfig: input.customConfig ?? null,
         authorizedUserIds: input.authorizedUserIds ?? [],
+        cacheTtlMinutes: input.cacheTtlMinutes ?? null,
       })
       .returning();
 
@@ -249,6 +253,8 @@ export class ProxySubscribeService {
     if (input.servers !== undefined) updateData.servers = input.servers;
     if (input.customConfig !== undefined)
       updateData.customConfig = input.customConfig;
+    if (input.cacheTtlMinutes !== undefined)
+      updateData.cacheTtlMinutes = input.cacheTtlMinutes;
     // 只有创建者可以修改授权用户列表
     if (input.authorizedUserIds !== undefined && isOwner) {
       updateData.authorizedUserIds = input.authorizedUserIds;
@@ -535,8 +541,24 @@ export class ProxySubscribeService {
       if (typeof url !== "string" || !url) continue;
 
       try {
-        const response = await fetch(url);
-        const text = await response.text();
+        // 检查缓存
+        const cacheTtl = subscribe.cacheTtlMinutes ?? null;
+        const cached = subscriptionCache.get(url, cacheTtl);
+        let text: string;
+        if (cached) {
+          text = cached.text;
+        } else {
+          const response = await fetch(url);
+          text = await response.text();
+          // 写入缓存
+          if (cacheTtl && cacheTtl > 0) {
+            subscriptionCache.set(url, {
+              text,
+              headers: {},
+              status: response.status,
+            });
+          }
+        }
         let proxies: any[] = [];
 
         // 支持 Base64 编码的订阅格式

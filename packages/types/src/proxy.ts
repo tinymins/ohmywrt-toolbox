@@ -52,6 +52,8 @@ export const ProxySubscribeSchema = z.object({
   servers: z.string().nullable(),
   customConfig: z.string().nullable(),
   authorizedUserIds: z.array(z.string()),
+  /** 订阅缓存时间（分钟），null 或 0 表示不缓存 */
+  cacheTtlMinutes: z.number().nullable(),
   lastAccessAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -92,6 +94,7 @@ export const CreateProxySubscribeInputSchema = z.object({
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional().default([]),
+  cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
 
 export type CreateProxySubscribeInput = z.infer<
@@ -108,6 +111,7 @@ export const UpdateProxySubscribeInputSchema = z.object({
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional(),
+  cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
 
 export type UpdateProxySubscribeInput = z.infer<
@@ -247,6 +251,8 @@ export const ProxyDebugSourceResultStepSchema = z.object({
     filteredNodes: z.array(ProxyDebugFilteredNodeSchema),
     error: z.string().nullable(),
     fetchDurationMs: z.number(),
+    /** 是否命中缓存 */
+    cached: z.boolean(),
   }),
 });
 
