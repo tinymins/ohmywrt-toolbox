@@ -176,9 +176,11 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       onCancel={handleClose}
       footer={null}
       width="calc(100vw - 48px)"
+      centered
       destroyOnClose
       styles={{
-        body: { maxHeight: "calc(100vh - 160px)", overflowY: "auto" },
+        wrapper: { overflow: "hidden" },
+        body: { maxHeight: "calc(100vh - 120px)", overflowY: "auto" },
       }}
     >
       {error && (
