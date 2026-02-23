@@ -1,4 +1,4 @@
-import { Controller, Get, Res, Logger } from "@nestjs/common";
+import { Controller, Get, Logger, Res } from "@nestjs/common";
 import type { Response } from "express";
 import { networkService } from "./network.service";
 

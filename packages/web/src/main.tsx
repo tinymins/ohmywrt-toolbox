@@ -1,7 +1,11 @@
 import "./index.css";
 
 import { StyleProvider } from "@ant-design/cssinjs";
-import { httpBatchLink } from "@trpc/client";
+import {
+  httpBatchLink,
+  splitLink,
+  unstable_httpSubscriptionLink,
+} from "@trpc/client";
 import { App as AntdApp, theme as antdTheme, ConfigProvider } from "antd";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -25,20 +29,28 @@ const getWorkspaceFromPath = () => {
   return match?.[1];
 };
 
+const trpcUrl = import.meta.env.VITE_TRPC_URL || "/trpc";
+
 const trpcClient = trpc.createClient({
   links: [
-    httpBatchLink({
-      url: import.meta.env.VITE_TRPC_URL || "/trpc",
-      fetch(url, options) {
-        return fetch(url, { ...options, credentials: "include" });
-      },
-      headers() {
-        const workspaceSlug = getWorkspaceFromPath();
-        return {
-          ...(workspaceSlug ? { "x-workspace-id": workspaceSlug } : {}),
-          "x-lang": i18n.resolvedLanguage ?? i18n.language ?? "zh-CN",
-        };
-      },
+    splitLink({
+      condition: (op) => op.type === "subscription",
+      true: unstable_httpSubscriptionLink({
+        url: trpcUrl,
+      }),
+      false: httpBatchLink({
+        url: trpcUrl,
+        fetch(url, options) {
+          return fetch(url, { ...options, credentials: "include" });
+        },
+        headers() {
+          const workspaceSlug = getWorkspaceFromPath();
+          return {
+            ...(workspaceSlug ? { "x-workspace-id": workspaceSlug } : {}),
+            "x-lang": i18n.resolvedLanguage ?? i18n.language ?? "zh-CN",
+          };
+        },
+      }),
     }),
   ],
 });

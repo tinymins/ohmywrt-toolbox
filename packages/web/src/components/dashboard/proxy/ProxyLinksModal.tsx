@@ -1,18 +1,29 @@
-import { useImperativeHandle, forwardRef, useState } from "react";
-import { Modal, Typography, Space, Button, message, Tag } from "antd";
+import type { ProxyDebugFormat } from "@acme/types";
 import {
+  ApiOutlined,
+  BugOutlined,
   CopyOutlined,
   ExportOutlined,
-  LinkOutlined,
   GlobalOutlined,
-  ApiOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
+import { Button, Modal, message, Space, Tag, Typography } from "antd";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import ProxyDebugModal, { type ProxyDebugModalRef } from "./ProxyDebugModal";
 
 const { Text, Paragraph } = Typography;
 
+/** Map link item key to debug format */
+const DEBUG_FORMAT_MAP: Record<string, ProxyDebugFormat> = {
+  clash: "clash",
+  clashMeta: "clash-meta",
+  "singbox-v11": "sing-box",
+  "singbox-v12": "sing-box-v12",
+};
+
 export interface ProxyLinksModalRef {
-  open: (uuid: string, remark?: string | null) => void;
+  open: (uuid: string, remark?: string | null, subscribeId?: string) => void;
 }
 
 const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
@@ -21,11 +32,14 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const [visible, setVisible] = useState(false);
   const [uuid, setUuid] = useState("");
   const [remark, setRemark] = useState<string | null>(null);
+  const [subscribeId, setSubscribeId] = useState<string>("");
+  const debugModalRef = useRef<ProxyDebugModalRef>(null);
 
   useImperativeHandle(ref, () => ({
-    open: (uuid: string, remark?: string | null) => {
+    open: (uuid: string, remark?: string | null, subscribeId?: string) => {
       setUuid(uuid);
       setRemark(remark ?? null);
+      setSubscribeId(subscribeId ?? "");
       setVisible(true);
     },
   }));
@@ -80,6 +94,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   return (
     <>
       {contextHolder}
+      <ProxyDebugModal ref={debugModalRef} />
       <Modal
         title={
           <Space>
@@ -134,6 +149,22 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
                   >
                     {t("proxy.links.open")}
                   </Button>
+                  {subscribeId && (
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<BugOutlined style={{ color: "#f59e0b" }} />}
+                      style={{ color: "#f59e0b" }}
+                      onClick={() =>
+                        debugModalRef.current?.open(
+                          subscribeId,
+                          DEBUG_FORMAT_MAP[item.key],
+                        )
+                      }
+                    >
+                      {t("proxy.links.debug")}
+                    </Button>
+                  )}
                 </Space>
               </div>
               <Paragraph

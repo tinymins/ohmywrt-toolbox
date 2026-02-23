@@ -1,22 +1,22 @@
-import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, or, sql, gte, count } from "drizzle-orm";
-import WebSocket from "ws";
 import net from "node:net";
-import * as yaml from "yaml";
-import { parse as parseJsonc } from "jsonc-parser";
-import { db } from "../../db/client";
-import { proxySubscribes, proxyAccessLogs, users } from "../../db/schema";
 import type {
   CreateProxySubscribeInput,
-  UpdateProxySubscribeInput,
   ProxyPreviewNode,
+  UpdateProxySubscribeInput,
 } from "@acme/types";
+import { TRPCError } from "@trpc/server";
+import { and, count, eq, gte, inArray, sql } from "drizzle-orm";
+import { parse as parseJsonc } from "jsonc-parser";
+import WebSocket from "ws";
+import * as yaml from "yaml";
+import { db } from "../../db/client";
+import { proxyAccessLogs, proxySubscribes, users } from "../../db/schema";
 import {
   appendIcon,
+  DEFAULT_CUSTOM_CONFIG,
+  DEFAULT_FILTER,
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
-  DEFAULT_FILTER,
-  DEFAULT_CUSTOM_CONFIG,
 } from "./lib/config";
 import {
   isBase64Subscription,
@@ -510,7 +510,7 @@ export class ProxySubscribeService {
       } else {
         proxy = item;
       }
-      if (proxy && proxy.name) {
+      if (proxy?.name) {
         nodes.push({
           name: this.appendIcon(proxy.name),
           type: proxy.type || "unknown",
@@ -549,9 +549,7 @@ export class ProxySubscribeService {
 
         // 遍历所有节点，标记被过滤的
         for (const proxy of proxies) {
-          const matchedFilter = filters.find(
-            (f) => proxy.name && proxy.name.includes(f),
-          );
+          const matchedFilter = filters.find((f) => proxy.name?.includes(f));
           nodes.push({
             name: this.appendIcon(proxy.name || ""),
             type: proxy.type || "unknown",

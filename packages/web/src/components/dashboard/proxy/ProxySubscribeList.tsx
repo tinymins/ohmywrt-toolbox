@@ -1,35 +1,35 @@
-import { useState, useRef } from "react";
 import {
-  Table,
-  Button,
-  Space,
-  Popconfirm,
-  Typography,
-  message,
-  Spin,
-  Tooltip,
-  Card,
-  Tag,
-} from "antd";
-import {
-  PlusOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
   BarChartOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  EyeOutlined,
   LinkOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
-import { useTranslation } from "react-i18next";
+import {
+  Button,
+  Card,
+  message,
+  Popconfirm,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import dayjs from "dayjs";
+import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
-import ProxySubscribeModal, {
-  type ProxySubscribeModalRef,
-} from "./ProxySubscribeModal";
+import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
 import ProxyPreviewModal, {
   type ProxyPreviewModalRef,
 } from "./ProxyPreviewModal";
 import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
-import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
+import ProxySubscribeModal, {
+  type ProxySubscribeModalRef,
+} from "./ProxySubscribeModal";
 
 const { Text } = Typography;
 
@@ -91,8 +91,6 @@ export default function ProxySubscribeList() {
     },
   });
 
-
-
   return (
     <div>
       {contextHolder}
@@ -143,7 +141,8 @@ export default function ProxySubscribeList() {
                         {t("proxy.columns.nodeCount")}: {record.cachedNodeCount}
                       </Tag>
                       <Tag color="green">
-                        {t("proxy.columns.accessCount")}: {record.totalAccessCount}
+                        {t("proxy.columns.accessCount")}:{" "}
+                        {record.totalAccessCount}
                       </Tag>
                     </div>
                   </div>
@@ -155,7 +154,11 @@ export default function ProxySubscribeList() {
                       size="small"
                       icon={<LinkOutlined />}
                       onClick={() =>
-                        linksModalRef.current?.open(record.url, record.remark)
+                        linksModalRef.current?.open(
+                          record.url,
+                          record.remark,
+                          record.id,
+                        )
                       }
                     />
                     <Button
@@ -233,18 +236,14 @@ export default function ProxySubscribeList() {
                 dataIndex: "cachedNodeCount",
                 width: 90,
                 align: "center",
-                render: (val: number) => (
-                  <Tag color="blue">{val}</Tag>
-                ),
+                render: (val: number) => <Tag color="blue">{val}</Tag>,
               },
               {
                 title: t("proxy.columns.accessCount"),
                 dataIndex: "totalAccessCount",
                 width: 90,
                 align: "center",
-                render: (val: number) => (
-                  <Tag color="green">{val}</Tag>
-                ),
+                render: (val: number) => <Tag color="green">{val}</Tag>,
               },
               {
                 title: t("proxy.columns.lastUpdate"),
@@ -270,6 +269,7 @@ export default function ProxySubscribeList() {
                           linksModalRef.current?.open(
                             record.url,
                             record.remark,
+                            record.id,
                           )
                         }
                       />

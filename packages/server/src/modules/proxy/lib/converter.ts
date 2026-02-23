@@ -1,7 +1,6 @@
 import * as yaml from "yaml";
 import {
   type Clash,
-  ClashSchema,
   type ClashProxyBaseVmessOrVLESS,
   type ClashProxyHttp,
   type ClashProxyHysteria,
@@ -10,19 +9,20 @@ import {
   type ClashProxySocks5,
   type ClashProxyTrojan,
   type ClashProxyTUIC,
-  type ClashProxyVmess,
   type ClashProxyVLESS,
+  type ClashProxyVmess,
+  ClashSchema,
   type SingboxOutboundCommonVmessOrVLESSTransport,
   type SingboxOutboundHttp,
   type SingboxOutboundHysteria,
   type SingboxOutboundHysteria2,
   type SingboxOutboundShadowsocks,
   type SingboxOutboundSocks,
+  type SingboxOutbounds,
   type SingboxOutboundTrojan,
   type SingboxOutboundTUIC,
-  type SingboxOutboundVmess,
   type SingboxOutboundVLESS,
-  type SingboxOutbounds,
+  type SingboxOutboundVmess,
 } from "./types";
 
 /**
@@ -36,7 +36,7 @@ export function convertClashToSingbox(
     clash = ClashSchema.parse(
       typeof input === "string" ? yaml.parse(input) : input,
     );
-  } catch (e) {
+  } catch (_e) {
     // 如果验证失败，尝试直接使用 proxies 数组
     const rawData = typeof input === "string" ? yaml.parse(input) : input;
     if (rawData?.proxies && Array.isArray(rawData.proxies)) {

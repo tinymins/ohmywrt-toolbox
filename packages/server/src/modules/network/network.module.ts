@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { NetworkService } from "./network.service";
 import { NetworkPublicController } from "./network.public.controller";
+import { NetworkService } from "./network.service";
 
 @Module({
   providers: [NetworkService],

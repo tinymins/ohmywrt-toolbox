@@ -1,3 +1,13 @@
+import {
+  CreateProxySubscribeInputSchema,
+  DeleteProxySubscribeInputSchema,
+  ProxyDebugInputSchema,
+  ProxyDebugStepSchema,
+  ProxyPreviewInputSchema,
+  ProxyPreviewOutputSchema,
+  ProxyRuleTestInputSchema,
+  UpdateProxySubscribeInputSchema,
+} from "@acme/types";
 import { Logger } from "@nestjs/common";
 import { z } from "zod";
 import type { Context } from "../../trpc/context";
@@ -6,19 +16,12 @@ import {
   Mutation,
   Query,
   Router,
+  Subscription,
   UseMiddlewares,
 } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
-import { proxySubscribeService, proxyRuleService } from "./proxy.service";
-import {
-  ProxySubscribeWithUserSchema,
-  CreateProxySubscribeInputSchema,
-  UpdateProxySubscribeInputSchema,
-  DeleteProxySubscribeInputSchema,
-  ProxyRuleTestInputSchema,
-  ProxyPreviewInputSchema,
-  ProxyPreviewOutputSchema,
-} from "@acme/types";
+import { proxyDebugService } from "./proxy.debug.service";
+import { proxyRuleService, proxySubscribeService } from "./proxy.service";
 
 // 简化的用户 schema
 const SimpleUserSchema = z.object({
@@ -213,5 +216,22 @@ export class ProxyRouter {
   })
   async getDefaults() {
     return proxySubscribeService.getDefaults();
+  }
+
+  /** 调试订阅（流式返回每个步骤） */
+  @UseMiddlewares(requireUser)
+  @Subscription({
+    input: ProxyDebugInputSchema,
+    output: ProxyDebugStepSchema,
+  })
+  async *debugSubscription(
+    input: z.infer<typeof ProxyDebugInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
+    yield* proxyDebugService.debugSubscription(
+      input.id,
+      ctx.userId!,
+      input.format,
+    );
   }
 }

@@ -1,3 +1,3 @@
 export * from "./proxy.module";
-export * from "./proxy.service";
 export * from "./proxy.router";
+export * from "./proxy.service";

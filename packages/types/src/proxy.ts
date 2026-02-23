@@ -171,3 +171,124 @@ export const ProxyPreviewOutputSchema = z.object({
 });
 
 export type ProxyPreviewOutput = z.infer<typeof ProxyPreviewOutputSchema>;
+
+// ============================================
+// 订阅调试（流式）
+// ============================================
+
+/** 调试目标格式 */
+export const ProxyDebugFormatSchema = z.enum([
+  "clash",
+  "clash-meta",
+  "sing-box",
+  "sing-box-v12",
+]);
+
+export type ProxyDebugFormat = z.infer<typeof ProxyDebugFormatSchema>;
+
+/** 调试输入 */
+export const ProxyDebugInputSchema = z.object({
+  id: z.string(),
+  format: ProxyDebugFormatSchema,
+});
+
+export type ProxyDebugInput = z.infer<typeof ProxyDebugInputSchema>;
+
+/** 被过滤的节点信息 */
+export const ProxyDebugFilteredNodeSchema = z.object({
+  node: ProxyPreviewNodeSchema,
+  matchedRule: z.string(),
+});
+
+/** Step: 配置解析完成 */
+export const ProxyDebugConfigStepSchema = z.object({
+  type: z.literal("config"),
+  data: z.object({
+    subscribeUrls: z.array(z.string()),
+    filters: z.array(z.string()),
+    groups: z.array(ProxyGroupSchema),
+    ruleProviders: ProxyRuleProvidersListSchema,
+    customConfig: z.array(z.unknown()),
+    servers: z.array(z.unknown()),
+  }),
+});
+
+/** Step: 手动服务器解析完成 */
+export const ProxyDebugManualServersStepSchema = z.object({
+  type: z.literal("manual-servers"),
+  data: z.object({
+    count: z.number(),
+    nodes: z.array(ProxyPreviewNodeSchema),
+  }),
+});
+
+/** Step: 开始获取远程订阅源 */
+export const ProxyDebugSourceStartStepSchema = z.object({
+  type: z.literal("source-start"),
+  data: z.object({
+    sourceIndex: z.number(),
+    url: z.string(),
+  }),
+});
+
+/** Step: 远程订阅源获取完成 */
+export const ProxyDebugSourceResultStepSchema = z.object({
+  type: z.literal("source-result"),
+  data: z.object({
+    sourceIndex: z.number(),
+    url: z.string(),
+    httpStatus: z.number().nullable(),
+    httpHeaders: z.record(z.string(), z.string()),
+    rawText: z.string(),
+    format: z.enum(["base64", "yaml", "unknown"]),
+    parsedNodeCount: z.number(),
+    nodesBeforeFilter: z.array(ProxyPreviewNodeSchema),
+    nodesAfterFilter: z.array(ProxyPreviewNodeSchema),
+    filteredNodes: z.array(ProxyDebugFilteredNodeSchema),
+    error: z.string().nullable(),
+    fetchDurationMs: z.number(),
+  }),
+});
+
+/** Step: 节点合并完成 */
+export const ProxyDebugMergeStepSchema = z.object({
+  type: z.literal("merge"),
+  data: z.object({
+    totalNodesBeforeFilter: z.number(),
+    totalNodesAfterFilter: z.number(),
+    totalFiltered: z.number(),
+    finalNodeNames: z.array(z.string()),
+  }),
+});
+
+/** Step: 配置组装完成 */
+export const ProxyDebugOutputStepSchema = z.object({
+  type: z.literal("output"),
+  data: z.object({
+    proxyGroupCount: z.number(),
+    ruleCount: z.number(),
+    ruleProviderCount: z.number(),
+    configOutput: z.string(),
+  }),
+});
+
+/** Step: 全部完成 */
+export const ProxyDebugDoneStepSchema = z.object({
+  type: z.literal("done"),
+  data: z.object({
+    totalDurationMs: z.number(),
+  }),
+});
+
+/** 调试步骤联合类型 */
+export const ProxyDebugStepSchema = z.discriminatedUnion("type", [
+  ProxyDebugConfigStepSchema,
+  ProxyDebugManualServersStepSchema,
+  ProxyDebugSourceStartStepSchema,
+  ProxyDebugSourceResultStepSchema,
+  ProxyDebugMergeStepSchema,
+  ProxyDebugOutputStepSchema,
+  ProxyDebugDoneStepSchema,
+]);
+
+export type ProxyDebugStep = z.infer<typeof ProxyDebugStepSchema>;

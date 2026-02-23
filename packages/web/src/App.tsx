@@ -14,9 +14,9 @@ import { trpc } from "./lib/trpc";
 import {
   DashboardIndexRedirect,
   DashboardNotFoundPage,
-  ProxySubscribePage,
   LoginPage,
   NotFoundPage,
+  ProxySubscribePage,
   RegisterPage,
   UnauthorizedPage,
   WorkspacePage,

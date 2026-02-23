@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ProxyRouter } from "./proxy.router";
-import { ProxySubscribeService, ProxyRuleService } from "./proxy.service";
+import { ProxyRuleService, ProxySubscribeService } from "./proxy.service";
 
 @Module({
   providers: [ProxySubscribeService, ProxyRuleService, ProxyRouter],

@@ -2,7 +2,7 @@ import "reflect-metadata";
 import type { AnyMiddlewareFunction } from "@trpc/server";
 import type { ZodTypeAny } from "zod";
 
-export type ProcedureKind = "query" | "mutation";
+export type ProcedureKind = "query" | "mutation" | "subscription";
 
 export type ProcedureMeta = {
   kind: ProcedureKind;
@@ -76,6 +76,21 @@ export const Mutation =
       PROCEDURE_META,
       {
         kind: "mutation",
+        input: options?.input,
+        output: options?.output,
+      } satisfies ProcedureMeta,
+      target,
+      key,
+    );
+  };
+
+export const Subscription =
+  (options?: { input?: ZodTypeAny; output?: ZodTypeAny }) =>
+  (target: object, key: string | symbol) => {
+    Reflect.defineMetadata(
+      PROCEDURE_META,
+      {
+        kind: "subscription",
         input: options?.input,
         output: options?.output,
       } satisfies ProcedureMeta,

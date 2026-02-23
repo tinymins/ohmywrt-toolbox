@@ -87,7 +87,11 @@ export const createAppRouter = (resolve?: Resolver): AnyRouter => {
       let procedure = t.procedure;
       if (meta.input)
         procedure = procedure.input(meta.input) as typeof procedure;
-      if (meta.output) procedure = procedure.output(meta.output);
+      // Skip .output() for subscriptions — tRPC v11 validates each yielded value
+      // against the output schema, which is too strict for streaming discriminated unions.
+      // Type safety is still ensured via the generated types file.
+      if (meta.output && meta.kind !== "subscription")
+        procedure = procedure.output(meta.output);
 
       const middlewares = getMiddlewaresMeta(proto, methodName);
       procedure = applyMiddlewares(procedure, middlewares);
@@ -114,6 +118,23 @@ export const createAppRouter = (resolve?: Resolver): AnyRouter => {
             return method.apply(instance, args);
           },
         );
+      }
+
+      if (meta.kind === "subscription") {
+        procedures[methodName] = procedure.subscription(async function* ({
+          ctx,
+          input,
+        }: {
+          ctx: Context;
+          input: unknown;
+        }) {
+          const args = buildHandlerArgs(instance, methodName, input, ctx);
+          const method = instance[methodName] as (
+            ...args: unknown[]
+          ) => AsyncIterable<unknown>;
+          const iterable = method.apply(instance, args);
+          yield* iterable as AsyncIterable<unknown>;
+        });
       }
     }
 

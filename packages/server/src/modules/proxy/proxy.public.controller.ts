@@ -1,30 +1,30 @@
+import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
 import {
+  BadRequestException,
   Controller,
   Get,
+  Logger,
+  NotFoundException,
   Param,
   Query,
   Req,
   Res,
-  BadRequestException,
-  NotFoundException,
-  Logger,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
-import * as yaml from "yaml";
 import { parse as parseJsonc } from "jsonc-parser";
-import { proxySubscribeService } from "./proxy.service";
+import * as yaml from "yaml";
+import {
+  DEFAULT_GROUPS,
+  DEFAULT_RULE_PROVIDERS,
+  SB_DEFAULT_GROUPS,
+} from "./lib/config";
 import { convertClashToSingbox } from "./lib/converter";
 import {
   isBase64Subscription,
   parseBase64Subscription,
 } from "./lib/subscription-parser";
-import {
-  DEFAULT_RULE_PROVIDERS,
-  DEFAULT_GROUPS,
-  SB_DEFAULT_GROUPS,
-} from "./lib/config";
-import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
-import type { Singbox, SingBoxRule } from "./lib/types";
+import type { SingBoxRule, Singbox } from "./lib/types";
+import { proxySubscribeService } from "./proxy.service";
 
 /** 安全解析 JSONC 字符串 */
 const safeParseJsonc = <T>(jsonc: string | null, defaultValue: T): T => {
@@ -90,7 +90,7 @@ export class ProxyPublicController {
       for (const item of results) {
         if (item?.proxies) {
           let filtered = item.proxies.filter(
-            (p: any) => !filters.some((f) => p.name && p.name.includes(f)),
+            (p: any) => !filters.some((f) => p.name?.includes(f)),
           );
           // 排除指定类型
           if (excludeTypes.length > 0) {
@@ -230,7 +230,7 @@ ${yaml.stringify(data)}`);
       const hostHeader = req.get("host") || "localhost:4000";
       let host = hostHeader;
       if (forwardedPort && forwardedPort !== "80" && forwardedPort !== "443") {
-        host = hostHeader.split(":")[0] + ":" + forwardedPort;
+        host = `${hostHeader.split(":")[0]}:${forwardedPort}`;
       }
       const protocol = forwardedProto || (req.secure ? "https" : "http");
       publicServerUrl = `${protocol}://${host}`;
@@ -243,7 +243,7 @@ ${yaml.stringify(data)}`);
     proxies: any[],
     nodes: string[],
     groups: ProxyGroup[],
-    ruleProvidersList: ProxyRuleProvidersList,
+    _ruleProvidersList: ProxyRuleProvidersList,
     ruleProviders: any[],
     publicServerUrl: string,
   ): Singbox {
@@ -414,7 +414,7 @@ ${yaml.stringify(data)}`);
     proxies: any[],
     nodes: string[],
     groups: ProxyGroup[],
-    ruleProvidersList: ProxyRuleProvidersList,
+    _ruleProvidersList: ProxyRuleProvidersList,
     ruleProviders: any[],
     publicServerUrl: string,
   ): any {
@@ -599,10 +599,7 @@ ${yaml.stringify(data)}`);
 
   /** 将 Clash 规则转换为 Sing-box 格式 - 默认版本 */
   @Get("proxy/sing-box/convert/rule")
-  async convertRule(
-    @Query("url") url: string,
-    @Res() res: Response,
-  ) {
+  async convertRule(@Query("url") url: string, @Res() res: Response) {
     return this.handleConvertRule(url, undefined, res);
   }
 
@@ -658,10 +655,11 @@ ${yaml.stringify(data)}`);
     const publicServerUrl = this.getPublicServerUrl(req);
 
     // 构建规则提供者中的远程规则集
-    const convertRuleBase = version === 12
-      ? `${publicServerUrl}/public/proxy/sing-box/convert/rule/12`
-      : `${publicServerUrl}/public/proxy/sing-box/convert/rule`;
-    for (const [key, items] of Object.entries(ruleProvidersList)) {
+    const convertRuleBase =
+      version === 12
+        ? `${publicServerUrl}/public/proxy/sing-box/convert/rule/12`
+        : `${publicServerUrl}/public/proxy/sing-box/convert/rule`;
+    for (const [_key, items] of Object.entries(ruleProvidersList)) {
       for (const item of items) {
         ruleProviders.push({
           type: "remote",

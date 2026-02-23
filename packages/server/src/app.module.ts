@@ -2,14 +2,14 @@ import { Module } from "@nestjs/common";
 import { AppController } from "./app.controller";
 import { AdminModule } from "./modules/admin";
 import { AuthModule } from "./modules/auth";
-import { ProxyModule } from "./modules/proxy";
 import { HelloModule } from "./modules/hello";
+import { NetworkPublicController } from "./modules/network/network.public.controller";
+import { ProxyModule } from "./modules/proxy";
+import { ProxyPublicController } from "./modules/proxy/proxy.public.controller";
 import { TestRequirementModule } from "./modules/test-requirement";
 import { TodoModule } from "./modules/todo";
 import { UserModule } from "./modules/user";
 import { WorkspaceModule } from "./modules/workspace";
-import { ProxyPublicController } from "./modules/proxy/proxy.public.controller";
-import { NetworkPublicController } from "./modules/network/network.public.controller";
 import { createContext } from "./trpc/context";
 import { TrpcModule } from "./trpc/trpc.module";
 
