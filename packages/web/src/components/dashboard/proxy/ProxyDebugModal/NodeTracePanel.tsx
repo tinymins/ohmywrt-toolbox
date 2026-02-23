@@ -76,17 +76,18 @@ const SourceTraceContent = ({
                   ),
                 },
               ]
-            : []),
-          {
-            key: "raw",
-            label: t("proxy.debug.traceRawData"),
-            children: (
-              <CodeBlock
-                content={JSON.stringify(data.rawData, null, 2)}
-                maxHeight={300}
-              />
-            ),
-          },
+            : [
+                {
+                  key: "raw",
+                  label: t("proxy.debug.traceRawData"),
+                  children: (
+                    <CodeBlock
+                      content={JSON.stringify(data.rawData, null, 2)}
+                      maxHeight={300}
+                    />
+                  ),
+                },
+              ]),
         ]}
       />
     </div>
