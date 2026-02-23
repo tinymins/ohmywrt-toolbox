@@ -2,6 +2,8 @@ import type {
   ProxyDebugFormat,
   ProxyDebugStep,
   ProxyGroup,
+  ProxyNodeTraceOutput,
+  ProxyNodeTraceStep,
   ProxyPreviewNode,
   ProxyRuleProvidersList,
 } from "@acme/types";
@@ -15,12 +17,12 @@ import {
   SB_DEFAULT_GROUPS,
 } from "./lib/config";
 import { convertClashToSingbox } from "./lib/converter";
+import { subscriptionCache } from "./lib/subscription-cache";
 import {
   isBase64Subscription,
   parseBase64Subscription,
 } from "./lib/subscription-parser";
 import type { SingBoxRule } from "./lib/types";
-import { subscriptionCache } from "./lib/subscription-cache";
 import { proxySubscribeService } from "./proxy.service";
 
 /** 安全解析 JSONC 字符串 */
@@ -516,6 +518,329 @@ export class ProxyDebugService {
       type: "done",
       data: { totalDurationMs },
     };
+  }
+
+  /**
+   * 追踪单个节点从来源到最终输出的完整链路
+   */
+  async traceNode(
+    id: string,
+    userId: string,
+    format: ProxyDebugFormat,
+    nodeName: string,
+  ): Promise<ProxyNodeTraceOutput> {
+    // 权限校验
+    const subscribe = await proxySubscribeService.getById(id);
+    if (!subscribe) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "订阅不存在" });
+    }
+    if (
+      subscribe.userId !== userId &&
+      !subscribe.authorizedUserIds.includes(userId)
+    ) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "无权访问此订阅" });
+    }
+
+    // 解析配置（复用 debugSubscription 的逻辑）
+    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
+    const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
+    const groups =
+      rawGroups && rawGroups.length > 0
+        ? rawGroups
+        : format === "sing-box" || format === "sing-box-v12"
+          ? SB_DEFAULT_GROUPS
+          : DEFAULT_GROUPS;
+    const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
+    const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
+    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
+
+    const steps: ProxyNodeTraceStep[] = [];
+    let foundRawProxy: any = null;
+    let foundOriginalName = "";
+    let foundSourceIndex = 0;
+    let foundSourceUrl = "";
+    let foundSourceFormat: "base64" | "yaml" | "manual" = "manual";
+    let filterPassed = false;
+    let matchedFilterRule: string | null = null;
+
+    // ── 搜索手动服务器 ──
+    for (const item of servers) {
+      let proxy: any;
+      if (typeof item === "string") {
+        proxy = yaml.parse(item);
+      } else {
+        proxy = item;
+      }
+      if (proxy?.name) {
+        const enrichedName = appendIcon(proxy.name);
+        if (enrichedName === nodeName) {
+          foundRawProxy = proxy;
+          foundOriginalName = proxy.name;
+          foundSourceIndex = 0;
+          foundSourceUrl = "手动添加";
+          foundSourceFormat = "manual";
+          filterPassed = true; // 手动服务器不经过过滤
+          break;
+        }
+      }
+    }
+
+    // ── 搜索远程订阅源 ──
+    if (!foundRawProxy) {
+      for (let i = 0; i < subscribeUrls.length; i++) {
+        const url = subscribeUrls[i];
+        if (typeof url !== "string" || !url) continue;
+
+        let rawText = "";
+        let detectedFormat: "base64" | "yaml" | "unknown" = "unknown";
+
+        try {
+          const cachedEntry = subscriptionCache.get(url, cacheTtl);
+          if (cachedEntry) {
+            rawText = cachedEntry.text;
+          } else {
+            const response = await fetch(url);
+            rawText = await response.text();
+            if (cacheTtl && cacheTtl > 0) {
+              subscriptionCache.set(url, {
+                text: rawText,
+                headers: {},
+                status: response.status,
+              });
+            }
+          }
+
+          let proxies: any[] = [];
+          if (isBase64Subscription(rawText)) {
+            detectedFormat = "base64";
+            proxies = parseBase64Subscription(rawText);
+          } else {
+            detectedFormat = "yaml";
+            try {
+              const parsed = yaml.parse(rawText);
+              proxies = parsed?.proxies ?? [];
+            } catch {
+              detectedFormat = "unknown";
+              proxies = [];
+            }
+          }
+
+          const excludeTypes =
+            format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
+
+          for (const proxy of proxies) {
+            const enrichedName = appendIcon(proxy.name || "");
+            if (enrichedName === nodeName) {
+              foundRawProxy = proxy;
+              foundOriginalName = proxy.name || "";
+              foundSourceIndex = i + 1;
+              foundSourceUrl = url;
+              foundSourceFormat =
+                detectedFormat === "unknown" ? "yaml" : detectedFormat;
+
+              // 检查类型排除
+              if (excludeTypes.includes(proxy.type)) {
+                filterPassed = false;
+                matchedFilterRule = `类型排除: ${proxy.type}`;
+              } else {
+                // 检查过滤规则
+                const matched = filters.find((f) => proxy.name?.includes(f));
+                if (matched) {
+                  filterPassed = false;
+                  matchedFilterRule = matched;
+                } else {
+                  filterPassed = true;
+                }
+              }
+              break;
+            }
+          }
+          if (foundRawProxy) break;
+        } catch {}
+      }
+    }
+
+    if (!foundRawProxy) {
+      throw new TRPCError({
+        code: "NOT_FOUND",
+        message: `未找到节点: ${nodeName}`,
+      });
+    }
+
+    // ── Step 1: Source ──
+    steps.push({
+      type: "source",
+      data: {
+        sourceIndex: foundSourceIndex,
+        sourceUrl: foundSourceUrl,
+        format: foundSourceFormat,
+        rawData: { ...foundRawProxy },
+      },
+    });
+
+    // ── Step 2: Parse ──
+    steps.push({
+      type: "parse",
+      data: {
+        clashProxy: { ...foundRawProxy },
+      },
+    });
+
+    // ── Step 3: Filter ──
+    steps.push({
+      type: "filter",
+      data: {
+        passed: filterPassed,
+        matchedRule: matchedFilterRule,
+        filtersApplied: filters,
+      },
+    });
+
+    // ── Step 4: Enrich ──
+    const enrichedName = appendIcon(foundOriginalName);
+    steps.push({
+      type: "enrich",
+      data: {
+        originalName: foundOriginalName,
+        enrichedName,
+      },
+    });
+
+    // 被过滤的节点到此为止，后续步骤不执行
+    if (!filterPassed) {
+      return { nodeName, steps };
+    }
+
+    // ── 重建完整节点列表以确定位置 ──
+    const allProxies: any[] = [];
+
+    // 手动服务器
+    for (const item of servers) {
+      let proxy: any;
+      if (typeof item === "string") {
+        proxy = yaml.parse(item);
+      } else {
+        proxy = item;
+      }
+      if (proxy?.name) {
+        allProxies.push({ ...proxy, name: appendIcon(proxy.name) });
+      }
+    }
+
+    // 远程订阅
+    for (let i = 0; i < subscribeUrls.length; i++) {
+      const url = subscribeUrls[i];
+      if (typeof url !== "string" || !url) continue;
+
+      try {
+        const cachedEntry = subscriptionCache.get(url, cacheTtl);
+        let rawText = "";
+        if (cachedEntry) {
+          rawText = cachedEntry.text;
+        } else {
+          const response = await fetch(url);
+          rawText = await response.text();
+          if (cacheTtl && cacheTtl > 0) {
+            subscriptionCache.set(url, {
+              text: rawText,
+              headers: {},
+              status: response.status,
+            });
+          }
+        }
+
+        let proxies: any[] = [];
+        if (isBase64Subscription(rawText)) {
+          proxies = parseBase64Subscription(rawText);
+        } else {
+          try {
+            const parsed = yaml.parse(rawText);
+            proxies = parsed?.proxies ?? [];
+          } catch {
+            proxies = [];
+          }
+        }
+
+        const excludeTypes =
+          format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
+
+        for (const proxy of proxies) {
+          if (excludeTypes.includes(proxy.type)) continue;
+          const matched = filters.find((f) => proxy.name?.includes(f));
+          if (!matched) {
+            allProxies.push({ ...proxy, name: appendIcon(proxy.name) });
+          }
+        }
+      } catch {}
+    }
+
+    const finalNodeNames = allProxies
+      .map((p) => p.name)
+      .filter(Boolean) as string[];
+
+    // ── Step 5: Merge ──
+    const position = finalNodeNames.indexOf(nodeName);
+    steps.push({
+      type: "merge",
+      data: {
+        positionInFinalList: position >= 0 ? position + 1 : -1,
+        totalNodes: finalNodeNames.length,
+      },
+    });
+
+    // ── Step 6: Group Assign ──
+    const assignedGroups = groups
+      .filter((g) => !g.readonly)
+      .map((g) => ({ name: g.name, type: g.type }));
+
+    steps.push({
+      type: "group-assign",
+      data: { assignedGroups },
+    });
+
+    // ── Step 7: Convert (仅 Sing-box 格式) ──
+    if (format === "sing-box" || format === "sing-box-v12") {
+      try {
+        const singleProxy = allProxies.find((p) => p.name === nodeName);
+        if (singleProxy) {
+          const outbounds = convertClashToSingbox({
+            proxies: [singleProxy],
+          });
+          if (outbounds.length > 0) {
+            steps.push({
+              type: "convert",
+              data: {
+                singboxOutbound: outbounds[0] as Record<string, unknown>,
+              },
+            });
+          }
+        }
+      } catch {
+        // 转换失败时跳过此步骤
+      }
+    }
+
+    // ── Step 8: Output ──
+    const targetProxy = allProxies.find((p) => p.name === nodeName);
+    if (targetProxy) {
+      let configFragment: string;
+      if (format === "clash" || format === "clash-meta") {
+        configFragment = yaml.stringify([targetProxy]);
+      } else {
+        const outbounds = convertClashToSingbox({ proxies: [targetProxy] });
+        configFragment =
+          outbounds.length > 0
+            ? JSON.stringify(outbounds[0], null, 2)
+            : JSON.stringify(targetProxy, null, 2);
+      }
+      steps.push({
+        type: "output",
+        data: { configFragment },
+      });
+    }
+
+    return { nodeName, steps };
   }
 }
 

@@ -1,16 +1,28 @@
 import type { ProxyDebugFormat, ProxyDebugStep } from "@acme/types";
 import {
+  AimOutlined,
   BugOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
 import { skipToken } from "@tanstack/react-query";
-import { Alert, Modal, Space, Spin, Steps, Tag, Typography } from "antd";
+import {
+  Alert,
+  AutoComplete,
+  Divider,
+  Modal,
+  Space,
+  Spin,
+  Steps,
+  Tag,
+  Typography,
+} from "antd";
 import {
   forwardRef,
   useCallback,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -25,6 +37,7 @@ import {
   SourceResultStepContent,
   SourceStartStepContent,
 } from "./DebugStepContent";
+import NodeTracePanel from "./NodeTracePanel";
 
 const { Text } = Typography;
 
@@ -40,6 +53,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   const [steps, setSteps] = useState<ProxyDebugStep[]>([]);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tracingNodeName, setTracingNodeName] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -55,6 +70,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
+      setTracingNodeName(null);
+      setSearchValue("");
       setVisible(true);
     },
   }));
@@ -89,6 +106,44 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     },
   );
 
+  // 收集所有节点名称（有效节点 + 被过滤节点）
+  const allNodeNames = useMemo(() => {
+    if (!done) return [];
+    const names: { name: string; filtered: boolean }[] = [];
+
+    // 从手动服务器步骤获取
+    for (const step of steps) {
+      if (step.type === "manual-servers") {
+        for (const node of step.data.nodes) {
+          names.push({ name: node.name, filtered: false });
+        }
+      }
+    }
+
+    // 从远程订阅源结果获取
+    for (const step of steps) {
+      if (step.type === "source-result") {
+        for (const node of step.data.nodesAfterFilter) {
+          names.push({ name: node.name, filtered: false });
+        }
+        for (const fn of step.data.filteredNodes) {
+          names.push({ name: fn.node.name, filtered: true });
+        }
+      }
+    }
+
+    return names;
+  }, [steps, done]);
+
+  /** 处理追踪节点 */
+  const handleTraceNode = useCallback((nodeName: string) => {
+    setTracingNodeName(nodeName);
+    setSearchValue(nodeName);
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  }, []);
+
   const handleClose = () => {
     setVisible(false);
     // Delay clearing subscribeId to allow cleanup
@@ -97,6 +152,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
+      setTracingNodeName(null);
+      setSearchValue("");
     }, 300);
   };
 
@@ -149,19 +206,61 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       case "config":
         return <ConfigStepContent step={step} />;
       case "manual-servers":
-        return <ManualServersStepContent step={step} />;
+        return (
+          <ManualServersStepContent
+            step={step}
+            onTraceNode={done ? handleTraceNode : undefined}
+          />
+        );
       case "source-start":
         return <SourceStartStepContent step={step} />;
       case "source-result":
-        return <SourceResultStepContent step={step} />;
+        return (
+          <SourceResultStepContent
+            step={step}
+            onTraceNode={done ? handleTraceNode : undefined}
+          />
+        );
       case "merge":
-        return <MergeStepContent step={step} />;
+        return (
+          <MergeStepContent
+            step={step}
+            onTraceNode={done ? handleTraceNode : undefined}
+          />
+        );
       case "output":
         return <OutputStepContent step={step} />;
       case "done":
         return <DoneStepContent step={step} />;
     }
   };
+
+  // AutoComplete 选项
+  const autoCompleteOptions = useMemo(() => {
+    const query = searchValue.toLowerCase();
+    return allNodeNames
+      .filter((n) => !query || n.name.toLowerCase().includes(query))
+      .slice(0, 50)
+      .map((n) => ({
+        value: n.name,
+        label: (
+          <div className="flex items-center justify-between">
+            <Text
+              className="!text-xs truncate flex-1"
+              type={n.filtered ? "secondary" : undefined}
+              delete={n.filtered}
+            >
+              {n.name}
+            </Text>
+            {n.filtered && (
+              <Tag color="orange" className="!text-xs ml-1 shrink-0">
+                {t("proxy.debug.traceFilteredLabel")}
+              </Tag>
+            )}
+          </div>
+        ),
+      }));
+  }, [allNodeNames, searchValue, t]);
 
   return (
     <Modal
@@ -229,6 +328,45 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
             {t("common.loading")}
           </Text>
         </div>
+      )}
+
+      {/* 节点追踪区域 */}
+      {done && allNodeNames.length > 0 && subscribeId && (
+        <>
+          <Divider />
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <AimOutlined className="text-blue-500 text-lg" />
+            <Text strong>{t("proxy.debug.traceTitle")}</Text>
+            <AutoComplete
+              value={searchValue}
+              options={autoCompleteOptions}
+              onSearch={setSearchValue}
+              onSelect={(value: string) => handleTraceNode(value)}
+              placeholder={t("proxy.debug.traceSearchPlaceholder")}
+              className="flex-1 min-w-[200px] max-w-[500px]"
+              allowClear
+              onClear={() => {
+                setTracingNodeName(null);
+                setSearchValue("");
+              }}
+            />
+            <Text type="secondary" className="!text-xs">
+              {t("proxy.debug.traceNodeList")}: {allNodeNames.length}
+            </Text>
+          </div>
+
+          {tracingNodeName ? (
+            <NodeTracePanel
+              subscribeId={subscribeId}
+              format={format}
+              nodeName={tracingNodeName}
+            />
+          ) : (
+            <div className="text-center py-4">
+              <Text type="secondary">{t("proxy.debug.traceSelectNode")}</Text>
+            </div>
+          )}
+        </>
       )}
 
       <div ref={bottomRef} />

@@ -1,10 +1,20 @@
 import type { ProxyDebugStep } from "@acme/types";
 import {
+  AimOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
-import { Collapse, Descriptions, Space, Table, Tag, Typography } from "antd";
+import {
+  Button,
+  Collapse,
+  Descriptions,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
 import { useTranslation } from "react-i18next";
 
 const { Text, Paragraph } = Typography;
@@ -131,8 +141,10 @@ export const ConfigStepContent = ({
 /** 手动服务器步骤 */
 export const ManualServersStepContent = ({
   step,
+  onTraceNode,
 }: {
   step: Extract<ProxyDebugStep, { type: "manual-servers" }>;
+  onTraceNode?: (nodeName: string) => void;
 }) => {
   const { t } = useTranslation();
   const { data } = step;
@@ -176,6 +188,24 @@ export const ManualServersStepContent = ({
               dataIndex: "port",
               width: 70,
             },
+            ...(onTraceNode
+              ? [
+                  {
+                    title: "",
+                    width: 40,
+                    render: (_: unknown, record: { name: string }) => (
+                      <Tooltip title={t("proxy.debug.traceNode")}>
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<AimOutlined />}
+                          onClick={() => onTraceNode(record.name)}
+                        />
+                      </Tooltip>
+                    ),
+                  },
+                ]
+              : []),
           ]}
         />
       </div>
@@ -205,8 +235,10 @@ export const SourceStartStepContent = ({
 /** 订阅源获取结果 */
 export const SourceResultStepContent = ({
   step,
+  onTraceNode,
 }: {
   step: Extract<ProxyDebugStep, { type: "source-result" }>;
+  onTraceNode?: (nodeName: string) => void;
 }) => {
   const { t } = useTranslation();
   const { data } = step;
@@ -308,6 +340,29 @@ export const SourceResultStepContent = ({
                           width: 120,
                           render: (v: string) => <Tag color="orange">{v}</Tag>,
                         },
+                        ...(onTraceNode
+                          ? [
+                              {
+                                title: "",
+                                width: 40,
+                                render: (
+                                  _: unknown,
+                                  record: { node: { name: string } },
+                                ) => (
+                                  <Tooltip title={t("proxy.debug.traceNode")}>
+                                    <Button
+                                      type="text"
+                                      size="small"
+                                      icon={<AimOutlined />}
+                                      onClick={() =>
+                                        onTraceNode(record.node.name)
+                                      }
+                                    />
+                                  </Tooltip>
+                                ),
+                              },
+                            ]
+                          : []),
                       ]}
                     />
                   ),
@@ -351,6 +406,24 @@ export const SourceResultStepContent = ({
                     dataIndex: "port",
                     width: 70,
                   },
+                  ...(onTraceNode
+                    ? [
+                        {
+                          title: "",
+                          width: 50,
+                          render: (_: unknown, record: { name: string }) => (
+                            <Tooltip title={t("proxy.debug.traceNode")}>
+                              <Button
+                                type="link"
+                                size="small"
+                                icon={<AimOutlined />}
+                                onClick={() => onTraceNode(record.name)}
+                              />
+                            </Tooltip>
+                          ),
+                        },
+                      ]
+                    : []),
                 ]}
               />
             ),
@@ -364,27 +437,66 @@ export const SourceResultStepContent = ({
 /** 节点合并步骤 */
 export const MergeStepContent = ({
   step,
+  onTraceNode,
 }: {
   step: Extract<ProxyDebugStep, { type: "merge" }>;
+  onTraceNode?: (nodeName: string) => void;
 }) => {
   const { t } = useTranslation();
   const { data } = step;
 
   return (
-    <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-      <Descriptions.Item label={t("proxy.debug.totalNodes")}>
-        <Tag color="blue">{data.totalNodesBeforeFilter}</Tag>
-      </Descriptions.Item>
-      <Descriptions.Item label={t("proxy.debug.activeNodes")}>
-        <Tag color="green">{data.totalNodesAfterFilter}</Tag>
-      </Descriptions.Item>
-      <Descriptions.Item label={t("proxy.debug.filteredCount")}>
-        <Tag color="orange">{data.totalFiltered}</Tag>
-      </Descriptions.Item>
-      <Descriptions.Item label={t("proxy.debug.nodeStats")}>
-        {data.finalNodeNames.length} nodes
-      </Descriptions.Item>
-    </Descriptions>
+    <div className="flex flex-col gap-2">
+      <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
+        <Descriptions.Item label={t("proxy.debug.totalNodes")}>
+          <Tag color="blue">{data.totalNodesBeforeFilter}</Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label={t("proxy.debug.activeNodes")}>
+          <Tag color="green">{data.totalNodesAfterFilter}</Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label={t("proxy.debug.filteredCount")}>
+          <Tag color="orange">{data.totalFiltered}</Tag>
+        </Descriptions.Item>
+        <Descriptions.Item label={t("proxy.debug.nodeStats")}>
+          {data.finalNodeNames.length} nodes
+        </Descriptions.Item>
+      </Descriptions>
+
+      <Collapse
+        size="small"
+        items={[
+          {
+            key: "finalNodes",
+            label: (
+              <Space>
+                <span>{t("proxy.debug.nodeStats")}</span>
+                <Tag>{data.finalNodeNames.length}</Tag>
+              </Space>
+            ),
+            children: (
+              <div className="flex flex-wrap gap-1">
+                {data.finalNodeNames.map((name, i) =>
+                  onTraceNode ? (
+                    <Tooltip key={name} title={t("proxy.debug.traceNode")}>
+                      <Tag
+                        className="cursor-pointer"
+                        color="blue"
+                        onClick={() => onTraceNode(name)}
+                      >
+                        <AimOutlined className="mr-1" />
+                        {name}
+                      </Tag>
+                    </Tooltip>
+                  ) : (
+                    <Tag key={name}>{name}</Tag>
+                  ),
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
+    </div>
   );
 };
 

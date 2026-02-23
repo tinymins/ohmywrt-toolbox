@@ -3,6 +3,8 @@ import {
   DeleteProxySubscribeInputSchema,
   ProxyDebugInputSchema,
   ProxyDebugStepSchema,
+  ProxyNodeTraceInputSchema,
+  ProxyNodeTraceOutputSchema,
   ProxyPreviewInputSchema,
   ProxyPreviewOutputSchema,
   ProxyRuleTestInputSchema,
@@ -233,6 +235,24 @@ export class ProxyRouter {
       input.id,
       ctx.userId!,
       input.format,
+    );
+  }
+
+  /** 追踪单个节点的完整链路 */
+  @UseMiddlewares(requireUser)
+  @Query({
+    input: ProxyNodeTraceInputSchema,
+    output: ProxyNodeTraceOutputSchema,
+  })
+  async traceNode(
+    input: z.infer<typeof ProxyNodeTraceInputSchema>,
+    @Ctx() ctx: Context,
+  ) {
+    return proxyDebugService.traceNode(
+      input.id,
+      ctx.userId!,
+      input.format,
+      input.nodeName,
     );
   }
 }
