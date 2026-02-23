@@ -279,7 +279,7 @@ export class ProxyDebugService {
     let ruleProviderCount = 0;
 
     if (format === "clash" || format === "clash-meta") {
-      // 构建 Clash 配置
+      // 构建 Clash / Clash Meta 配置
       const ruleSet: string[] = [];
       const clashRuleProviders: Record<string, any> = {};
 
@@ -310,27 +310,58 @@ export class ProxyDebugService {
       ];
       ruleCount = rules.length;
 
+      const proxyGroups = groups.map((item) => {
+        if (item.readonly) {
+          return {
+            name: item.name,
+            type: item.type,
+            proxies: item.proxies,
+          };
+        }
+        return {
+          name: item.name,
+          type: item.type,
+          proxies: [...item.proxies, ...finalNodeNames],
+        };
+      });
+
+      // Clash Meta (mihomo) 特有字段
+      const metaFields =
+        format === "clash-meta"
+          ? {
+              "unified-delay": true,
+              "tcp-concurrent": true,
+              "find-process-mode": "strict",
+              "global-client-fingerprint": "chrome",
+              "geodata-mode": true,
+              "geo-auto-update": true,
+              "geo-update-interval": 24,
+              sniffer: {
+                enable: true,
+                "force-dns-mapping": true,
+                "parse-pure-ip": true,
+                "override-destination": true,
+                sniff: {
+                  HTTP: {
+                    ports: [80, "8080-8880"],
+                    "override-destination": true,
+                  },
+                  TLS: { ports: [443, 8443] },
+                  QUIC: { ports: [443, 8443] },
+                },
+              },
+            }
+          : {};
+
       const data = {
         "tproxy-port": 7893,
         "allow-lan": true,
         mode: "Rule",
         "log-level": "info",
         secret: "123456",
+        ...metaFields,
         proxies: allProxies,
-        "proxy-groups": groups.map((item) => {
-          if (item.readonly) {
-            return {
-              name: item.name,
-              type: item.type,
-              proxies: item.proxies,
-            };
-          }
-          return {
-            name: item.name,
-            type: item.type,
-            proxies: [...item.proxies, ...finalNodeNames],
-          };
-        }),
+        "proxy-groups": proxyGroups,
         "rule-providers": clashRuleProviders,
         rules,
         profile: {

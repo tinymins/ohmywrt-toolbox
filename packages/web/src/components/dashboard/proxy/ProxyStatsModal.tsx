@@ -86,11 +86,19 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       title: lang === "zh" ? "类型" : "Type",
       dataIndex: "accessType",
       width: 80,
-      render: (type: string) => (
-        <Tag color={type === "clash" ? "blue" : "green"} className="!m-0">
-          {type.toUpperCase()}
-        </Tag>
-      ),
+      render: (type: string) => {
+        const colorMap: Record<string, string> = {
+          clash: "blue",
+          "clash-meta": "purple",
+          "sing-box": "green",
+          "sing-box-v12": "cyan",
+        };
+        return (
+          <Tag color={colorMap[type] ?? "default"} className="!m-0">
+            {type.toUpperCase()}
+          </Tag>
+        );
+      },
     },
     {
       title: "IP",
@@ -122,11 +130,19 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       title: lang === "zh" ? "类型" : "Type",
       dataIndex: "accessType",
       width: 100,
-      render: (type: string) => (
-        <Tag color={type === "clash" ? "blue" : "green"}>
-          {type.toUpperCase()}
-        </Tag>
-      ),
+      render: (type: string) => {
+        const colorMap: Record<string, string> = {
+          clash: "blue",
+          "clash-meta": "purple",
+          "sing-box": "green",
+          "sing-box-v12": "cyan",
+        };
+        return (
+          <Tag color={colorMap[type] ?? "default"}>
+            {type.toUpperCase()}
+          </Tag>
+        );
+      },
     },
     {
       title: lang === "zh" ? "节点数" : "Nodes",

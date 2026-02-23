@@ -113,15 +113,15 @@ export class ProxyPublicController {
     return { subscribe, proxies, nodes };
   }
 
-  /** 生成 Clash 订阅配置 (YAML) */
-  @Get("proxy/clash/:uuid")
-  async getClashConfig(
-    @Param("uuid") uuid: string,
-    @Req() req: Request,
-    @Res() res: Response,
+  /**
+   * 构建 Clash 系列配置的公共数据（Clash 和 Clash Meta 共用）
+   */
+  private buildClashBase(
+    subscribe: Awaited<ReturnType<typeof proxySubscribeService.getByUrl>> &
+      object,
+    proxies: any[],
+    nodes: string[],
   ) {
-    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
-
     // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
@@ -161,6 +161,60 @@ export class ProxyPublicController {
       "MATCH,⚓️ 其他流量",
     ];
 
+    const proxyGroups = groups.map((item) => {
+      if (item.readonly) {
+        return {
+          name: item.name,
+          type: item.type,
+          proxies: item.proxies,
+        };
+      }
+      return {
+        name: item.name,
+        type: item.type,
+        proxies: [...item.proxies, ...nodes],
+      };
+    });
+
+    return { ruleProviders, rules, proxyGroups };
+  }
+
+  /** 获取客户端 IP 和 User-Agent */
+  private getClientInfo(req: Request) {
+    const clientIp =
+      (req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]
+        ?.trim() ||
+      req.socket?.remoteAddress ||
+      undefined;
+    const userAgent = req.get("user-agent") || undefined;
+    return { clientIp, userAgent };
+  }
+
+  /** 发送 Clash YAML 响应 */
+  private sendClashYaml(res: Response, data: Record<string, any>) {
+    res.setHeader("content-type", "text/plain; charset=utf-8");
+    res.send(`
+#---------------------------------------------------#
+## Update: ${new Date().toString()}
+#---------------------------------------------------#
+${yaml.stringify(data)}`);
+  }
+
+  /** 生成 Clash 订阅配置 (YAML) */
+  @Get("proxy/clash/:uuid")
+  async getClashConfig(
+    @Param("uuid") uuid: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
+    const { ruleProviders, rules, proxyGroups } = this.buildClashBase(
+      subscribe,
+      proxies,
+      nodes,
+    );
+
     const data = {
       "tproxy-port": 7893,
       "allow-lan": true,
@@ -168,20 +222,7 @@ export class ProxyPublicController {
       "log-level": "info",
       secret: "123456",
       proxies,
-      "proxy-groups": groups.map((item) => {
-        if (item.readonly) {
-          return {
-            name: item.name,
-            type: item.type,
-            proxies: item.proxies,
-          };
-        }
-        return {
-          name: item.name,
-          type: item.type,
-          proxies: [...item.proxies, ...nodes],
-        };
-      }),
+      "proxy-groups": proxyGroups,
       "rule-providers": ruleProviders,
       rules,
       profile: {
@@ -191,16 +232,7 @@ export class ProxyPublicController {
       },
     };
 
-    // 获取客户端信息
-    const clientIp =
-      (req.headers["x-forwarded-for"] as string | undefined)
-        ?.split(",")[0]
-        ?.trim() ||
-      req.socket?.remoteAddress ||
-      undefined;
-    const userAgent = req.get("user-agent") || undefined;
-
-    // 更新访问信息和记录日志
+    const { clientIp, userAgent } = this.getClientInfo(req);
     await proxySubscribeService.updateAccessInfo(
       subscribe.id,
       proxies.length,
@@ -209,12 +241,68 @@ export class ProxyPublicController {
       userAgent,
     );
 
-    res.setHeader("content-type", "text/plain; charset=utf-8");
-    res.send(`
-#---------------------------------------------------#
-## Update: ${new Date().toString()}
-#---------------------------------------------------#
-${yaml.stringify(data)}`);
+    this.sendClashYaml(res, data);
+  }
+
+  /** 生成 Clash Meta (mihomo) 订阅配置 (YAML) */
+  @Get("proxy/clash-meta/:uuid")
+  async getClashMetaConfig(
+    @Param("uuid") uuid: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid);
+    const { ruleProviders, rules, proxyGroups } = this.buildClashBase(
+      subscribe,
+      proxies,
+      nodes,
+    );
+
+    const data = {
+      "tproxy-port": 7893,
+      "allow-lan": true,
+      mode: "Rule",
+      "log-level": "info",
+      secret: "123456",
+      "unified-delay": true,
+      "tcp-concurrent": true,
+      "find-process-mode": "strict",
+      "global-client-fingerprint": "chrome",
+      "geodata-mode": true,
+      "geo-auto-update": true,
+      "geo-update-interval": 24,
+      sniffer: {
+        enable: true,
+        "force-dns-mapping": true,
+        "parse-pure-ip": true,
+        "override-destination": true,
+        sniff: {
+          HTTP: { ports: [80, "8080-8880"], "override-destination": true },
+          TLS: { ports: [443, 8443] },
+          QUIC: { ports: [443, 8443] },
+        },
+      },
+      proxies,
+      "proxy-groups": proxyGroups,
+      "rule-providers": ruleProviders,
+      rules,
+      profile: {
+        "store-selected": true,
+        "store-fake-ip": true,
+        tracing: true,
+      },
+    };
+
+    const { clientIp, userAgent } = this.getClientInfo(req);
+    await proxySubscribeService.updateAccessInfo(
+      subscribe.id,
+      proxies.length,
+      "clash-meta",
+      clientIp,
+      userAgent,
+    );
+
+    this.sendClashYaml(res, data);
   }
 
   /** 获取公网服务器地址 */

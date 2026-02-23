@@ -46,7 +46,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
 
   const baseUrl = `${window.location.protocol}//${window.location.host}`;
   const clashUrl = `${baseUrl}/public/proxy/clash/${uuid}`;
-  const clashMetaUrl = `${baseUrl}/public/proxy/clash/${uuid}?meta=true`;
+  const clashMetaUrl = `${baseUrl}/public/proxy/clash-meta/${uuid}`;
   const singboxV11Url = `${baseUrl}/public/proxy/sing-box/${uuid}`;
   const singboxV12Url = `${baseUrl}/public/proxy/sing-box/12/${uuid}`;
 
