@@ -77,6 +77,7 @@ const SourceTraceContent = ({
       </Descriptions>
       <Collapse
         size="small"
+        defaultActiveKey={data.rawUrl ? ["rawUrl"] : []}
         items={[
           ...(data.rawUrl
             ? [
