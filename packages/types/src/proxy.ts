@@ -325,6 +325,8 @@ export const ProxyNodeTraceSourceStepSchema = z.object({
     sourceUrl: z.string(),
     /** 来源格式 */
     format: z.enum(["base64", "yaml", "manual"]),
+    /** 原始代理 URI（仅 Base64 订阅源，如 vless://...、vmess://... 等） */
+    rawUrl: z.string().optional(),
     /** 原始代理配置数据（来自上游的原始数据） */
     rawData: z.record(z.string(), z.unknown()),
   }),

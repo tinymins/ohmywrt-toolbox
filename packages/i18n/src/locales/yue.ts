@@ -957,6 +957,7 @@ export const yue = {
         traceSourceFormat: "來源格式",
         traceSourceUrl: "來源 URL",
         traceSourceIndex: "來源索引",
+        traceRawUrl: "原始 URI",
         traceRawData: "原始數據",
         traceClashProxy: "Clash 代理配置",
         traceFilterRules: "過濾規則",

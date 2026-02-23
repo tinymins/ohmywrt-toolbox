@@ -66,6 +66,17 @@ const SourceTraceContent = ({
       <Collapse
         size="small"
         items={[
+          ...(data.rawUrl
+            ? [
+                {
+                  key: "rawUrl",
+                  label: t("proxy.debug.traceRawUrl"),
+                  children: (
+                    <CodeBlock content={data.rawUrl} maxHeight={300} />
+                  ),
+                },
+              ]
+            : []),
           {
             key: "raw",
             label: t("proxy.debug.traceRawData"),

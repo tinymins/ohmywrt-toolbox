@@ -748,6 +748,7 @@ export const zhCN = {
         traceSourceFormat: "来源格式",
         traceSourceUrl: "来源地址",
         traceSourceIndex: "来源索引",
+        traceRawUrl: "原始 URI",
         traceRawData: "原始数据",
         traceClashProxy: "Clash 代理配置",
         traceFilterRules: "过滤规则列表",

@@ -8,6 +8,8 @@ export interface ParsedProxy {
   type: string;
   server: string;
   port: number;
+  /** 原始代理 URI（仅 Base64 订阅源解析时保留） */
+  _rawUrl?: string;
   [key: string]: unknown;
 }
 
@@ -51,8 +53,10 @@ export function parseBase64Subscription(text: string): ParsedProxy[] {
 
   for (const line of lines) {
     try {
-      const proxy = parseProxyUrl(line.trim());
+      const trimmedLine = line.trim();
+      const proxy = parseProxyUrl(trimmedLine);
       if (proxy) {
+        proxy._rawUrl = trimmedLine;
         proxies.push(proxy);
       }
     } catch (e) {

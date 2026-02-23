@@ -1036,6 +1036,7 @@ export const deDE = {
         traceSourceFormat: "Quellformat",
         traceSourceUrl: "Quell-URL",
         traceSourceIndex: "Quellindex",
+        traceRawUrl: "Roh-URI",
         traceRawData: "Rohdaten",
         traceClashProxy: "Clash-Proxy-Konfiguration",
         traceFilterRules: "Filterregeln",

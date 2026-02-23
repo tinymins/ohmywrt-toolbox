@@ -668,6 +668,10 @@ export class ProxyDebugService {
       });
     }
 
+    // 提取并移除内部字段 _rawUrl，避免泄漏到输出
+    const rawUrl: string | undefined = foundRawProxy._rawUrl;
+    delete foundRawProxy._rawUrl;
+
     // ── Step 1: Source ──
     steps.push({
       type: "source",
@@ -675,6 +679,7 @@ export class ProxyDebugService {
         sourceIndex: foundSourceIndex,
         sourceUrl: foundSourceUrl,
         format: foundSourceFormat,
+        rawUrl: rawUrl ?? undefined,
         rawData: { ...foundRawProxy },
       },
     });

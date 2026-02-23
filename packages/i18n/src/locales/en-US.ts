@@ -767,6 +767,7 @@ export const enUS: TranslationSchema = {
         traceSourceFormat: "Source Format",
         traceSourceUrl: "Source URL",
         traceSourceIndex: "Source Index",
+        traceRawUrl: "Raw URI",
         traceRawData: "Raw Data",
         traceClashProxy: "Clash Proxy Config",
         traceFilterRules: "Filter Rules",

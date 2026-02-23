@@ -1031,6 +1031,7 @@ export const zhTW = {
         traceSourceFormat: "來源格式",
         traceSourceUrl: "來源 URL",
         traceSourceIndex: "來源索引",
+        traceRawUrl: "原始 URI",
         traceRawData: "原始資料",
         traceClashProxy: "Clash 代理設定",
         traceFilterRules: "篩選規則",

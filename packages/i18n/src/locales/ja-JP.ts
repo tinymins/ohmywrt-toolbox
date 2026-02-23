@@ -993,6 +993,7 @@ export const jaJP = {
         traceSourceFormat: "ソース形式",
         traceSourceUrl: "ソースURL",
         traceSourceIndex: "ソースインデックス",
+        traceRawUrl: "元のURI",
         traceRawData: "生データ",
         traceClashProxy: "Clashプロキシ設定",
         traceFilterRules: "フィルタールール",
