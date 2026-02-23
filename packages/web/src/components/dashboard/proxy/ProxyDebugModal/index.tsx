@@ -37,7 +37,8 @@ import {
   SourceResultStepContent,
   SourceStartStepContent,
 } from "./DebugStepContent";
-import NodeTracePanel from "./NodeTracePanel";
+import NodeTraceModal from "./NodeTraceModal";
+import type { NodeTraceModalRef } from "./NodeTraceModal";
 
 const { Text } = Typography;
 
@@ -53,9 +54,9 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   const [steps, setSteps] = useState<ProxyDebugStep[]>([]);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tracingNodeName, setTracingNodeName] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const traceModalRef = useRef<NodeTraceModalRef>(null);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -70,7 +71,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
-      setTracingNodeName(null);
       setSearchValue("");
       setVisible(true);
     },
@@ -137,11 +137,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
 
   /** 处理追踪节点 */
   const handleTraceNode = useCallback((nodeName: string) => {
-    setTracingNodeName(nodeName);
-    setSearchValue(nodeName);
-    setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 200);
+    traceModalRef.current?.open(nodeName);
   }, []);
 
   const handleClose = () => {
@@ -152,7 +148,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
-      setTracingNodeName(null);
       setSearchValue("");
     }, 300);
   };
@@ -334,7 +329,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       {done && allNodeNames.length > 0 && subscribeId && (
         <>
           <Divider />
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <AimOutlined className="text-blue-500 text-lg" />
             <Text strong>{t("proxy.debug.traceTitle")}</Text>
             <AutoComplete
@@ -346,7 +341,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
               className="flex-1 min-w-[200px] max-w-[500px]"
               allowClear
               onClear={() => {
-                setTracingNodeName(null);
                 setSearchValue("");
               }}
             />
@@ -355,17 +349,12 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
             </Text>
           </div>
 
-          {tracingNodeName ? (
-            <NodeTracePanel
-              subscribeId={subscribeId}
-              format={format}
-              nodeName={tracingNodeName}
-            />
-          ) : (
-            <div className="text-center py-4">
-              <Text type="secondary">{t("proxy.debug.traceSelectNode")}</Text>
-            </div>
-          )}
+          <NodeTraceModal
+            ref={traceModalRef}
+            subscribeId={subscribeId}
+            format={format}
+            allNodeNames={allNodeNames}
+          />
         </>
       )}
 
