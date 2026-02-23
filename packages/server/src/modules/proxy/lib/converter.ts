@@ -469,6 +469,9 @@ const convertVmess = (proxy: ClashProxyVmess): SingboxOutboundVmess => {
     if (proxy.servername !== undefined) {
       outbound.tls.server_name = proxy.servername!;
     }
+    if (proxy.alpn && proxy.alpn.length > 0) {
+      outbound.tls.alpn = proxy.alpn;
+    }
     if (
       proxy["skip-cert-verify"] !== undefined &&
       proxy["skip-cert-verify"] === true
@@ -510,6 +513,9 @@ const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS => {
     outbound.tls = { enabled: true };
     if (proxy.servername !== undefined) {
       outbound.tls.server_name = proxy.servername!;
+    }
+    if (proxy.alpn && proxy.alpn.length > 0) {
+      outbound.tls.alpn = proxy.alpn;
     }
     if (
       proxy["skip-cert-verify"] !== undefined &&

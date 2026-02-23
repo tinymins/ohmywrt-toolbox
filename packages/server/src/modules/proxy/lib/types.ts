@@ -17,6 +17,7 @@ export const ClashProxyBaseVmessOrVLESSSchema = ClashProxySchema.extend({
   tls: z.optional(z.boolean()),
   "skip-cert-verify": z.optional(z.boolean()),
   servername: z.optional(z.string()),
+  alpn: z.optional(z.array(z.string())),
   network: z.optional(z.enum(["ws", "h2", "http", "grpc", "tcp"])),
   "ws-opts": z.optional(
     z.object({

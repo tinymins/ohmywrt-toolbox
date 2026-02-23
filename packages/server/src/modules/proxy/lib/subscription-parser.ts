@@ -132,7 +132,7 @@ function parseVlessUrl(url: string): ParsedProxy | null {
   if (params.security === "tls") {
     proxy.tls = true;
     if (params.sni) {
-      proxy.sni = params.sni;
+      proxy.servername = params.sni;
     }
     if (params.fp) {
       proxy["client-fingerprint"] = params.fp;
@@ -153,7 +153,7 @@ function parseVlessUrl(url: string): ParsedProxy | null {
       "short-id": params.sid || "",
     };
     if (params.sni) {
-      proxy.sni = params.sni;
+      proxy.servername = params.sni;
     }
     if (params.fp) {
       proxy["client-fingerprint"] = params.fp;
