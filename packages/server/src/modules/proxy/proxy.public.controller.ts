@@ -506,7 +506,7 @@ ${yaml.stringify(data)}`);
           external_controller: "0.0.0.0:9999",
           external_ui: "/etc/sb/ui",
           external_ui_download_url:
-            "https://mirror.ghproxy.com/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+            "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
           secret: "123456",
           default_mode: "rule",
         },
@@ -684,7 +684,7 @@ ${yaml.stringify(data)}`);
           external_controller: "0.0.0.0:9999",
           external_ui: "/etc/sb/ui",
           external_ui_download_url:
-            "https://mirror.ghproxy.com/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
+            "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
           secret: "123456",
           default_mode: "rule",
         },
