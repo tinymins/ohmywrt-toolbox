@@ -755,8 +755,23 @@ ${yaml.stringify(data)}`);
         ? rawRuleList
         : DEFAULT_RULE_PROVIDERS;
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
+    // 内置 outbound tag 不能作为 selector group 名称，否则会导致 tag 重复
+    const BUILTIN_OUTBOUND_TAGS = new Set(["🚀 直接连接", "reject", "dns-out"]);
+    const SINGBOX_KEYWORD_MAP: Record<string, string> = {
+      REJECT: "reject",
+      DIRECT: "🚀 直接连接",
+    };
+    const normalizeSingboxGroups = (groups: ProxyGroup[]): ProxyGroup[] =>
+      groups
+        .filter((g) => !BUILTIN_OUTBOUND_TAGS.has(g.name))
+        .map((g) => ({
+          ...g,
+          proxies: g.proxies.map((p) => SINGBOX_KEYWORD_MAP[p] ?? p),
+        }));
     const groups =
-      rawGroups && rawGroups.length > 0 ? rawGroups : SB_DEFAULT_GROUPS;
+      rawGroups && rawGroups.length > 0
+        ? normalizeSingboxGroups(rawGroups)
+        : SB_DEFAULT_GROUPS;
 
     const publicServerUrl = this.getPublicServerUrl(req);
 
