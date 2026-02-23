@@ -554,7 +554,7 @@ ${yaml.stringify(data)}`);
       },
       dns: {
         servers: [
-          { type: "local", tag: "local", detour: "🚀 直接连接" },
+          { type: "local", tag: "local" },
           {
             type: "fakeip",
             tag: "fakeip",
@@ -566,7 +566,6 @@ ${yaml.stringify(data)}`);
             tag: "local_v4",
             server: "127.0.0.1",
             server_port: 53,
-            detour: "🚀 直接连接",
           },
         ],
         rules: [
