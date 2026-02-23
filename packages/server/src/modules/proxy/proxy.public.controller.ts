@@ -511,7 +511,7 @@ ${yaml.stringify(data)}`);
     // 需要将 REJECT/DIRECT 等 Clash 关键字统一映射为 sing-box tag
     const singboxKeywordMap: Record<string, string> = {
       REJECT: "reject",
-      DIRECT: "DIRECT",
+      DIRECT: "🚀 直接连接",
     };
     const normalizeProxy = (p: string) => singboxKeywordMap[p] ?? p;
 
@@ -537,7 +537,7 @@ ${yaml.stringify(data)}`);
       },
       dns: {
         servers: [
-          { type: "local", tag: "local" },
+          { type: "local", tag: "local", detour: "🚀 直接连接" },
           {
             type: "fakeip",
             tag: "fakeip",
@@ -549,6 +549,7 @@ ${yaml.stringify(data)}`);
             tag: "local_v4",
             server: "127.0.0.1",
             server_port: 53,
+            detour: "🚀 直接连接",
           },
         ],
         rules: [
@@ -602,7 +603,7 @@ ${yaml.stringify(data)}`);
         },
       ],
       outbounds: [
-        { type: "direct", tag: "DIRECT" },
+        { type: "direct", tag: "🚀 直接连接" },
         { type: "block", tag: "reject" },
         ...convertClashToSingbox({ proxies }),
         ...select,
