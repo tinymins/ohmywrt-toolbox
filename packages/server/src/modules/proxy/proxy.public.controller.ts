@@ -657,6 +657,13 @@ ${yaml.stringify(data)}`);
         default_domain_resolver: "local",
         rules: [
           {
+            inbound: "dns-in",
+            action: "hijack-dns",
+          },
+          {
+            action: "sniff",
+          },
+          {
             action: "route",
             outbound: "🚀 直接连接",
             rule_set: ["geoip-cn", "geosite-cn"],
