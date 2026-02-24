@@ -1,6 +1,7 @@
 import * as yaml from "yaml";
 import {
   type Clash,
+  type ClashProxyAnytls,
   type ClashProxyBaseVmessOrVLESS,
   type ClashProxyHttp,
   type ClashProxyHysteria,
@@ -12,6 +13,7 @@ import {
   type ClashProxyVLESS,
   type ClashProxyVmess,
   ClashSchema,
+  type SingboxOutboundAnytls,
   type SingboxOutboundCommonVmessOrVLESSTransport,
   type SingboxOutboundHttp,
   type SingboxOutboundHysteria,
@@ -78,6 +80,9 @@ export function convertClashToSingbox(
         break;
       case "vless":
         convertedOutbound = convertVLESS(proxy);
+        break;
+      case "anytls":
+        convertedOutbound = convertAnytls(proxy);
         break;
       default:
         continue;
@@ -536,6 +541,35 @@ const convertVLESS = (proxy: ClashProxyVLESS): SingboxOutboundVLESS => {
         short_id: proxy["reality-opts"]["short-id"],
       };
     }
+  }
+
+  return outbound;
+};
+
+const convertAnytls = (proxy: ClashProxyAnytls): SingboxOutboundAnytls => {
+  const outbound: SingboxOutboundAnytls = {
+    type: "anytls",
+    tag: proxy.name,
+    server: proxy.server,
+    server_port: proxy.port,
+    password: proxy.password,
+    tls: { enabled: true },
+  };
+
+  if (proxy.sni) {
+    outbound.tls.server_name = proxy.sni;
+  }
+  if (proxy["skip-cert-verify"] === true) {
+    outbound.tls.insecure = true;
+  }
+  if (proxy.alpn) {
+    outbound.tls.alpn = proxy.alpn;
+  }
+  if (proxy["client-fingerprint"]) {
+    outbound.tls.utls = {
+      enabled: true,
+      fingerprint: proxy["client-fingerprint"],
+    };
   }
 
   return outbound;

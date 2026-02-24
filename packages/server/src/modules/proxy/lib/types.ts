@@ -165,6 +165,16 @@ export const ClashProxyVLESSSchema = ClashProxyBaseVmessOrVLESSSchema.extend({
   ),
 });
 
+export const ClashProxyAnytlsSchema = ClashProxySchema.extend({
+  type: z.literal("anytls"),
+  password: z.string(),
+  udp: z.optional(z.boolean()),
+  sni: z.optional(z.string()),
+  alpn: z.optional(z.array(z.string())),
+  "skip-cert-verify": z.optional(z.boolean()),
+  "client-fingerprint": z.optional(z.string()),
+});
+
 export const ClashSchema = z.object({
   proxies: z.array(
     z.discriminatedUnion("type", [
@@ -177,6 +187,7 @@ export const ClashSchema = z.object({
       ClashProxyTUICSchema,
       ClashProxyVmessSchema,
       ClashProxyVLESSSchema,
+      ClashProxyAnytlsSchema,
     ]),
   ),
 });
@@ -366,6 +377,12 @@ export const SingboxOutboundVLESSSchema = SingboxOutboundSchema.extend({
   transport: z.optional(SingboxOutboundCommonVmessOrVLESSTransportSchema),
 });
 
+export const SingboxOutboundAnytlsSchema = SingboxOutboundSchema.extend({
+  type: z.literal("anytls"),
+  password: z.string(),
+  tls: SingboxOutboundCommonTlsSchema,
+});
+
 export const SingboxOutboundsSchema = z.array(
   z.discriminatedUnion("type", [
     SingboxOutboundDirectSchema,
@@ -381,6 +398,7 @@ export const SingboxOutboundsSchema = z.array(
     SingboxOutboundTUICSchema,
     SingboxOutboundVmessSchema,
     SingboxOutboundVLESSSchema,
+    SingboxOutboundAnytlsSchema,
   ]),
 );
 
@@ -475,6 +493,7 @@ export type ClashProxyTrojan = z.infer<typeof ClashProxyTrojanSchema>;
 export type ClashProxyTUIC = z.infer<typeof ClashProxyTUICSchema>;
 export type ClashProxyVmess = z.infer<typeof ClashProxyVmessSchema>;
 export type ClashProxyVLESS = z.infer<typeof ClashProxyVLESSSchema>;
+export type ClashProxyAnytls = z.infer<typeof ClashProxyAnytlsSchema>;
 export type Clash = z.infer<typeof ClashSchema>;
 
 export type SingboxOutbound = z.infer<typeof SingboxOutboundSchema>;
@@ -502,6 +521,9 @@ export type SingboxOutboundTrojan = z.infer<typeof SingboxOutboundTrojanSchema>;
 export type SingboxOutboundTUIC = z.infer<typeof SingboxOutboundTUICSchema>;
 export type SingboxOutboundVmess = z.infer<typeof SingboxOutboundVmessSchema>;
 export type SingboxOutboundVLESS = z.infer<typeof SingboxOutboundVLESSSchema>;
+export type SingboxOutboundAnytls = z.infer<
+  typeof SingboxOutboundAnytlsSchema
+>;
 export type SingboxOutbounds = z.infer<typeof SingboxOutboundsSchema>;
 export type SingboxExperimental = z.infer<typeof SingboxExperimentalSchema>;
 export type SingBoxRule = z.infer<typeof SingBoxRuleSchema>;

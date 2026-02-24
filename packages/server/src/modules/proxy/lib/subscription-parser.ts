@@ -33,7 +33,7 @@ export function isBase64Subscription(text: string): boolean {
   try {
     const decoded = Buffer.from(trimmed, "base64").toString("utf-8");
     // 检查解码后是否包含代理 URL 协议
-    return /^(vless|vmess|ss|trojan|ssr|hysteria|hysteria2):\/\//m.test(
+    return /^(vless|vmess|ss|trojan|ssr|hysteria|hysteria2|anytls):\/\//m.test(
       decoded,
     );
   } catch {
@@ -86,6 +86,9 @@ function parseProxyUrl(url: string): ParsedProxy | null {
   }
   if (url.startsWith("hysteria2://") || url.startsWith("hy2://")) {
     return parseHysteria2Url(url);
+  }
+  if (url.startsWith("anytls://")) {
+    return parseAnytlsUrl(url);
   }
   return null;
 }
@@ -384,6 +387,50 @@ function parseTrojanUrl(url: string): ParsedProxy | null {
     proxy["grpc-opts"] = {
       "grpc-service-name": params.serviceName || "",
     };
+  }
+
+  return proxy;
+}
+
+/**
+ * 解析 AnyTLS URL
+ * 格式: anytls://uuid@server:port/?params#name
+ */
+function parseAnytlsUrl(url: string): ParsedProxy | null {
+  const parsed = new URL(url);
+  const password = decodeURIComponent(parsed.username);
+  const server = parsed.hostname;
+  const port = Number.parseInt(parsed.port, 10);
+  const name = decodeURIComponent(parsed.hash.slice(1)) || `${server}:${port}`;
+  const params = Object.fromEntries(parsed.searchParams.entries());
+
+  const proxy: ParsedProxy = {
+    name,
+    type: "anytls",
+    server,
+    port,
+    password,
+    udp: true,
+  };
+
+  // 处理 SNI
+  if (params.sni) {
+    proxy.sni = params.sni;
+  }
+
+  // 处理 TLS
+  if (params.insecure === "1") {
+    proxy["skip-cert-verify"] = true;
+  }
+
+  // 处理指纹
+  if (params.fp) {
+    proxy["client-fingerprint"] = params.fp;
+  }
+
+  // 处理 ALPN
+  if (params.alpn) {
+    proxy.alpn = params.alpn.split(",");
   }
 
   return proxy;
