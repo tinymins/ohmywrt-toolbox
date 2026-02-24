@@ -1046,13 +1046,14 @@ export const deDE = {
         traceManual: "Manuell",
         traceNodeNotFound: "Knoten nicht gefunden",
         traceLoading: "Knoten wird verfolgt...",
-        traceSelectNode: "Wählen Sie einen Knoten aus, um seine Verfolgung anzuzeigen",
+        traceSelectNode:
+          "Wählen Sie einen Knoten aus, um seine Verfolgung anzuzeigen",
         traceNodeList: "Knotenliste",
         traceFilteredLabel: "Gefiltert",
       },
       tabs: {
         basic: "Grundlegende Infos",
-        subscribeUrl: "Abonnement-URL",
+        subscribeUrl: "Quellen",
         ruleList: "Regelliste",
         group: "Gruppen",
         filter: "Filter",
@@ -1067,10 +1068,19 @@ export const deDE = {
           "Benutzer zur Autorisierung auswählen (optional)",
         authorizedUsersOwnerOnly:
           "Nur der Ersteller kann autorisierte Benutzer ändern",
-        subscribeUrlLabel:
-          "Abonnement-URLs (JSON-Array, Kommentare unterstützt)",
-        subscribeUrlRequired: "Bitte Abonnement-URL eingeben",
+        subscribeUrlLabel: "Abonnement-Quellen",
+        subscribeUrlRequired: "Bitte mindestens eine Quelle hinzufügen",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
+        subscribeItemName: "Name",
+        subscribeItemUrl: "Abonnement-URL",
+        subscribeItemPrefix: "Präfix",
+        subscribeItemPrefixTip:
+          "Wird allen Knotennamen dieser Quelle vorangestellt, z.B. 'FlughafenA | '",
+        subscribeItemRemark: "Notiz",
+        subscribeItemCacheTtlPlaceholder: "Cache",
+        subscribeItemEnabled: "Aktiviert",
+        subscribeItemDisabled: "Deaktiviert",
+        addSubscribeItem: "Quelle hinzufügen",
         ruleListLabel: "Regelliste (JSON-Objekt, Kommentare unterstützt)",
         ruleListPlaceholder:
           '{"Gruppenname": [{"name": "Regelname", "url": "Regel-URL"}]}',

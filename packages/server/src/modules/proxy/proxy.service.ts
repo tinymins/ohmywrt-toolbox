@@ -2,6 +2,7 @@ import net from "node:net";
 import type {
   CreateProxySubscribeInput,
   ProxyPreviewNode,
+  SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
 import { TRPCError } from "@trpc/server";
@@ -32,8 +33,10 @@ export interface ProxySubscribeWithUser {
   userId: string;
   url: string;
   remark: string | null;
-  // JSONC 字符串（前端编辑器直接显示）
+  // JSONC 字符串（前端编辑器直接显示） — 旧字段
   subscribeUrl: string | null;
+  // 结构化订阅源列表（新字段）
+  subscribeItems: SubscribeItem[] | null;
   ruleList: string | null;
   group: string | null;
   filter: string | null;
@@ -62,6 +65,7 @@ const toProxySubscribeOutput = (
   url: row.url,
   remark: row.remark,
   subscribeUrl: row.subscribeUrl,
+  subscribeItems: (row.subscribeItems as SubscribeItem[] | null) ?? null,
   ruleList: row.ruleList,
   group: row.group,
   filter: row.filter,
@@ -201,6 +205,7 @@ export class ProxySubscribeService {
         userId,
         remark: input.remark ?? null,
         subscribeUrl: input.subscribeUrl ?? null,
+        subscribeItems: input.subscribeItems ?? null,
         ruleList: input.ruleList ?? null,
         group: input.group ?? null,
         filter: input.filter ?? null,
@@ -247,6 +252,8 @@ export class ProxySubscribeService {
     if (input.remark !== undefined) updateData.remark = input.remark;
     if (input.subscribeUrl !== undefined)
       updateData.subscribeUrl = input.subscribeUrl;
+    if (input.subscribeItems !== undefined)
+      updateData.subscribeItems = input.subscribeItems;
     if (input.ruleList !== undefined) updateData.ruleList = input.ruleList;
     if (input.group !== undefined) updateData.group = input.group;
     if (input.filter !== undefined) updateData.filter = input.filter;
@@ -490,6 +497,51 @@ export class ProxySubscribeService {
     }
   }
 
+  /**
+   * 获取有效的订阅源列表（优先 subscribeItems，回退 subscribeUrl）
+   * 返回 { url, prefix, name, cacheTtlMinutes }[]，仅包含启用的、有 URL 的条目
+   */
+  getEffectiveSubscribeUrls(
+    subscribe: ProxySubscribeWithUser | ProxySubscribeRow,
+  ): {
+    url: string;
+    prefix: string;
+    name: string;
+    cacheTtlMinutes: number | null;
+  }[] {
+    // 优先使用结构化的 subscribeItems
+    const items = (subscribe.subscribeItems as SubscribeItem[] | null) ?? null;
+    if (items && items.length > 0) {
+      return items
+        .filter((item) => item.enabled && item.url?.trim())
+        .map((item) => ({
+          url: item.url.trim(),
+          prefix: item.prefix ?? "",
+          name: item.name ?? "",
+          cacheTtlMinutes: item.cacheTtlMinutes ?? null,
+        }));
+    }
+    // 回退到旧的 JSONC subscribeUrl（使用全局 cacheTtlMinutes）
+    const globalCacheTtl =
+      "cacheTtlMinutes" in subscribe
+        ? ((subscribe as any).cacheTtlMinutes ?? null)
+        : null;
+    const urls = this.safeParseJsonc<string[]>(
+      "subscribeUrl" in subscribe
+        ? (subscribe.subscribeUrl as string | null)
+        : null,
+      [],
+    );
+    return urls
+      .filter((url) => typeof url === "string" && url.trim())
+      .map((url) => ({
+        url: url.trim(),
+        prefix: "",
+        name: "",
+        cacheTtlMinutes: globalCacheTtl,
+      }));
+  }
+
   /** 预览订阅中的节点信息 */
   async previewNodes(id: string, userId: string): Promise<ProxyPreviewNode[]> {
     const subscribe = await this.getById(id);
@@ -529,20 +581,16 @@ export class ProxySubscribeService {
       }
     }
 
-    // 2. 获取远程订阅（从 JSONC 字符串解析）
-    const subscribeUrls = this.safeParseJsonc<string[]>(
-      subscribe.subscribeUrl,
-      [],
-    );
+    // 2. 获取远程订阅（优先 subscribeItems，回退 subscribeUrl）
+    const effectiveUrls = this.getEffectiveSubscribeUrls(subscribe);
     const filters = this.safeParseJsonc<string[]>(subscribe.filter, []);
 
-    for (let i = 0; i < subscribeUrls.length; i++) {
-      const url = subscribeUrls[i];
-      if (typeof url !== "string" || !url) continue;
+    for (let i = 0; i < effectiveUrls.length; i++) {
+      const { url, prefix, cacheTtlMinutes: itemCacheTtl } = effectiveUrls[i];
 
       try {
-        // 检查缓存
-        const cacheTtl = subscribe.cacheTtlMinutes ?? null;
+        // 检查缓存（使用每个订阅源自己的缓存时间）
+        const cacheTtl = itemCacheTtl ?? null;
         const cached = subscriptionCache.get(url, cacheTtl);
         let text: string;
         if (cached) {
@@ -571,9 +619,12 @@ export class ProxySubscribeService {
 
         // 遍历所有节点，标记被过滤的
         for (const proxy of proxies) {
-          const matchedFilter = filters.find((f) => proxy.name?.includes(f));
+          const rawName = prefix
+            ? `${prefix}${proxy.name || ""}`
+            : proxy.name || "";
+          const matchedFilter = filters.find((f) => rawName?.includes(f));
           nodes.push({
-            name: this.appendIcon(proxy.name || ""),
+            name: this.appendIcon(rawName),
             type: proxy.type || "unknown",
             server: proxy.server || "",
             port: proxy.port || 0,

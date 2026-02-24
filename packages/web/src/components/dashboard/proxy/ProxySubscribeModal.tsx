@@ -1,5 +1,6 @@
 import type {
   CreateProxySubscribeInput,
+  SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
 import { ReloadOutlined } from "@ant-design/icons";
@@ -8,7 +9,6 @@ import {
   Button,
   Form,
   Input,
-  InputNumber,
   Modal,
   message,
   Segmented,
@@ -19,6 +19,7 @@ import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
+import SubscribeItemsEditor from "./SubscribeItemsEditor";
 
 // 配置 Monaco CDN 源（和 classic 项目一致）
 loader.config({
@@ -162,7 +163,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           setIsOwner(true); // 新建时一定是创建者
           form.resetFields();
           form.setFieldsValue({
-            subscribeUrl: JSON.stringify(["url1", "url2"], null, 2),
+            subscribeItems: [
+              { enabled: true, name: "", url: "", prefix: "", remark: "" },
+            ],
             ruleList: defaults?.ruleList ?? "{}",
             group: defaults?.group ?? "[]",
             filter: defaults?.filter ?? "[]",
@@ -177,10 +180,54 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
 
     // 当获取到数据时更新表单（直接用原始字符串）
     if (existingData && loading) {
+      // 迁移逻辑：如果有 subscribeItems 则直接用，否则从旧的 subscribeUrl JSONC 转换
+      let items: SubscribeItem[] = [];
+      // 全局缓存时间（旧数据可能有），迁移时复制到每个 item
+      const globalCacheTtl = existingData.cacheTtlMinutes ?? undefined;
+      if (
+        existingData.subscribeItems &&
+        existingData.subscribeItems.length > 0
+      ) {
+        // 如果 item 没有自己的 cacheTtlMinutes，用全局值回填
+        items = existingData.subscribeItems.map((item) => ({
+          ...item,
+          cacheTtlMinutes: item.cacheTtlMinutes ?? globalCacheTtl,
+        }));
+      } else if (existingData.subscribeUrl) {
+        try {
+          const parsed = parseJsonc(existingData.subscribeUrl);
+          if (Array.isArray(parsed)) {
+            items = parsed
+              .filter((u: unknown) => typeof u === "string" && u.trim())
+              .map((u: string) => ({
+                enabled: true,
+                name: "",
+                url: u,
+                prefix: "",
+                remark: "",
+                cacheTtlMinutes: globalCacheTtl,
+              }));
+          }
+        } catch {
+          // JSONC 解析失败，留空
+        }
+      }
+      if (items.length === 0) {
+        items = [
+          {
+            enabled: true,
+            name: "",
+            url: "",
+            prefix: "",
+            remark: "",
+            cacheTtlMinutes: undefined,
+          },
+        ];
+      }
+
       form.setFieldsValue({
         remark: existingData.remark ?? "",
-        subscribeUrl: existingData.subscribeUrl ?? "",
-        cacheTtlMinutes: existingData.cacheTtlMinutes ?? null,
+        subscribeItems: items,
         ruleList: existingData.ruleList ?? "",
         group: existingData.group ?? "",
         filter: existingData.filter ?? "",
@@ -211,7 +258,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
 
         // 验证所有 JSONC 字段
         const fields = [
-          "subscribeUrl",
           "ruleList",
           "group",
           "filter",
@@ -224,17 +270,23 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           }
         }
 
+        // 过滤空白的 subscribeItems，清空旧字段
+        const cleanedItems = (
+          (values.subscribeItems as SubscribeItem[]) || []
+        ).filter((item: SubscribeItem) => item.url?.trim());
+
         // 直接发送原始字符串（包含注释）
         const data = {
           remark: values.remark || null,
-          subscribeUrl: values.subscribeUrl || null,
+          subscribeUrl: null, // 清空旧字段
+          subscribeItems: cleanedItems.length > 0 ? cleanedItems : null,
           ruleList: values.ruleList || null,
           group: values.group || null,
           filter: values.filter || null,
           customConfig: values.customConfig || null,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
-          cacheTtlMinutes: values.cacheTtlMinutes ?? null,
+          cacheTtlMinutes: null, // 缓存时间已移至每个订阅源
         };
 
         if (id) {
@@ -323,7 +375,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 </Form.Item>
               </div>
 
-              {/* 订阅地址 */}
+              {/* 订阅源 */}
               <div
                 style={{
                   display: activeTab === "subscribeUrl" ? "block" : "none",
@@ -331,30 +383,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               >
                 <Form.Item
                   label={t("proxy.form.subscribeUrlLabel")}
-                  name="subscribeUrl"
-                  rules={[
-                    {
-                      required: true,
-                      message: t("proxy.form.subscribeUrlRequired"),
-                    },
-                  ]}
+                  name="subscribeItems"
                 >
-                  <JsoncEditor
-                    placeholder={t("proxy.form.subscribeUrlPlaceholder")}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label={t("proxy.form.cacheTtlLabel")}
-                  name="cacheTtlMinutes"
-                  tooltip={t("proxy.form.cacheTtlTooltip")}
-                >
-                  <InputNumber
-                    min={0}
-                    max={1440}
-                    placeholder={t("proxy.form.cacheTtlPlaceholder")}
-                    suffix={t("proxy.form.cacheTtlUnit")}
-                    style={{ width: 260 }}
-                  />
+                  <SubscribeItemsEditor />
                 </Form.Item>
               </div>
 

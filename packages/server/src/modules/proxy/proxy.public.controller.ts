@@ -64,18 +64,18 @@ export class ProxyPublicController {
       }
     }
 
-    // 获取远程订阅（从 JSONC 字符串解析）
-    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    // 获取远程订阅（优先 subscribeItems，回退 subscribeUrl）
+    const effectiveUrls =
+      proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
     const filters = safeParseJsonc<string[]>(subscribe.filter, []);
-    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
 
-    if (subscribeUrls.length > 0) {
+    if (effectiveUrls.length > 0) {
       const results = await Promise.all(
-        subscribeUrls
-          .filter((url) => typeof url === "string" && url)
-          .map(async (url) => {
+        effectiveUrls.map(
+          async ({ url, prefix, cacheTtlMinutes: itemCacheTtl }) => {
             try {
-              // 检查缓存
+              // 检查缓存（使用每个订阅源自己的缓存时间）
+              const cacheTtl = itemCacheTtl ?? null;
               const cached = subscriptionCache.get(url, cacheTtl);
               let text: string;
               if (cached) {
@@ -93,20 +93,30 @@ export class ProxyPublicController {
                 }
               }
               // 支持 Base64 编码的订阅格式
+              let parsed: any;
               if (isBase64Subscription(text)) {
-                return { proxies: parseBase64Subscription(text) };
+                parsed = { proxies: parseBase64Subscription(text) };
+              } else {
+                parsed = yaml.parse(text);
               }
-              return yaml.parse(text);
+              return { parsed, prefix };
             } catch (e) {
               this.logger.warn(`Failed to fetch subscription: ${url}`, e);
               return null;
             }
-          }),
+          },
+        ),
       );
 
       for (const item of results) {
-        if (item?.proxies) {
-          let filtered = item.proxies.filter(
+        if (item?.parsed?.proxies) {
+          // 拼接前缀到节点名称
+          if (item.prefix) {
+            for (const p of item.parsed.proxies) {
+              if (p.name) p.name = `${item.prefix}${p.name}`;
+            }
+          }
+          let filtered = item.parsed.proxies.filter(
             (p: any) => !filters.some((f) => p.name?.includes(f)),
           );
           // 排除指定类型

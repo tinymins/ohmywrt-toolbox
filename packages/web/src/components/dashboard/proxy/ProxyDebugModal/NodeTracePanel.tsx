@@ -71,9 +71,7 @@ const SourceTraceContent = ({
                 {
                   key: "rawUrl",
                   label: t("proxy.debug.traceRawUrl"),
-                  children: (
-                    <CodeBlock content={data.rawUrl} maxHeight={300} />
-                  ),
+                  children: <CodeBlock content={data.rawUrl} maxHeight={300} />,
                 },
               ]
             : [

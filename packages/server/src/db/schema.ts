@@ -126,8 +126,20 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
     .unique()
     .$defaultFn(() => crypto.randomUUID()),
   remark: text("remark"),
-  // 订阅地址 (JSONC 字符串)
+  // 订阅地址 (JSONC 字符串) — 旧字段，保留兼容
   subscribeUrl: text("subscribe_url"),
+  // 结构化订阅源列表（新字段，优先使用）
+  subscribeItems:
+    jsonb("subscribe_items").$type<
+      {
+        enabled: boolean;
+        name: string;
+        url: string;
+        prefix: string;
+        remark: string;
+        cacheTtlMinutes?: number;
+      }[]
+    >(),
   // 规则列表 (JSONC 字符串)
   ruleList: text("rule_list"),
   // 分组 (JSONC 字符串)

@@ -36,6 +36,29 @@ export type ProxyRuleProvidersList = z.infer<
 >;
 
 // ============================================
+// 订阅源条目（结构化）
+// ============================================
+
+export const SubscribeItemSchema = z.object({
+  /** 是否启用 */
+  enabled: z.boolean(),
+  /** 名称（用于辨识） */
+  name: z.string(),
+  /** 订阅地址 */
+  url: z.string(),
+  /** 前缀（拼接到节点名称前） */
+  prefix: z.string(),
+  /** 备注（允许多行） */
+  remark: z.string(),
+  /** 缓存时间（分钟），0 或 undefined 表示不缓存 */
+  cacheTtlMinutes: z.number().min(0).optional(),
+});
+
+export type SubscribeItem = z.infer<typeof SubscribeItemSchema>;
+
+export const SubscribeItemsSchema = z.array(SubscribeItemSchema);
+
+// ============================================
 // 代理订阅
 // ============================================
 
@@ -44,8 +67,10 @@ export const ProxySubscribeSchema = z.object({
   userId: z.string(),
   url: z.string(),
   remark: z.string().nullable(),
-  // JSONC 字符串（前端编辑器直接显示）
+  // JSONC 字符串（前端编辑器直接显示）— 旧字段，保留兼容
   subscribeUrl: z.string().nullable(),
+  // 结构化订阅源列表（新字段，优先使用）
+  subscribeItems: z.array(SubscribeItemSchema).nullable(),
   ruleList: z.string().nullable(),
   group: z.string().nullable(),
   filter: z.string().nullable(),
@@ -88,6 +113,7 @@ export type ProxySubscribeWithUser = z.infer<
 export const CreateProxySubscribeInputSchema = z.object({
   remark: z.string().nullable().optional(),
   subscribeUrl: z.string().nullable().optional(),
+  subscribeItems: z.array(SubscribeItemSchema).nullable().optional(),
   ruleList: z.string().nullable().optional(),
   group: z.string().nullable().optional(),
   filter: z.string().nullable().optional(),
@@ -105,6 +131,7 @@ export const UpdateProxySubscribeInputSchema = z.object({
   id: z.string(),
   remark: z.string().nullable().optional(),
   subscribeUrl: z.string().nullable().optional(),
+  subscribeItems: z.array(SubscribeItemSchema).nullable().optional(),
   ruleList: z.string().nullable().optional(),
   group: z.string().nullable().optional(),
   filter: z.string().nullable().optional(),

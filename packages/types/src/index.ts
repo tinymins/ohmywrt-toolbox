@@ -16,6 +16,7 @@ export type {
   ProxyRuleTestInput,
   ProxySubscribe,
   ProxySubscribeWithUser,
+  SubscribeItem,
   UpdateProxySubscribeInput,
 } from "./proxy";
 export {
@@ -52,6 +53,8 @@ export {
   ProxyRuleTestInputSchema,
   ProxySubscribeSchema,
   ProxySubscribeWithUserSchema,
+  SubscribeItemSchema,
+  SubscribeItemsSchema,
   UpdateProxySubscribeInputSchema,
 } from "./proxy";
 export type {

@@ -8,6 +8,7 @@ import {
   ProxyPreviewInputSchema,
   ProxyPreviewOutputSchema,
   ProxyRuleTestInputSchema,
+  SubscribeItemSchema,
   UpdateProxySubscribeInputSchema,
 } from "@acme/types";
 import { Logger } from "@nestjs/common";
@@ -40,6 +41,8 @@ export const ProxySubscribeOutputSchema = z.object({
   remark: z.string().nullable(),
   // 这些字段现在是 JSONC 字符串
   subscribeUrl: z.string().nullable(),
+  // 结构化订阅源列表（新字段）
+  subscribeItems: z.array(SubscribeItemSchema).nullable(),
   ruleList: z.string().nullable(),
   group: z.string().nullable(),
   filter: z.string().nullable(),

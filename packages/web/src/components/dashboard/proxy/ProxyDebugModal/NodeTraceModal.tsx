@@ -84,9 +84,7 @@ const SourceTraceContent = ({
                 {
                   key: "rawUrl",
                   label: t("proxy.debug.traceRawUrl"),
-                  children: (
-                    <CodeBlock content={data.rawUrl} maxHeight={300} />
-                  ),
+                  children: <CodeBlock content={data.rawUrl} maxHeight={300} />,
                 },
               ]
             : [
@@ -523,10 +521,8 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         }));
     }, [allNodeNames, searchValue, t]);
 
-    const filterStep =
-      data?.steps.find((s) => s.type === "filter");
-    const isFiltered =
-      filterStep?.type === "filter" && !filterStep.data.passed;
+    const filterStep = data?.steps.find((s) => s.type === "filter");
+    const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
     return (
       <Modal
@@ -540,9 +536,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
             />
             <AimOutlined className="text-blue-500" />
             <span>{t("proxy.debug.traceTitle")}</span>
-            {tracingNodeName && (
-              <Tag color="blue">{tracingNodeName}</Tag>
-            )}
+            {tracingNodeName && <Tag color="blue">{tracingNodeName}</Tag>}
             {isFiltered && (
               <Tag color="orange">{t("proxy.debug.traceFilteredLabel")}</Tag>
             )}

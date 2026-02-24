@@ -76,7 +76,9 @@ export class ProxyDebugService {
     // ──────────────────────────────────────────
     // Step 1: 配置解析
     // ──────────────────────────────────────────
-    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const effectiveUrls =
+      proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
+    const subscribeUrls = effectiveUrls.map((e) => e.url);
     const filters = safeParseJsonc<string[]>(subscribe.filter, []);
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     const groups =
@@ -140,11 +142,10 @@ export class ProxyDebugService {
     // ──────────────────────────────────────────
     let totalBeforeFilter = manualNodes.length;
     let totalFiltered = 0;
-    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
 
-    for (let i = 0; i < subscribeUrls.length; i++) {
-      const url = subscribeUrls[i];
-      if (typeof url !== "string" || !url) continue;
+    for (let i = 0; i < effectiveUrls.length; i++) {
+      const { url, prefix, cacheTtlMinutes: itemCacheTtl } = effectiveUrls[i];
+      const cacheTtl = itemCacheTtl ?? null;
 
       // 通知前端：开始获取
       yield {
@@ -225,6 +226,10 @@ export class ProxyDebugService {
 
         // 逐一检查过滤规则
         for (const proxy of proxies) {
+          // 拼接前缀到节点名称
+          if (prefix && proxy.name) {
+            proxy.name = `${prefix}${proxy.name}`;
+          }
           const node = toPreviewNode(proxy, i + 1, url);
           nodesBeforeFilter.push(node);
 
@@ -542,7 +547,8 @@ export class ProxyDebugService {
     }
 
     // 解析配置（复用 debugSubscription 的逻辑）
-    const subscribeUrls = safeParseJsonc<string[]>(subscribe.subscribeUrl, []);
+    const traceEffectiveUrls =
+      proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
     const filters = safeParseJsonc<string[]>(subscribe.filter, []);
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     const groups =
@@ -553,7 +559,6 @@ export class ProxyDebugService {
           : DEFAULT_GROUPS;
     const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
     const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
-    const cacheTtl = subscribe.cacheTtlMinutes ?? null;
 
     const steps: ProxyNodeTraceStep[] = [];
     let foundRawProxy: any = null;
@@ -588,9 +593,13 @@ export class ProxyDebugService {
 
     // ── 搜索远程订阅源 ──
     if (!foundRawProxy) {
-      for (let i = 0; i < subscribeUrls.length; i++) {
-        const url = subscribeUrls[i];
-        if (typeof url !== "string" || !url) continue;
+      for (let i = 0; i < traceEffectiveUrls.length; i++) {
+        const {
+          url,
+          prefix,
+          cacheTtlMinutes: itemCacheTtl,
+        } = traceEffectiveUrls[i];
+        const cacheTtl = itemCacheTtl ?? null;
 
         let rawText = "";
         let detectedFormat: "base64" | "yaml" | "unknown" = "unknown";
@@ -630,10 +639,14 @@ export class ProxyDebugService {
             format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
 
           for (const proxy of proxies) {
-            const enrichedName = appendIcon(proxy.name || "");
+            // 拼接前缀
+            const prefixedName = prefix
+              ? `${prefix}${proxy.name || ""}`
+              : proxy.name || "";
+            const enrichedName = appendIcon(prefixedName);
             if (enrichedName === nodeName) {
               foundRawProxy = proxy;
-              foundOriginalName = proxy.name || "";
+              foundOriginalName = prefixedName;
               foundSourceIndex = i + 1;
               foundSourceUrl = url;
               foundSourceFormat =
@@ -645,7 +658,7 @@ export class ProxyDebugService {
                 matchedFilterRule = `类型排除: ${proxy.type}`;
               } else {
                 // 检查过滤规则
-                const matched = filters.find((f) => proxy.name?.includes(f));
+                const matched = filters.find((f) => prefixedName?.includes(f));
                 if (matched) {
                   filterPassed = false;
                   matchedFilterRule = matched;
@@ -734,9 +747,13 @@ export class ProxyDebugService {
     }
 
     // 远程订阅
-    for (let i = 0; i < subscribeUrls.length; i++) {
-      const url = subscribeUrls[i];
-      if (typeof url !== "string" || !url) continue;
+    for (let i = 0; i < traceEffectiveUrls.length; i++) {
+      const {
+        url,
+        prefix: srcPrefix,
+        cacheTtlMinutes: itemCacheTtl,
+      } = traceEffectiveUrls[i];
+      const cacheTtl = itemCacheTtl ?? null;
 
       try {
         const cachedEntry = subscriptionCache.get(url, cacheTtl);
@@ -772,9 +789,12 @@ export class ProxyDebugService {
 
         for (const proxy of proxies) {
           if (excludeTypes.includes(proxy.type)) continue;
-          const matched = filters.find((f) => proxy.name?.includes(f));
+          const prefixedName = srcPrefix
+            ? `${srcPrefix}${proxy.name || ""}`
+            : proxy.name || "";
+          const matched = filters.find((f) => prefixedName?.includes(f));
           if (!matched) {
-            allProxies.push({ ...proxy, name: appendIcon(proxy.name) });
+            allProxies.push({ ...proxy, name: appendIcon(prefixedName) });
           }
         }
       } catch {}
