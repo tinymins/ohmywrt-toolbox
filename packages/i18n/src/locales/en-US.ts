@@ -822,9 +822,7 @@ export const enUS: TranslationSchema = {
         serversPlaceholder:
           '[{"name": "ServerName", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSON format error",
-        resetToDefault: "Reset to Default",
-        resetSuccess: "Reset to default configuration",
-        resetFailed: "Failed to get default configuration",
+        useSystemConfig: "Use system config",
         cacheTtlLabel: "Cache Duration",
         cacheTtlPlaceholder: "Empty or 0 means no cache",
         cacheTtlTooltip:

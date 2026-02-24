@@ -3,10 +3,9 @@ import type {
   SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
-import { ReloadOutlined } from "@ant-design/icons";
 import Editor, { loader } from "@monaco-editor/react";
 import {
-  Button,
+  Checkbox,
   Form,
   Input,
   Modal,
@@ -31,17 +30,26 @@ interface JsoncEditorProps {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
+  readOnly?: boolean;
 }
 
-const JsoncEditor = ({ value, onChange }: JsoncEditorProps) => {
+const JsoncEditor = ({ value, onChange, readOnly }: JsoncEditorProps) => {
   return (
-    <div className="border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+    <div
+      className={`border rounded overflow-hidden ${
+        readOnly
+          ? "border-gray-500 dark:border-gray-500 opacity-60"
+          : "border-gray-300 dark:border-gray-600"
+      }`}
+    >
       <Editor
         height={300}
         language="json"
         value={value || ""}
         theme="vs-dark"
-        onChange={(val) => onChange?.(val || "")}
+        onChange={(val) => {
+          if (!readOnly) onChange?.(val || "");
+        }}
         options={{
           automaticLayout: true,
           selectOnLineNumbers: true,
@@ -53,6 +61,7 @@ const JsoncEditor = ({ value, onChange }: JsoncEditorProps) => {
           scrollBeyondLastLine: false,
           minimap: { enabled: false },
           tabSize: 2,
+          readOnly: readOnly ?? false,
         }}
         beforeMount={(monaco) => {
           // 配置 JSON 语言允许注释和尾随逗号
@@ -72,6 +81,52 @@ const JsoncEditor = ({ value, onChange }: JsoncEditorProps) => {
         }}
       />
     </div>
+  );
+};
+
+/**
+ * 配置字段编辑器：根据 useSystem checkbox 状态切换只读/可编辑模式。
+ * 勾选时显示系统默认值（只读），取消勾选显示用户自定义值（可编辑）。
+ */
+interface ConfigFieldEditorProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  form: ReturnType<typeof Form.useForm>[0];
+  useSystemField: string;
+  defaultValue: string;
+  placeholder?: string;
+}
+
+const ConfigFieldEditor = ({
+  value,
+  onChange,
+  form,
+  useSystemField,
+  defaultValue,
+  placeholder,
+}: ConfigFieldEditorProps) => {
+  const useSystem = Form.useWatch(useSystemField, form);
+
+  if (useSystem) {
+    // 独立的只读编辑器，不连接 form 的 onChange，确保表单值不被覆盖
+    return (
+      <JsoncEditor
+        key="system-default"
+        value={defaultValue}
+        readOnly
+        placeholder={placeholder}
+      />
+    );
+  }
+
+  // 可编辑编辑器，连接 form
+  return (
+    <JsoncEditor
+      key="user-custom"
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+    />
   );
 };
 
@@ -166,10 +221,14 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             subscribeItems: [
               { enabled: true, url: "", prefix: "", remark: "" },
             ],
-            ruleList: defaults?.ruleList ?? "{}",
-            group: defaults?.group ?? "[]",
-            filter: defaults?.filter ?? "[]",
-            customConfig: defaults?.customConfig ?? "[]",
+            ruleList: "",
+            useSystemRuleList: true,
+            group: "",
+            useSystemGroup: true,
+            filter: "",
+            useSystemFilter: true,
+            customConfig: "",
+            useSystemCustomConfig: true,
             servers: JSON.stringify([], null, 2),
           });
           setLoading(false);
@@ -227,9 +286,13 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         remark: existingData.remark ?? "",
         subscribeItems: items,
         ruleList: existingData.ruleList ?? "",
+        useSystemRuleList: existingData.useSystemRuleList,
         group: existingData.group ?? "",
+        useSystemGroup: existingData.useSystemGroup,
         filter: existingData.filter ?? "",
+        useSystemFilter: existingData.useSystemFilter,
         customConfig: existingData.customConfig ?? "",
+        useSystemCustomConfig: existingData.useSystemCustomConfig,
         servers: existingData.servers ?? "",
         authorizedUserIds: existingData.authorizedUserIds,
       });
@@ -279,9 +342,13 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           subscribeUrl: null, // 清空旧字段
           subscribeItems: cleanedItems.length > 0 ? cleanedItems : null,
           ruleList: values.ruleList || null,
+          useSystemRuleList: values.useSystemRuleList ?? true,
           group: values.group || null,
+          useSystemGroup: values.useSystemGroup ?? true,
           filter: values.filter || null,
+          useSystemFilter: values.useSystemFilter ?? true,
           customConfig: values.customConfig || null,
+          useSystemCustomConfig: values.useSystemCustomConfig ?? true,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
           cacheTtlMinutes: null, // 缓存时间已移至每个订阅源
@@ -303,17 +370,44 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
 
     const isPending = createMutation.isPending || updateMutation.isPending;
 
-    // 恢复默认配置的处理函数
-    const handleResetToDefault = (
-      field: "ruleList" | "group" | "filter" | "customConfig",
-    ) => {
-      if (!defaults) {
-        messageApi.error(t("proxy.form.resetFailed"));
-        return;
-      }
-      form.setFieldValue(field, defaults[field]);
-      messageApi.success(t("proxy.form.resetSuccess"));
-    };
+    // 配置字段定义（用于统一渲染 useSystem checkbox + editor）
+    type ConfigField = "ruleList" | "group" | "filter" | "customConfig";
+    const CONFIG_FIELDS: {
+      field: ConfigField;
+      useSystemField: string;
+      tab: string;
+      labelKey: string;
+      placeholderKey: string;
+    }[] = [
+      {
+        field: "ruleList",
+        useSystemField: "useSystemRuleList",
+        tab: "ruleList",
+        labelKey: "proxy.form.ruleListLabel",
+        placeholderKey: "proxy.form.ruleListPlaceholder",
+      },
+      {
+        field: "group",
+        useSystemField: "useSystemGroup",
+        tab: "group",
+        labelKey: "proxy.form.groupLabel",
+        placeholderKey: "proxy.form.groupPlaceholder",
+      },
+      {
+        field: "filter",
+        useSystemField: "useSystemFilter",
+        tab: "filter",
+        labelKey: "proxy.form.filterLabel",
+        placeholderKey: "proxy.form.filterPlaceholder",
+      },
+      {
+        field: "customConfig",
+        useSystemField: "useSystemCustomConfig",
+        tab: "customConfig",
+        labelKey: "proxy.form.customConfigLabel",
+        placeholderKey: "proxy.form.customConfigPlaceholder",
+      },
+    ];
 
     return (
       <>
@@ -387,109 +481,39 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 </Form.Item>
               </div>
 
-              {/* 规则列表 */}
-              <div
-                style={{ display: activeTab === "ruleList" ? "block" : "none" }}
-              >
-                <Form.Item
-                  label={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t("proxy.form.ruleListLabel")}</span>
-                      <Button
-                        type="link"
-                        size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={() => handleResetToDefault("ruleList")}
-                      >
-                        {t("proxy.form.resetToDefault")}
-                      </Button>
-                    </div>
-                  }
-                  name="ruleList"
+              {/* 规则列表 / 分组 / 过滤器 / 自定义配置 */}
+              {CONFIG_FIELDS.map(({ field, useSystemField, tab, labelKey, placeholderKey }) => (
+                <div
+                  key={tab}
+                  style={{ display: activeTab === tab ? "block" : "none" }}
                 >
-                  <JsoncEditor
-                    placeholder={t("proxy.form.ruleListPlaceholder")}
-                  />
-                </Form.Item>
-              </div>
-
-              {/* 分组 */}
-              <div
-                style={{ display: activeTab === "group" ? "block" : "none" }}
-              >
-                <Form.Item
-                  label={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t("proxy.form.groupLabel")}</span>
-                      <Button
-                        type="link"
-                        size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={() => handleResetToDefault("group")}
-                      >
-                        {t("proxy.form.resetToDefault")}
-                      </Button>
-                    </div>
-                  }
-                  name="group"
-                >
-                  <JsoncEditor placeholder={t("proxy.form.groupPlaceholder")} />
-                </Form.Item>
-              </div>
-
-              {/* 过滤器 */}
-              <div
-                style={{ display: activeTab === "filter" ? "block" : "none" }}
-              >
-                <Form.Item
-                  label={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t("proxy.form.filterLabel")}</span>
-                      <Button
-                        type="link"
-                        size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={() => handleResetToDefault("filter")}
-                      >
-                        {t("proxy.form.resetToDefault")}
-                      </Button>
-                    </div>
-                  }
-                  name="filter"
-                >
-                  <JsoncEditor
-                    placeholder={t("proxy.form.filterPlaceholder")}
-                  />
-                </Form.Item>
-              </div>
-
-              {/* 自定义配置 */}
-              <div
-                style={{
-                  display: activeTab === "customConfig" ? "block" : "none",
-                }}
-              >
-                <Form.Item
-                  label={
-                    <div className="flex items-center justify-between w-full">
-                      <span>{t("proxy.form.customConfigLabel")}</span>
-                      <Button
-                        type="link"
-                        size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={() => handleResetToDefault("customConfig")}
-                      >
-                        {t("proxy.form.resetToDefault")}
-                      </Button>
-                    </div>
-                  }
-                  name="customConfig"
-                >
-                  <JsoncEditor
-                    placeholder={t("proxy.form.customConfigPlaceholder")}
-                  />
-                </Form.Item>
-              </div>
+                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                    <span>{t(labelKey)}</span>
+                    <Form.Item
+                      name={useSystemField}
+                      valuePropName="checked"
+                      noStyle
+                    >
+                      <Checkbox>
+                        {t("proxy.form.useSystemConfig")}
+                      </Checkbox>
+                    </Form.Item>
+                  </div>
+                  <Form.Item
+                    name={field}
+                    dependencies={[useSystemField]}
+                    noStyle
+                  >
+                    {/* 使用函数渲染以动态获取 useSystem 值 */}
+                    <ConfigFieldEditor
+                      form={form}
+                      useSystemField={useSystemField}
+                      defaultValue={defaults?.[field] ?? ""}
+                      placeholder={t(placeholderKey)}
+                    />
+                  </Form.Item>
+                </div>
+              ))}
 
               {/* 额外服务器 */}
               <div

@@ -1095,9 +1095,7 @@ export const deDE = {
         serversPlaceholder:
           '[{"name": "Servername", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSON-Formatfehler",
-        resetToDefault: "Auf Standard zurücksetzen",
-        resetSuccess: "Auf Standardkonfiguration zurückgesetzt",
-        resetFailed: "Standardkonfiguration konnte nicht abgerufen werden",
+        useSystemConfig: "Systemkonfiguration verwenden",
         cacheTtlLabel: "Cache-Dauer",
         cacheTtlPlaceholder: "Leer oder 0 bedeutet kein Cache",
         cacheTtlTooltip:

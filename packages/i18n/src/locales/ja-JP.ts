@@ -1049,9 +1049,7 @@ export const jaJP = {
         serversPlaceholder:
           '[{"name": "サーバー名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSONフォーマットエラー",
-        resetToDefault: "デフォルトに戻す",
-        resetSuccess: "デフォルト設定に戻しました",
-        resetFailed: "デフォルト設定の取得に失敗しました",
+        useSystemConfig: "システム設定を使用",
         cacheTtlLabel: "キャッシュ時間",
         cacheTtlPlaceholder: "空または0はキャッシュなし",
         cacheTtlTooltip:

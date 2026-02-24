@@ -12,6 +12,8 @@ import { parse as parseJsonc } from "jsonc-parser";
 import * as yaml from "yaml";
 import {
   appendIcon,
+  DEFAULT_CUSTOM_CONFIG,
+  DEFAULT_FILTER,
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
   SB_DEFAULT_GROUPS,
@@ -79,23 +81,40 @@ export class ProxyDebugService {
     const effectiveUrls =
       proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
     const subscribeUrls = effectiveUrls.map((e) => e.url);
-    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
+    const filters = subscribe.useSystemFilter
+      ? DEFAULT_FILTER
+      : safeParseJsonc<string[]>(subscribe.filter, []);
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups =
-      rawGroups && rawGroups.length > 0
-        ? rawGroups
-        : format === "sing-box" || format === "sing-box-v12"
+    let groups: ProxyGroup[];
+    if (subscribe.useSystemGroup) {
+      groups =
+        format === "sing-box" || format === "sing-box-v12"
           ? SB_DEFAULT_GROUPS
           : DEFAULT_GROUPS;
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
-      subscribe.ruleList,
-      {},
-    );
-    const ruleProviders =
-      rawRuleList && Object.keys(rawRuleList).length > 0
-        ? rawRuleList
-        : DEFAULT_RULE_PROVIDERS;
-    const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
+    } else {
+      groups =
+        rawGroups && rawGroups.length > 0
+          ? rawGroups
+          : format === "sing-box" || format === "sing-box-v12"
+            ? SB_DEFAULT_GROUPS
+            : DEFAULT_GROUPS;
+    }
+    let ruleProviders: ProxyRuleProvidersList;
+    if (subscribe.useSystemRuleList) {
+      ruleProviders = DEFAULT_RULE_PROVIDERS;
+    } else {
+      const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+        subscribe.ruleList,
+        {},
+      );
+      ruleProviders =
+        rawRuleList && Object.keys(rawRuleList).length > 0
+          ? rawRuleList
+          : DEFAULT_RULE_PROVIDERS;
+    }
+    const customConfig = subscribe.useSystemCustomConfig
+      ? DEFAULT_CUSTOM_CONFIG
+      : safeParseJsonc<unknown[]>(subscribe.customConfig, []);
     const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
 
     yield {
@@ -553,15 +572,27 @@ export class ProxyDebugService {
     // 解析配置（复用 debugSubscription 的逻辑）
     const traceEffectiveUrls =
       proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
-    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
+    const filters = subscribe.useSystemFilter
+      ? DEFAULT_FILTER
+      : safeParseJsonc<string[]>(subscribe.filter, []);
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups =
-      rawGroups && rawGroups.length > 0
-        ? rawGroups
-        : format === "sing-box" || format === "sing-box-v12"
+    let groups: ProxyGroup[];
+    if (subscribe.useSystemGroup) {
+      groups =
+        format === "sing-box" || format === "sing-box-v12"
           ? SB_DEFAULT_GROUPS
           : DEFAULT_GROUPS;
-    const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
+    } else {
+      groups =
+        rawGroups && rawGroups.length > 0
+          ? rawGroups
+          : format === "sing-box" || format === "sing-box-v12"
+            ? SB_DEFAULT_GROUPS
+            : DEFAULT_GROUPS;
+    }
+    const customConfig = subscribe.useSystemCustomConfig
+      ? DEFAULT_CUSTOM_CONFIG
+      : safeParseJsonc<unknown[]>(subscribe.customConfig, []);
     const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
 
     const steps: ProxyNodeTraceStep[] = [];

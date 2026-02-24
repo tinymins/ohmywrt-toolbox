@@ -141,14 +141,24 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
     >(),
   // 规则列表 (JSONC 字符串)
   ruleList: text("rule_list"),
+  // 是否使用系统默认规则列表（true 时忽略 ruleList 字段，使用系统内置配置）
+  useSystemRuleList: boolean("use_system_rule_list").notNull().default(true),
   // 分组 (JSONC 字符串)
   group: text("group"),
+  // 是否使用系统默认分组
+  useSystemGroup: boolean("use_system_group").notNull().default(true),
   // 节点过滤器 (JSONC 字符串)
   filter: text("filter"),
+  // 是否使用系统默认过滤器
+  useSystemFilter: boolean("use_system_filter").notNull().default(true),
   // 附加的单节点列表 (JSONC 字符串)
   servers: text("servers"),
   // 自定义配置 (JSONC 字符串)
   customConfig: text("custom_config"),
+  // 是否使用系统默认自定义配置
+  useSystemCustomConfig: boolean("use_system_custom_config")
+    .notNull()
+    .default(true),
   // 授权用户ID列表
   authorizedUserIds: jsonb("authorized_user_ids").$type<string[]>().default([]),
   // 订阅缓存时间（分钟），null 或 0 表示不缓存

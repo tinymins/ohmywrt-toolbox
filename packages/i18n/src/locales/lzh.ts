@@ -1033,9 +1033,7 @@ export const lzh = {
         serversPlaceholder:
           '[{"name": "伺服器名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSON 格式有誤",
-        resetToDefault: "恢復默認",
-        resetSuccess: "已恢復為默認配置",
-        resetFailed: "獲取默認配置失敗",
+        useSystemConfig: "用系統配置",
         cacheTtlLabel: "訂閱緩存時",
         cacheTtlPlaceholder: "空或零則不緩存",
         cacheTtlTooltip: "設之則上游訂閱之應答緩存指定時，免頻繁請求致被封",

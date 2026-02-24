@@ -1010,9 +1010,7 @@ export const hak = {
         serversPlaceholder:
           '[{"name": "服務器名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSON 格式錯誤",
-        resetToDefault: "恢復默認",
-        resetSuccess: "已恢復為默認配置",
-        resetFailed: "獲取默認配置失敗",
+        useSystemConfig: "使用系統配置",
         cacheTtlLabel: "訂閱緩存時間",
         cacheTtlPlaceholder: "留空或 0 表示毋使緩存",
         cacheTtlTooltip:

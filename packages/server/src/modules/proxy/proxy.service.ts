@@ -38,10 +38,14 @@ export interface ProxySubscribeWithUser {
   // 结构化订阅源列表（新字段）
   subscribeItems: SubscribeItem[] | null;
   ruleList: string | null;
+  useSystemRuleList: boolean;
   group: string | null;
+  useSystemGroup: boolean;
   filter: string | null;
+  useSystemFilter: boolean;
   servers: string | null;
   customConfig: string | null;
+  useSystemCustomConfig: boolean;
   authorizedUserIds: string[];
   cacheTtlMinutes: number | null;
   cachedNodeCount: number;
@@ -67,10 +71,14 @@ const toProxySubscribeOutput = (
   subscribeUrl: row.subscribeUrl,
   subscribeItems: (row.subscribeItems as SubscribeItem[] | null) ?? null,
   ruleList: row.ruleList,
+  useSystemRuleList: row.useSystemRuleList,
   group: row.group,
+  useSystemGroup: row.useSystemGroup,
   filter: row.filter,
+  useSystemFilter: row.useSystemFilter,
   servers: row.servers,
   customConfig: row.customConfig,
+  useSystemCustomConfig: row.useSystemCustomConfig,
   authorizedUserIds: (row.authorizedUserIds as string[] | null) ?? [],
   cacheTtlMinutes: row.cacheTtlMinutes ?? null,
   cachedNodeCount: row.cachedNodeCount ?? 0,
@@ -207,10 +215,14 @@ export class ProxySubscribeService {
         subscribeUrl: input.subscribeUrl ?? null,
         subscribeItems: input.subscribeItems ?? null,
         ruleList: input.ruleList ?? null,
+        useSystemRuleList: input.useSystemRuleList ?? true,
         group: input.group ?? null,
+        useSystemGroup: input.useSystemGroup ?? true,
         filter: input.filter ?? null,
+        useSystemFilter: input.useSystemFilter ?? true,
         servers: input.servers ?? null,
         customConfig: input.customConfig ?? null,
+        useSystemCustomConfig: input.useSystemCustomConfig ?? true,
         authorizedUserIds: input.authorizedUserIds ?? [],
         cacheTtlMinutes: input.cacheTtlMinutes ?? null,
       })
@@ -255,11 +267,19 @@ export class ProxySubscribeService {
     if (input.subscribeItems !== undefined)
       updateData.subscribeItems = input.subscribeItems;
     if (input.ruleList !== undefined) updateData.ruleList = input.ruleList;
+    if (input.useSystemRuleList !== undefined)
+      updateData.useSystemRuleList = input.useSystemRuleList;
     if (input.group !== undefined) updateData.group = input.group;
+    if (input.useSystemGroup !== undefined)
+      updateData.useSystemGroup = input.useSystemGroup;
     if (input.filter !== undefined) updateData.filter = input.filter;
+    if (input.useSystemFilter !== undefined)
+      updateData.useSystemFilter = input.useSystemFilter;
     if (input.servers !== undefined) updateData.servers = input.servers;
     if (input.customConfig !== undefined)
       updateData.customConfig = input.customConfig;
+    if (input.useSystemCustomConfig !== undefined)
+      updateData.useSystemCustomConfig = input.useSystemCustomConfig;
     if (input.cacheTtlMinutes !== undefined)
       updateData.cacheTtlMinutes = input.cacheTtlMinutes;
     // 只有创建者可以修改授权用户列表

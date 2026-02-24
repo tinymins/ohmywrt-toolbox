@@ -14,6 +14,8 @@ import type { Request, Response } from "express";
 import { parse as parseJsonc } from "jsonc-parser";
 import * as yaml from "yaml";
 import {
+  DEFAULT_CUSTOM_CONFIG,
+  DEFAULT_FILTER,
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
   SB_DEFAULT_GROUPS,
@@ -67,7 +69,9 @@ export class ProxyPublicController {
     // 获取远程订阅（优先 subscribeItems，回退 subscribeUrl）
     const effectiveUrls =
       proxySubscribeService.getEffectiveSubscribeUrls(subscribe);
-    const filters = safeParseJsonc<string[]>(subscribe.filter, []);
+    const filters = subscribe.useSystemFilter
+      ? DEFAULT_FILTER
+      : safeParseJsonc<string[]>(subscribe.filter, []);
 
     if (effectiveUrls.length > 0) {
       const results = await Promise.all(
@@ -152,14 +156,19 @@ export class ProxyPublicController {
     // 构建规则（从 JSONC 字符串解析）
     const ruleSet: string[] = [];
     const ruleProviders: Record<string, any> = {};
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
-      subscribe.ruleList,
-      {},
-    );
-    const ruleProvidersList =
-      rawRuleList && Object.keys(rawRuleList).length > 0
-        ? rawRuleList
-        : DEFAULT_RULE_PROVIDERS;
+    let ruleProvidersList: ProxyRuleProvidersList;
+    if (subscribe.useSystemRuleList) {
+      ruleProvidersList = DEFAULT_RULE_PROVIDERS;
+    } else {
+      const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+        subscribe.ruleList,
+        {},
+      );
+      ruleProvidersList =
+        rawRuleList && Object.keys(rawRuleList).length > 0
+          ? rawRuleList
+          : DEFAULT_RULE_PROVIDERS;
+    }
 
     for (const [key, items] of Object.entries(ruleProvidersList)) {
       for (const item of items) {
@@ -175,9 +184,19 @@ export class ProxyPublicController {
     }
 
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
-    const groups =
-      rawGroups && rawGroups.length > 0 ? rawGroups : DEFAULT_GROUPS;
-    const customConfig = safeParseJsonc<string[]>(subscribe.customConfig, []);
+    let groups: ProxyGroup[];
+    if (subscribe.useSystemGroup) {
+      groups = DEFAULT_GROUPS;
+    } else {
+      groups =
+        rawGroups && rawGroups.length > 0 ? rawGroups : DEFAULT_GROUPS;
+    }
+    let customConfig: string[];
+    if (subscribe.useSystemCustomConfig) {
+      customConfig = DEFAULT_CUSTOM_CONFIG;
+    } else {
+      customConfig = safeParseJsonc<string[]>(subscribe.customConfig, []);
+    }
 
     const rules = [
       ...customConfig.filter((item) => typeof item === "string"),
@@ -758,14 +777,19 @@ ${yaml.stringify(data)}`);
 
     // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];
-    const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
-      subscribe.ruleList,
-      {},
-    );
-    const ruleProvidersList =
-      rawRuleList && Object.keys(rawRuleList).length > 0
-        ? rawRuleList
-        : DEFAULT_RULE_PROVIDERS;
+    let ruleProvidersList: ProxyRuleProvidersList;
+    if (subscribe.useSystemRuleList) {
+      ruleProvidersList = DEFAULT_RULE_PROVIDERS;
+    } else {
+      const rawRuleList = safeParseJsonc<ProxyRuleProvidersList>(
+        subscribe.ruleList,
+        {},
+      );
+      ruleProvidersList =
+        rawRuleList && Object.keys(rawRuleList).length > 0
+          ? rawRuleList
+          : DEFAULT_RULE_PROVIDERS;
+    }
     const rawGroups = safeParseJsonc<ProxyGroup[]>(subscribe.group, []);
     // 内置 outbound tag 不能作为 selector group 名称，否则会导致 tag 重复
     const BUILTIN_OUTBOUND_TAGS = new Set(["🚀 直接连接", "reject", "dns-out"]);
@@ -780,10 +804,15 @@ ${yaml.stringify(data)}`);
           ...g,
           proxies: g.proxies.map((p) => SINGBOX_KEYWORD_MAP[p] ?? p),
         }));
-    const groups =
-      rawGroups && rawGroups.length > 0
-        ? normalizeSingboxGroups(rawGroups)
-        : SB_DEFAULT_GROUPS;
+    let groups: ProxyGroup[];
+    if (subscribe.useSystemGroup) {
+      groups = SB_DEFAULT_GROUPS;
+    } else {
+      groups =
+        rawGroups && rawGroups.length > 0
+          ? normalizeSingboxGroups(rawGroups)
+          : SB_DEFAULT_GROUPS;
+    }
 
     const publicServerUrl = this.getPublicServerUrl(req);
 
@@ -825,7 +854,9 @@ ${yaml.stringify(data)}`);
           );
 
     // 处理自定义规则（从 JSONC 字符串解析）
-    const customConfig = safeParseJsonc<unknown[]>(subscribe.customConfig, []);
+    const customConfig = subscribe.useSystemCustomConfig
+      ? DEFAULT_CUSTOM_CONFIG
+      : safeParseJsonc<unknown[]>(subscribe.customConfig, []);
     if (customConfig.length && data.route?.rules) {
       for (const item of customConfig) {
         if (typeof item === "string") {

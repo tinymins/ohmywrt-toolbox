@@ -1011,9 +1011,7 @@ export const yue = {
         serversPlaceholder:
           '[{"name": "伺服器名", "type": "ss", "server": "1.2.3.4", "port": 443}]',
         jsonFormatError: "JSON 格式錯誤",
-        resetToDefault: "恢復預設",
-        resetSuccess: "已恢復為預設配置",
-        resetFailed: "攞唔到預設配置",
+        useSystemConfig: "使用系統配置",
         cacheTtlLabel: "訂閱緩存時間",
         cacheTtlPlaceholder: "留空或 0 表示唔緩存",
         cacheTtlTooltip:
