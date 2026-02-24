@@ -112,39 +112,42 @@ const SortableCard = ({
         />
       </div>
 
-      {/* 第二行：备注 + 前缀 + 缓存（左右留白对齐上方 URL 输入框） */}
-      <div className="flex items-center gap-2" style={{ paddingLeft: 22, paddingRight: 32 }}>
+      {/* 第二行：备注 + 前缀 + 缓存（桌面端左右留白对齐上方 URL，移动端备注独立一行） */}
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:pl-[22px] md:pr-[32px]">
         <Input
           size="small"
           placeholder={t("proxy.form.subscribeItemRemark")}
           value={item.remark}
           onChange={(e) => onUpdate({ remark: e.target.value })}
-          className="flex-1"
+          className="md:flex-1"
         />
-        <Input
-          size="small"
-          placeholder={t("proxy.form.subscribeItemPrefix")}
-          value={item.prefix}
-          onChange={(e) => onUpdate({ prefix: e.target.value })}
-          style={{ width: 150 }}
-          suffix={
-            <Tooltip title={t("proxy.form.subscribeItemPrefixTip")}>
-              <span className="text-gray-400 text-xs cursor-help">?</span>
-            </Tooltip>
-          }
-        />
-        <Tooltip title={t("proxy.form.cacheTtlTooltip")}>
-          <InputNumber
-            size="small"
-            min={0}
-            max={1440}
-            placeholder={t("proxy.form.subscribeItemCacheTtlPlaceholder")}
-            value={item.cacheTtlMinutes}
-            onChange={(val) => onUpdate({ cacheTtlMinutes: val ?? undefined })}
-            suffix={t("proxy.form.cacheTtlUnit")}
-            style={{ width: 130 }}
-          />
-        </Tooltip>
+        <div className="flex w-full items-center gap-2 md:w-auto md:shrink-0">
+          <div className="flex-1 md:flex-none md:w-[150px]">
+            <Input
+              size="small"
+              placeholder={t("proxy.form.subscribeItemPrefix")}
+              value={item.prefix}
+              onChange={(e) => onUpdate({ prefix: e.target.value })}
+              suffix={
+                <Tooltip title={t("proxy.form.subscribeItemPrefixTip")}>
+                  <span className="text-gray-400 text-xs cursor-help">?</span>
+                </Tooltip>
+              }
+            />
+          </div>
+          <Tooltip title={t("proxy.form.cacheTtlTooltip")}>
+            <InputNumber
+              size="small"
+              min={0}
+              max={1440}
+              placeholder={t("proxy.form.subscribeItemCacheTtlPlaceholder")}
+              value={item.cacheTtlMinutes}
+              onChange={(val) => onUpdate({ cacheTtlMinutes: val ?? undefined })}
+              suffix={t("proxy.form.cacheTtlUnit")}
+              style={{ width: 130 }}
+            />
+          </Tooltip>
+        </div>
       </div>
     </div>
   );
