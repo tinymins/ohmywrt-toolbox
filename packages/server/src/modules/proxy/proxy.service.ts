@@ -498,12 +498,14 @@ export class ProxySubscribeService {
   }
 
   /**
-   * 规范化前缀：如果非空且结尾不是分隔符，自动追加丨
+   * 规范化前缀：如果非空且结尾不是分隔符或闭合括号，自动追加丨
    */
   private normalizePrefix(raw: string): string {
     if (!raw) return "";
     const separators = ["-", " ", "丨", "|", "｜", "/", "_", "·"];
+    const closingBrackets = [")", "）", "]", "】", "}", "》", ">", "」"];
     if (separators.some((s) => raw.endsWith(s))) return raw;
+    if (closingBrackets.some((s) => raw.endsWith(s))) return raw;
     return `${raw}丨`;
   }
 
