@@ -1071,7 +1071,6 @@ export const deDE = {
         subscribeUrlLabel: "Abonnement-Quellen",
         subscribeUrlRequired: "Bitte mindestens eine Quelle hinzufügen",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "Name",
         subscribeItemUrl: "Abonnement-URL",
         subscribeItemPrefix: "Präfix",
         subscribeItemPrefixTip:

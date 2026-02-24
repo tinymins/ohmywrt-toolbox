@@ -42,8 +42,6 @@ export type ProxyRuleProvidersList = z.infer<
 export const SubscribeItemSchema = z.object({
   /** 是否启用 */
   enabled: z.boolean(),
-  /** 名称（用于辨识） */
-  name: z.string(),
   /** 订阅地址 */
   url: z.string(),
   /** 前缀（拼接到节点名称前） */

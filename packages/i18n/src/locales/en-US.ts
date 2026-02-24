@@ -799,7 +799,6 @@ export const enUS: TranslationSchema = {
         subscribeUrlLabel: "Subscription Sources",
         subscribeUrlRequired: "Please add at least one subscription source",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "Name",
         subscribeItemUrl: "Subscribe URL",
         subscribeItemPrefix: "Prefix",
         subscribeItemPrefixTip:

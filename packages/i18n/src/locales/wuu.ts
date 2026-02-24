@@ -979,7 +979,6 @@ export const wuu = {
         subscribeUrlLabel: "订阅源列表",
         subscribeUrlRequired: "请加至少一个订阅源",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "名称",
         subscribeItemUrl: "订阅地址",
         subscribeItemPrefix: "前缀",
         subscribeItemPrefixTip:

@@ -133,7 +133,6 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
     jsonb("subscribe_items").$type<
       {
         enabled: boolean;
-        name: string;
         url: string;
         prefix: string;
         remark: string;

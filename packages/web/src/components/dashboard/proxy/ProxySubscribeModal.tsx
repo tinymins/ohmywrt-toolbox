@@ -164,7 +164,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           form.resetFields();
           form.setFieldsValue({
             subscribeItems: [
-              { enabled: true, name: "", url: "", prefix: "", remark: "" },
+              { enabled: true, url: "", prefix: "", remark: "" },
             ],
             ruleList: defaults?.ruleList ?? "{}",
             group: defaults?.group ?? "[]",
@@ -201,7 +201,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               .filter((u: unknown) => typeof u === "string" && u.trim())
               .map((u: string) => ({
                 enabled: true,
-                name: "",
                 url: u,
                 prefix: "",
                 remark: "",
@@ -216,7 +215,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         items = [
           {
             enabled: true,
-            name: "",
             url: "",
             prefix: "",
             remark: "",

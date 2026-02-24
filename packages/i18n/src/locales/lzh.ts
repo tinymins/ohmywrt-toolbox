@@ -1011,7 +1011,6 @@ export const lzh = {
         subscribeUrlLabel: "訂閱源列表",
         subscribeUrlRequired: "請添至少一訂閱源",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "名",
         subscribeItemUrl: "訂閱地址",
         subscribeItemPrefix: "前綴",
         subscribeItemPrefixTip: "綴於該源所有節點名前，如「場A | 」",

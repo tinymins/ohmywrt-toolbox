@@ -521,9 +521,7 @@ export type SingboxOutboundTrojan = z.infer<typeof SingboxOutboundTrojanSchema>;
 export type SingboxOutboundTUIC = z.infer<typeof SingboxOutboundTUICSchema>;
 export type SingboxOutboundVmess = z.infer<typeof SingboxOutboundVmessSchema>;
 export type SingboxOutboundVLESS = z.infer<typeof SingboxOutboundVLESSSchema>;
-export type SingboxOutboundAnytls = z.infer<
-  typeof SingboxOutboundAnytlsSchema
->;
+export type SingboxOutboundAnytls = z.infer<typeof SingboxOutboundAnytlsSchema>;
 export type SingboxOutbounds = z.infer<typeof SingboxOutboundsSchema>;
 export type SingboxExperimental = z.infer<typeof SingboxExperimentalSchema>;
 export type SingBoxRule = z.infer<typeof SingBoxRuleSchema>;

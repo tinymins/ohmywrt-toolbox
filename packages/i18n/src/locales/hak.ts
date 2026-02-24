@@ -988,7 +988,6 @@ export const hak = {
         subscribeUrlLabel: "訂閱源列表",
         subscribeUrlRequired: "請加至少一個訂閱源",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "名稱",
         subscribeItemUrl: "訂閱地址",
         subscribeItemPrefix: "前綴",
         subscribeItemPrefixTip: "拼接到該訂閱源所有節點名稱前，如「機場A | 」",

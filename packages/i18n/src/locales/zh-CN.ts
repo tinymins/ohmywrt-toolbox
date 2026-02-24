@@ -780,7 +780,6 @@ export const zhCN = {
         subscribeUrlLabel: "订阅源列表",
         subscribeUrlRequired: "请添加至少一个订阅源",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "名称",
         subscribeItemUrl: "订阅地址",
         subscribeItemPrefix: "前缀",
         subscribeItemPrefixTip: "拼接到该订阅源所有节点名称前，如「机场A | 」",

@@ -511,14 +511,13 @@ export class ProxySubscribeService {
 
   /**
    * 获取有效的订阅源列表（优先 subscribeItems，回退 subscribeUrl）
-   * 返回 { url, prefix, name, cacheTtlMinutes }[]，仅包含启用的、有 URL 的条目
+   * 返回 { url, prefix, cacheTtlMinutes }[]，仅包含启用的、有 URL 的条目
    */
   getEffectiveSubscribeUrls(
     subscribe: ProxySubscribeWithUser | ProxySubscribeRow,
   ): {
     url: string;
     prefix: string;
-    name: string;
     cacheTtlMinutes: number | null;
   }[] {
     // 优先使用结构化的 subscribeItems
@@ -529,7 +528,6 @@ export class ProxySubscribeService {
         .map((item) => ({
           url: item.url.trim(),
           prefix: this.normalizePrefix(item.prefix ?? ""),
-          name: item.name ?? "",
           cacheTtlMinutes: item.cacheTtlMinutes ?? null,
         }));
     }
@@ -549,7 +547,6 @@ export class ProxySubscribeService {
       .map((url) => ({
         url: url.trim(),
         prefix: "",
-        name: "",
         cacheTtlMinutes: globalCacheTtl,
       }));
   }

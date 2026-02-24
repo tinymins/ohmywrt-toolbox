@@ -1026,7 +1026,6 @@ export const jaJP = {
         subscribeUrlLabel: "サブスクリプションソース",
         subscribeUrlRequired: "少なくとも1つのソースを追加してください",
         subscribeUrlPlaceholder: '["https://example.com/subscribe"]',
-        subscribeItemName: "名前",
         subscribeItemUrl: "サブスクリプションURL",
         subscribeItemPrefix: "プレフィックス",
         subscribeItemPrefixTip:
