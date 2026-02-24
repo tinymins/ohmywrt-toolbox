@@ -749,9 +749,12 @@ ${yaml.stringify(data)}`);
     // 解析版本参数，默认为 11（sing-box 1.11 格式）
     const version = versionParam === "12" ? 12 : 11;
 
-    const { subscribe, proxies, nodes } = await this.fetchProxies(uuid, [
-      "ssr",
-    ]);
+    // ssr 在所有 sing-box 版本中不支持；anytls 仅 sing-box 1.12+ 支持
+    const excludeTypes = version === 11 ? ["ssr", "anytls"] : ["ssr"];
+    const { subscribe, proxies, nodes } = await this.fetchProxies(
+      uuid,
+      excludeTypes,
+    );
 
     // 构建规则提供者（从 JSONC 字符串解析）
     const ruleProviders: any[] = [];

@@ -220,9 +220,13 @@ export class ProxyDebugService {
 
         parsedNodeCount = proxies.length;
 
-        // 排除 Sing-box 不支持的类型
+        // 排除 Sing-box 不支持的类型（anytls 仅 sing-box 1.12+ 支持）
         const excludeTypes =
-          format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
+          format === "sing-box"
+            ? ["ssr", "anytls"]
+            : format === "sing-box-v12"
+              ? ["ssr"]
+              : [];
 
         // 逐一检查过滤规则
         for (const proxy of proxies) {
@@ -635,8 +639,13 @@ export class ProxyDebugService {
             }
           }
 
+          // anytls 仅 sing-box 1.12+ 支持
           const excludeTypes =
-            format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
+            format === "sing-box"
+              ? ["ssr", "anytls"]
+              : format === "sing-box-v12"
+                ? ["ssr"]
+                : [];
 
           for (const proxy of proxies) {
             // 拼接前缀
@@ -784,8 +793,13 @@ export class ProxyDebugService {
           }
         }
 
+        // anytls 仅 sing-box 1.12+ 支持
         const excludeTypes =
-          format === "sing-box" || format === "sing-box-v12" ? ["ssr"] : [];
+          format === "sing-box"
+            ? ["ssr", "anytls"]
+            : format === "sing-box-v12"
+              ? ["ssr"]
+              : [];
 
         for (const proxy of proxies) {
           if (excludeTypes.includes(proxy.type)) continue;
