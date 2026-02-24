@@ -498,6 +498,16 @@ export class ProxySubscribeService {
   }
 
   /**
+   * 规范化前缀：如果非空且结尾不是分隔符，自动追加丨
+   */
+  private normalizePrefix(raw: string): string {
+    if (!raw) return "";
+    const separators = ["-", " ", "丨", "|", "｜", "/", "_", "·"];
+    if (separators.some((s) => raw.endsWith(s))) return raw;
+    return `${raw}丨`;
+  }
+
+  /**
    * 获取有效的订阅源列表（优先 subscribeItems，回退 subscribeUrl）
    * 返回 { url, prefix, name, cacheTtlMinutes }[]，仅包含启用的、有 URL 的条目
    */
@@ -516,7 +526,7 @@ export class ProxySubscribeService {
         .filter((item) => item.enabled && item.url?.trim())
         .map((item) => ({
           url: item.url.trim(),
-          prefix: item.prefix ?? "",
+          prefix: this.normalizePrefix(item.prefix ?? ""),
           name: item.name ?? "",
           cacheTtlMinutes: item.cacheTtlMinutes ?? null,
         }));
