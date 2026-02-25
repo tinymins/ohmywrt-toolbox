@@ -1,6 +1,67 @@
 import { z } from "zod";
 
 // ============================================
+// DNS 配置（可在每个订阅中自定义）
+// ============================================
+
+/** 表单级别的通用 DNS 设置，用于自动生成各格式的 DNS 段 */
+export const DnsSharedConfigSchema = z.object({
+  /** 本地 DNS 服务器地址（用于 CN 域名解析），默认 "127.0.0.1" */
+  localDns: z.string().optional(),
+  /** 本地 DNS 端口，默认 53 */
+  localDnsPort: z.number().int().min(1).max(65535).optional(),
+  /** FakeIP IPv4 范围，默认 "198.18.0.0/15" */
+  fakeipIpv4Range: z.string().optional(),
+  /** FakeIP IPv6 范围，默认 "fc00::/18" */
+  fakeipIpv6Range: z.string().optional(),
+  /** 是否启用 FakeIP，默认 true */
+  fakeipEnabled: z.boolean().optional(),
+  /** FakeIP rewrite TTL（秒），默认 300 */
+  fakeipTtl: z.number().int().min(0).optional(),
+  /** DNS 入站监听端口，默认 1053 */
+  dnsListenPort: z.number().int().min(1).max(65535).optional(),
+  /** tproxy 入站监听端口，默认 7893 */
+  tproxyPort: z.number().int().min(1).max(65535).optional(),
+  /** 是否拦截 HTTPS DNS 查询，默认 true */
+  rejectHttps: z.boolean().optional(),
+  /** CN 域名走本地 DNS，默认 true */
+  cnDomainLocalDns: z.boolean().optional(),
+  /** Clash API 端口，默认 9999 */
+  clashApiPort: z.number().int().min(1).max(65535).optional(),
+  /** Clash API 密钥，默认 "123456" */
+  clashApiSecret: z.string().optional(),
+  /** Clash API UI 路径，默认 "/etc/sb/ui" */
+  clashApiUiPath: z.string().optional(),
+});
+
+export type DnsSharedConfig = z.infer<typeof DnsSharedConfigSchema>;
+
+/**
+ * DNS 配置存储结构
+ * - shared: 表单设置，自动生成各格式的 DNS 段
+ * - overrides: 原生 DNS 配置，直接透传到输出（优先于 shared 生成的内容）
+ *   各 key 可存放对应格式的原生 dns 配置 JSON，
+ *   singboxV12 未设置时 fallback 到 singbox，clashMeta 未设置时 fallback 到 clash
+ */
+export const DnsConfigSchema = z.object({
+  shared: DnsSharedConfigSchema.optional(),
+  overrides: z
+    .object({
+      /** Sing-box v1.11 原生 dns 段 */
+      singbox: z.record(z.string(), z.unknown()).optional(),
+      /** Sing-box v1.12 原生 dns 段（未设置时 fallback 到 singbox） */
+      singboxV12: z.record(z.string(), z.unknown()).optional(),
+      /** Clash 原生 dns 段 */
+      clash: z.record(z.string(), z.unknown()).optional(),
+      /** Clash Meta 原生 dns 段（未设置时 fallback 到 clash） */
+      clashMeta: z.record(z.string(), z.unknown()).optional(),
+    })
+    .optional(),
+});
+
+export type DnsConfig = z.infer<typeof DnsConfigSchema>;
+
+// ============================================
 // 代理组定义
 // ============================================
 
@@ -78,6 +139,8 @@ export const ProxySubscribeSchema = z.object({
   servers: z.string().nullable(),
   customConfig: z.string().nullable(),
   useSystemCustomConfig: z.boolean(),
+  dnsConfig: z.string().nullable(),
+  useSystemDnsConfig: z.boolean(),
   authorizedUserIds: z.array(z.string()),
   /** 订阅缓存时间（分钟），null 或 0 表示不缓存 */
   cacheTtlMinutes: z.number().nullable(),
@@ -125,6 +188,8 @@ export const CreateProxySubscribeInputSchema = z.object({
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
   useSystemCustomConfig: z.boolean().optional(),
+  dnsConfig: z.string().nullable().optional(),
+  useSystemDnsConfig: z.boolean().optional(),
   authorizedUserIds: z.array(z.string()).optional().default([]),
   cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
@@ -147,6 +212,8 @@ export const UpdateProxySubscribeInputSchema = z.object({
   servers: z.string().nullable().optional(),
   customConfig: z.string().nullable().optional(),
   useSystemCustomConfig: z.boolean().optional(),
+  dnsConfig: z.string().nullable().optional(),
+  useSystemDnsConfig: z.boolean().optional(),
   authorizedUserIds: z.array(z.string()).optional(),
   cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
@@ -251,6 +318,10 @@ export const ProxyDebugConfigStepSchema = z.object({
     ruleProviders: ProxyRuleProvidersListSchema,
     customConfig: z.array(z.unknown()),
     servers: z.array(z.unknown()),
+    dnsConfig: z.object({
+      shared: z.record(z.string(), z.unknown()),
+      overrides: z.record(z.string(), z.unknown()),
+    }),
   }),
 });
 

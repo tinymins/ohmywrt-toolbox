@@ -133,6 +133,22 @@ export const ConfigStepContent = ({
             <CodeBlock content={JSON.stringify(data.servers, null, 2)} />
           ),
         },
+        {
+          key: "dnsConfig",
+          label: (
+            <Space>
+              <span>{t("proxy.debug.dnsConfig")}</span>
+              <Tag color="geekblue">
+                {Object.keys(data.dnsConfig.overrides).length > 0
+                  ? `shared + ${Object.keys(data.dnsConfig.overrides).join(", ")}`
+                  : "shared"}
+              </Tag>
+            </Space>
+          ),
+          children: (
+            <CodeBlock content={JSON.stringify(data.dnsConfig, null, 2)} />
+          ),
+        },
       ]}
     />
   );

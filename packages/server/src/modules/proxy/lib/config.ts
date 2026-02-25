@@ -1,4 +1,6 @@
+import type { DnsConfig, DnsSharedConfig } from "@acme/types";
 import type { ProxyGroup, ProxyRuleProvidersList } from "@acme/types";
+import { parse as parseJsonc } from "jsonc-parser";
 
 export const DEFAULT_GROUPS: ProxyGroup[] = [
   { name: "🔰 国外流量", type: "select", proxies: ["🚀 直接连接"] },
@@ -266,6 +268,58 @@ export const DEFAULT_FILTER: string[] = ["官网", "客服", "qq群"];
 
 /** 默认自定义规则 */
 export const DEFAULT_CUSTOM_CONFIG: string[] = [];
+
+/** 默认 DNS 共享配置（表单设置） */
+export const DEFAULT_DNS_SHARED: Required<DnsSharedConfig> = {
+  localDns: "127.0.0.1",
+  localDnsPort: 53,
+  fakeipIpv4Range: "198.18.0.0/15",
+  fakeipIpv6Range: "fc00::/18",
+  fakeipEnabled: true,
+  fakeipTtl: 300,
+  dnsListenPort: 1053,
+  tproxyPort: 7893,
+  rejectHttps: true,
+  cnDomainLocalDns: true,
+  clashApiPort: 9999,
+  clashApiSecret: "123456",
+  clashApiUiPath: "/etc/sb/ui",
+};
+
+/** DNS 有效使用格式 */
+export type DnsOverrideKey = "singbox" | "singboxV12" | "clash" | "clashMeta";
+
+export interface ResolvedDnsConfig {
+  shared: Required<DnsSharedConfig>;
+  overrides: Record<DnsOverrideKey, Record<string, unknown> | undefined>;
+}
+
+/** 解析并合并 DNS 配置 */
+export const resolveDnsConfig = (
+  useSystem: boolean,
+  dnsConfigJsonc: string | null,
+): ResolvedDnsConfig => {
+  const defaults: ResolvedDnsConfig = {
+    shared: DEFAULT_DNS_SHARED,
+    overrides: { singbox: undefined, singboxV12: undefined, clash: undefined, clashMeta: undefined },
+  };
+  if (useSystem || !dnsConfigJsonc) return defaults;
+  try {
+    const parsed = parseJsonc(dnsConfigJsonc) as DnsConfig | null;
+    if (!parsed || typeof parsed !== "object") return defaults;
+    return {
+      shared: { ...DEFAULT_DNS_SHARED, ...(parsed.shared ?? {}) },
+      overrides: {
+        singbox: parsed.overrides?.singbox ?? undefined,
+        singboxV12: parsed.overrides?.singboxV12 ?? undefined,
+        clash: parsed.overrides?.clash ?? undefined,
+        clashMeta: parsed.overrides?.clashMeta ?? undefined,
+      },
+    };
+  } catch {
+    return defaults;
+  }
+};
 
 /** 国旗映射表（中文名 → 旗帜 emoji） */
 export const FLAG_MAP: Record<string, string> = {

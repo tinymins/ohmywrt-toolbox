@@ -15,6 +15,7 @@ import { proxyAccessLogs, proxySubscribes, users } from "../../db/schema";
 import {
   appendIcon,
   DEFAULT_CUSTOM_CONFIG,
+  DEFAULT_DNS_SHARED,
   DEFAULT_FILTER,
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
@@ -46,6 +47,8 @@ export interface ProxySubscribeWithUser {
   servers: string | null;
   customConfig: string | null;
   useSystemCustomConfig: boolean;
+  dnsConfig: string | null;
+  useSystemDnsConfig: boolean;
   authorizedUserIds: string[];
   cacheTtlMinutes: number | null;
   cachedNodeCount: number;
@@ -79,6 +82,8 @@ const toProxySubscribeOutput = (
   servers: row.servers,
   customConfig: row.customConfig,
   useSystemCustomConfig: row.useSystemCustomConfig,
+  dnsConfig: row.dnsConfig,
+  useSystemDnsConfig: row.useSystemDnsConfig,
   authorizedUserIds: (row.authorizedUserIds as string[] | null) ?? [],
   cacheTtlMinutes: row.cacheTtlMinutes ?? null,
   cachedNodeCount: row.cachedNodeCount ?? 0,
@@ -223,6 +228,8 @@ export class ProxySubscribeService {
         servers: input.servers ?? null,
         customConfig: input.customConfig ?? null,
         useSystemCustomConfig: input.useSystemCustomConfig ?? true,
+        dnsConfig: input.dnsConfig ?? null,
+        useSystemDnsConfig: input.useSystemDnsConfig ?? true,
         authorizedUserIds: input.authorizedUserIds ?? [],
         cacheTtlMinutes: input.cacheTtlMinutes ?? null,
       })
@@ -280,6 +287,10 @@ export class ProxySubscribeService {
       updateData.customConfig = input.customConfig;
     if (input.useSystemCustomConfig !== undefined)
       updateData.useSystemCustomConfig = input.useSystemCustomConfig;
+    if (input.dnsConfig !== undefined)
+      updateData.dnsConfig = input.dnsConfig;
+    if (input.useSystemDnsConfig !== undefined)
+      updateData.useSystemDnsConfig = input.useSystemDnsConfig;
     if (input.cacheTtlMinutes !== undefined)
       updateData.cacheTtlMinutes = input.cacheTtlMinutes;
     // 只有创建者可以修改授权用户列表
@@ -499,12 +510,14 @@ export class ProxySubscribeService {
     group: string;
     filter: string;
     customConfig: string;
+    dnsConfig: string;
   } {
     return {
       ruleList: JSON.stringify(DEFAULT_RULE_PROVIDERS, null, 2),
       group: JSON.stringify(DEFAULT_GROUPS, null, 2),
       filter: JSON.stringify(DEFAULT_FILTER, null, 2),
       customConfig: JSON.stringify(DEFAULT_CUSTOM_CONFIG, null, 2),
+      dnsConfig: JSON.stringify({ shared: DEFAULT_DNS_SHARED }, null, 2),
     };
   }
 

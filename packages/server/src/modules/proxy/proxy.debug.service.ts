@@ -17,6 +17,7 @@ import {
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
   SB_DEFAULT_GROUPS,
+  resolveDnsConfig,
 } from "./lib/config";
 import { convertClashToSingbox } from "./lib/converter";
 import { subscriptionCache } from "./lib/subscription-cache";
@@ -115,6 +116,10 @@ export class ProxyDebugService {
     const customConfig = subscribe.useSystemCustomConfig
       ? DEFAULT_CUSTOM_CONFIG
       : safeParseJsonc<unknown[]>(subscribe.customConfig, []);
+    const dns = resolveDnsConfig(
+      subscribe.useSystemDnsConfig,
+      subscribe.dnsConfig,
+    );
     const servers = safeParseJsonc<unknown[]>(subscribe.servers, []);
 
     yield {
@@ -126,6 +131,12 @@ export class ProxyDebugService {
         ruleProviders,
         customConfig,
         servers,
+        dnsConfig: {
+          shared: dns.shared,
+          overrides: Object.fromEntries(
+            Object.entries(dns.overrides).filter(([, v]) => v != null),
+          ),
+        },
       },
     };
 
@@ -406,11 +417,11 @@ export class ProxyDebugService {
           : {};
 
       const data = {
-        "tproxy-port": 7893,
+        "tproxy-port": dns.shared.tproxyPort,
         "allow-lan": true,
         mode: "Rule",
         "log-level": "info",
-        secret: "123456",
+        secret: dns.shared.clashApiSecret,
         ...metaFields,
         proxies: allProxies,
         "proxy-groups": proxyGroups,

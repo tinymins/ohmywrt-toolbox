@@ -1,6 +1,8 @@
 export type {
   CreateProxySubscribeInput,
   DeleteProxySubscribeInput,
+  DnsConfig,
+  DnsSharedConfig,
   ProxyDebugFormat,
   ProxyDebugInput,
   ProxyDebugStep,
@@ -22,6 +24,8 @@ export type {
 export {
   CreateProxySubscribeInputSchema,
   DeleteProxySubscribeInputSchema,
+  DnsConfigSchema,
+  DnsSharedConfigSchema,
   ProxyDebugConfigStepSchema,
   ProxyDebugDoneStepSchema,
   ProxyDebugFilteredNodeSchema,

@@ -19,7 +19,9 @@ import {
   DEFAULT_GROUPS,
   DEFAULT_RULE_PROVIDERS,
   SB_DEFAULT_GROUPS,
+  resolveDnsConfig,
 } from "./lib/config";
+import type { ResolvedDnsConfig } from "./lib/config";
 import { convertClashToSingbox } from "./lib/converter";
 import {
   isBase64Subscription,
@@ -260,13 +262,14 @@ ${yaml.stringify(data)}`);
       proxies,
       nodes,
     );
+    const dns = resolveDnsConfig(subscribe.useSystemDnsConfig, subscribe.dnsConfig);
 
-    const data = {
-      "tproxy-port": 7893,
+    const data: Record<string, unknown> = {
+      "tproxy-port": dns.shared.tproxyPort,
       "allow-lan": true,
       mode: "Rule",
       "log-level": "info",
-      secret: "123456",
+      secret: dns.shared.clashApiSecret,
       proxies,
       "proxy-groups": proxyGroups,
       "rule-providers": ruleProviders,
@@ -276,6 +279,8 @@ ${yaml.stringify(data)}`);
         "store-fake-ip": true,
         tracing: true,
       },
+      // 原生 DNS 配置透传
+      ...(dns.overrides.clash ? { dns: dns.overrides.clash } : {}),
     };
 
     const { clientIp, userAgent } = this.getClientInfo(req);
@@ -303,13 +308,15 @@ ${yaml.stringify(data)}`);
       proxies,
       nodes,
     );
+    const dns = resolveDnsConfig(subscribe.useSystemDnsConfig, subscribe.dnsConfig);
+    const clashMetaDnsOverride = dns.overrides.clashMeta ?? dns.overrides.clash;
 
-    const data = {
-      "tproxy-port": 7893,
+    const data: Record<string, unknown> = {
+      "tproxy-port": dns.shared.tproxyPort,
       "allow-lan": true,
       mode: "Rule",
       "log-level": "info",
-      secret: "123456",
+      secret: dns.shared.clashApiSecret,
       "unified-delay": true,
       "tcp-concurrent": true,
       "find-process-mode": "strict",
@@ -337,6 +344,8 @@ ${yaml.stringify(data)}`);
         "store-fake-ip": true,
         tracing: true,
       },
+      // 原生 DNS 配置透传
+      ...(clashMetaDnsOverride ? { dns: clashMetaDnsOverride } : {}),
     };
 
     const { clientIp, userAgent } = this.getClientInfo(req);
@@ -380,6 +389,7 @@ ${yaml.stringify(data)}`);
     _ruleProvidersList: ProxyRuleProvidersList,
     ruleProviders: any[],
     publicServerUrl: string,
+    dns: ResolvedDnsConfig,
   ): Singbox {
     const select = groups.map((item) => {
       const outbounds = item.readonly
@@ -394,74 +404,101 @@ ${yaml.stringify(data)}`);
       };
     });
 
+    // 原生 DNS override 优先；否则从 shared 表单配置生成
+    const singboxDnsOverride = dns.overrides.singbox;
+    let dnsSection: Record<string, unknown>;
+    if (singboxDnsOverride) {
+      dnsSection = singboxDnsOverride;
+    } else {
+      const s = dns.shared;
+      // 构建 DNS servers
+      const dnsServers: any[] = [
+        { tag: "local", address: s.localDns, detour: "🚀 直接连接" },
+        ...(s.fakeipEnabled
+          ? [{ tag: "fakeip", address: "fakeip", strategy: "ipv4_only" }]
+          : []),
+        {
+          tag: "local_v4",
+          address: s.localDns,
+          strategy: "ipv4_only",
+          detour: "🚀 直接连接",
+        },
+      ];
+
+      // 构建 DNS rules
+      const dnsRules: any[] = [];
+      if (s.rejectHttps) {
+        dnsRules.push({ query_type: ["HTTPS"], action: "reject" });
+      }
+      dnsRules.push({
+        ip_cidr: [
+          "127.0.0.0/8",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+        ],
+        server: "local",
+      });
+      if (s.cnDomainLocalDns) {
+        dnsRules.push({ rule_set: ["geosite-cn"], server: "local" });
+        dnsRules.push({
+          type: "logical",
+          mode: "and",
+          rules: [
+            { rule_set: ["geoip-cn"] },
+            { rule_set: ["geoip-hk"], invert: true },
+            { rule_set: ["geoip-gfwblack"], invert: true },
+          ],
+          server: "local",
+        });
+      }
+      if (s.fakeipEnabled) {
+        dnsRules.push({
+          disable_cache: false,
+          rewrite_ttl: s.fakeipTtl,
+          query_type: ["A", "AAAA"],
+          server: "fakeip",
+        });
+      }
+
+      dnsSection = {
+        disable_cache: false,
+        servers: dnsServers,
+        rules: dnsRules,
+        disable_expire: false,
+        independent_cache: false,
+        reverse_mapping: false,
+        ...(s.fakeipEnabled
+          ? {
+              fakeip: {
+                enabled: true,
+                inet4_range: s.fakeipIpv4Range,
+                inet6_range: s.fakeipIpv6Range,
+              },
+            }
+          : {}),
+      };
+    }
+
     return {
       log: {
         disabled: false,
         level: "info",
         timestamp: true,
       },
-      dns: {
-        disable_cache: false,
-        servers: [
-          { tag: "local", address: "127.0.0.1", detour: "🚀 直接连接" },
-          { tag: "fakeip", address: "fakeip", strategy: "ipv4_only" },
-          {
-            tag: "local_v4",
-            address: "127.0.0.1",
-            strategy: "ipv4_only",
-            detour: "🚀 直接连接",
-          },
-        ],
-        rules: [
-          { query_type: ["HTTPS"], action: "reject" },
-          {
-            ip_cidr: [
-              "127.0.0.0/8",
-              "10.0.0.0/8",
-              "172.16.0.0/12",
-              "192.168.0.0/16",
-            ],
-            server: "local",
-          },
-          { rule_set: ["geosite-cn"], server: "local" },
-          {
-            type: "logical",
-            mode: "and",
-            rules: [
-              { rule_set: ["geoip-cn"] },
-              { rule_set: ["geoip-hk"], invert: true },
-              { rule_set: ["geoip-gfwblack"], invert: true },
-            ],
-            server: "local",
-          },
-          {
-            disable_cache: false,
-            rewrite_ttl: 300,
-            query_type: ["A", "AAAA"],
-            server: "fakeip",
-          },
-        ],
-        disable_expire: false,
-        independent_cache: false,
-        reverse_mapping: false,
-        fakeip: {
-          enabled: true,
-          inet4_range: "198.18.0.0/15",
-          inet6_range: "fc00::/18",
-        },
-      },
+      dns: dnsSection,
       inbounds: [
         {
           type: "direct",
           tag: "dns-in",
           listen: "::",
           sniff: true,
-          listen_port: 1053,
+          listen_port: dns.shared.dnsListenPort,
         },
         {
           type: "tproxy",
           listen: "::",
-          listen_port: 7893,
+          listen_port: dns.shared.tproxyPort,
           tcp_multi_path: false,
           tcp_fast_open: true,
           udp_fragment: true,
@@ -528,15 +565,15 @@ ${yaml.stringify(data)}`);
       experimental: {
         cache_file: {
           enabled: true,
-          store_fakeip: true,
+          store_fakeip: dns.shared.fakeipEnabled,
           store_rdrc: false,
         },
         clash_api: {
-          external_controller: "0.0.0.0:9999",
-          external_ui: "/etc/sb/ui",
+          external_controller: `0.0.0.0:${dns.shared.clashApiPort}`,
+          external_ui: dns.shared.clashApiUiPath,
           external_ui_download_url:
             "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
-          secret: "123456",
+          secret: dns.shared.clashApiSecret,
           default_mode: "rule",
         },
       },
@@ -551,6 +588,7 @@ ${yaml.stringify(data)}`);
     _ruleProvidersList: ProxyRuleProvidersList,
     ruleProviders: any[],
     publicServerUrl: string,
+    dns: ResolvedDnsConfig,
   ): any {
     // v1.12 中 block outbound 已 deprecated（1.14 移除），但仍可用
     // 保留 reject outbound 让用户可在 selector 中手动切换
@@ -575,73 +613,96 @@ ${yaml.stringify(data)}`);
       };
     });
 
+    // 原生 DNS override 优先（v12 fallback 到 singbox）；否则从 shared 表单配置生成
+    const singboxV12DnsOverride = dns.overrides.singboxV12 ?? dns.overrides.singbox;
+    let dnsSection: Record<string, unknown>;
+    if (singboxV12DnsOverride) {
+      dnsSection = singboxV12DnsOverride;
+    } else {
+      const s = dns.shared;
+      // 构建 DNS servers (v1.12 格式)
+      const dnsServers: any[] = [
+        { type: "local", tag: "local" },
+        ...(s.fakeipEnabled
+          ? [{
+              type: "fakeip",
+              tag: "fakeip",
+              inet4_range: s.fakeipIpv4Range,
+              inet6_range: s.fakeipIpv6Range,
+            }]
+          : []),
+        {
+          type: "udp",
+          tag: "local_v4",
+          server: s.localDns,
+          server_port: s.localDnsPort,
+        },
+      ];
+
+      // 构建 DNS rules (v1.12 格式 with action)
+      const dnsRules: any[] = [];
+      if (s.rejectHttps) {
+        dnsRules.push({ query_type: ["HTTPS"], action: "reject" });
+      }
+      dnsRules.push({
+        ip_cidr: [
+          "127.0.0.0/8",
+          "10.0.0.0/8",
+          "172.16.0.0/12",
+          "192.168.0.0/16",
+        ],
+        action: "route",
+        server: "local",
+      });
+      if (s.cnDomainLocalDns) {
+        dnsRules.push({ rule_set: ["geosite-cn"], action: "route", server: "local" });
+        dnsRules.push({
+          type: "logical",
+          mode: "and",
+          rules: [
+            { rule_set: ["geoip-cn"] },
+            { rule_set: ["geoip-hk"], invert: true },
+            { rule_set: ["geoip-gfwblack"], invert: true },
+          ],
+          action: "route",
+          server: "local",
+        });
+      }
+      if (s.fakeipEnabled) {
+        dnsRules.push({
+          disable_cache: false,
+          rewrite_ttl: s.fakeipTtl,
+          query_type: ["A", "AAAA"],
+          action: "route",
+          server: "fakeip",
+        });
+      }
+
+      dnsSection = {
+        servers: dnsServers,
+        rules: dnsRules,
+        independent_cache: false,
+      };
+    }
+
     return {
       log: {
         disabled: false,
         level: "info",
         timestamp: true,
       },
-      dns: {
-        servers: [
-          { type: "local", tag: "local" },
-          {
-            type: "fakeip",
-            tag: "fakeip",
-            inet4_range: "198.18.0.0/15",
-            inet6_range: "fc00::/18",
-          },
-          {
-            type: "udp",
-            tag: "local_v4",
-            server: "127.0.0.1",
-            server_port: 53,
-          },
-        ],
-        rules: [
-          { query_type: ["HTTPS"], action: "reject" },
-          {
-            ip_cidr: [
-              "127.0.0.0/8",
-              "10.0.0.0/8",
-              "172.16.0.0/12",
-              "192.168.0.0/16",
-            ],
-            action: "route",
-            server: "local",
-          },
-          { rule_set: ["geosite-cn"], action: "route", server: "local" },
-          {
-            type: "logical",
-            mode: "and",
-            rules: [
-              { rule_set: ["geoip-cn"] },
-              { rule_set: ["geoip-hk"], invert: true },
-              { rule_set: ["geoip-gfwblack"], invert: true },
-            ],
-            action: "route",
-            server: "local",
-          },
-          {
-            disable_cache: false,
-            rewrite_ttl: 300,
-            query_type: ["A", "AAAA"],
-            action: "route",
-            server: "fakeip",
-          },
-        ],
-        independent_cache: false,
-      },
+      dns: dnsSection,
       inbounds: [
         {
           type: "direct",
           tag: "dns-in",
           listen: "::",
-          listen_port: 1053,
+          listen_port: dns.shared.dnsListenPort,
         },
         {
           type: "tproxy",
           listen: "::",
-          listen_port: 7893,
+          listen_port: dns.shared.tproxyPort,
           tcp_multi_path: false,
           tcp_fast_open: true,
           udp_fragment: true,
@@ -713,15 +774,15 @@ ${yaml.stringify(data)}`);
       experimental: {
         cache_file: {
           enabled: true,
-          store_fakeip: true,
+          store_fakeip: dns.shared.fakeipEnabled,
           store_rdrc: false,
         },
         clash_api: {
-          external_controller: "0.0.0.0:9999",
-          external_ui: "/etc/sb/ui",
+          external_controller: `0.0.0.0:${dns.shared.clashApiPort}`,
+          external_ui: dns.shared.clashApiUiPath,
           external_ui_download_url:
             "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
-          secret: "123456",
+          secret: dns.shared.clashApiSecret,
           default_mode: "rule",
         },
       },
@@ -840,6 +901,9 @@ ${yaml.stringify(data)}`);
       }
     }
 
+    // 解析 DNS 配置
+    const dnsConfig = resolveDnsConfig(subscribe.useSystemDnsConfig, subscribe.dnsConfig);
+
     // 根据版本构建配置
     const data =
       version === 12
@@ -850,6 +914,7 @@ ${yaml.stringify(data)}`);
             ruleProvidersList,
             ruleProviders,
             publicServerUrl,
+            dnsConfig,
           )
         : this.buildSingboxV11(
             proxies,
@@ -858,6 +923,7 @@ ${yaml.stringify(data)}`);
             ruleProvidersList,
             ruleProviders,
             publicServerUrl,
+            dnsConfig,
           );
 
     // 处理自定义规则（从 JSONC 字符串解析）

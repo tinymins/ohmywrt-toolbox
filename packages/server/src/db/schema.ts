@@ -159,6 +159,12 @@ export const proxySubscribes = pgTable("proxy_subscribes", {
   useSystemCustomConfig: boolean("use_system_custom_config")
     .notNull()
     .default(true),
+  // DNS 配置 (JSONC 字符串)
+  dnsConfig: text("dns_config"),
+  // 是否使用系统默认 DNS 配置
+  useSystemDnsConfig: boolean("use_system_dns_config")
+    .notNull()
+    .default(true),
   // 授权用户ID列表
   authorizedUserIds: jsonb("authorized_user_ids").$type<string[]>().default([]),
   // 订阅缓存时间（分钟），null 或 0 表示不缓存

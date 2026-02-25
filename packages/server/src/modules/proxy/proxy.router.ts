@@ -52,6 +52,8 @@ export const ProxySubscribeOutputSchema = z.object({
   servers: z.string().nullable(),
   customConfig: z.string().nullable(),
   useSystemCustomConfig: z.boolean(),
+  dnsConfig: z.string().nullable(),
+  useSystemDnsConfig: z.boolean(),
   authorizedUserIds: z.array(z.string()),
   cacheTtlMinutes: z.number().nullable(),
   cachedNodeCount: z.number(),
@@ -235,6 +237,7 @@ export class ProxyRouter {
       group: z.string(),
       filter: z.string(),
       customConfig: z.string(),
+      dnsConfig: z.string(),
     }),
   })
   async getDefaults() {

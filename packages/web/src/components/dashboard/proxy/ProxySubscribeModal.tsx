@@ -18,6 +18,7 @@ import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "../../../lib/trpc";
+import DnsConfigEditor from "./DnsConfigEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
 
 // 配置 Monaco CDN 源（和 classic 项目一致）
@@ -130,6 +131,44 @@ const ConfigFieldEditor = ({
   );
 };
 
+/**
+ * DNS 配置字段编辑器：根据 useSystemDnsConfig 切换只读/可编辑模式。
+ * 使用 DnsConfigEditor 组件而非纯 JSONC 编辑器。
+ */
+interface DnsConfigEditorFieldProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  form: ReturnType<typeof Form.useForm>[0];
+  defaultValue: string;
+}
+
+const DnsConfigEditorField = ({
+  value,
+  onChange,
+  form,
+  defaultValue,
+}: DnsConfigEditorFieldProps) => {
+  const useSystem = Form.useWatch("useSystemDnsConfig", form);
+
+  if (useSystem) {
+    return (
+      <DnsConfigEditor
+        key="system-default"
+        value={defaultValue}
+        readOnly
+      />
+    );
+  }
+
+  return (
+    <DnsConfigEditor
+      key="user-custom"
+      value={value}
+      onChange={onChange}
+    />
+  );
+};
+
 export interface ProxySubscribeModalRef {
   open: (id?: string) => void;
 }
@@ -145,6 +184,7 @@ const TABS = [
   { label: "group", value: "group" },
   { label: "filter", value: "filter" },
   { label: "customConfig", value: "customConfig" },
+  { label: "dnsConfig", value: "dnsConfig" },
   { label: "servers", value: "servers" },
 ];
 
@@ -229,6 +269,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             useSystemFilter: true,
             customConfig: "",
             useSystemCustomConfig: true,
+            dnsConfig: "",
+            useSystemDnsConfig: true,
             servers: JSON.stringify([], null, 2),
           });
           setLoading(false);
@@ -293,6 +335,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         useSystemFilter: existingData.useSystemFilter,
         customConfig: existingData.customConfig ?? "",
         useSystemCustomConfig: existingData.useSystemCustomConfig,
+        dnsConfig: existingData.dnsConfig ?? "",
+        useSystemDnsConfig: existingData.useSystemDnsConfig,
         servers: existingData.servers ?? "",
         authorizedUserIds: existingData.authorizedUserIds,
       });
@@ -323,6 +367,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           "group",
           "filter",
           "customConfig",
+          "dnsConfig",
           "servers",
         ];
         for (const field of fields) {
@@ -349,6 +394,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           useSystemFilter: values.useSystemFilter ?? true,
           customConfig: values.customConfig || null,
           useSystemCustomConfig: values.useSystemCustomConfig ?? true,
+          dnsConfig: values.dnsConfig || null,
+          useSystemDnsConfig: values.useSystemDnsConfig ?? true,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
           cacheTtlMinutes: null, // 缓存时间已移至每个订阅源
@@ -513,6 +560,34 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                   </Form.Item>
                 </div>
               ))}
+
+              {/* DNS 配置 */}
+              <div
+                style={{ display: activeTab === "dnsConfig" ? "block" : "none" }}
+              >
+                <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+                  <span>{t("proxy.form.dnsConfigLabel")}</span>
+                  <Form.Item
+                    name="useSystemDnsConfig"
+                    valuePropName="checked"
+                    noStyle
+                  >
+                    <Checkbox>
+                      {t("proxy.form.useSystemConfig")}
+                    </Checkbox>
+                  </Form.Item>
+                </div>
+                <Form.Item
+                  name="dnsConfig"
+                  dependencies={["useSystemDnsConfig"]}
+                  noStyle
+                >
+                  <DnsConfigEditorField
+                    form={form}
+                    defaultValue={defaults?.dnsConfig ?? ""}
+                  />
+                </Form.Item>
+              </div>
 
               {/* 额外服务器 */}
               <div
