@@ -269,7 +269,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       open={visible}
       onCancel={handleClose}
       footer={null}
-      size="almost-full"
+      size="full"
       destroyOnClose
     >
       {error && (

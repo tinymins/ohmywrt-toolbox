@@ -418,7 +418,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             onCancel={() => setOpen(false)}
             onOk={handleSubmit}
             confirmLoading={isPending}
-            size="full"
+            size="almost-full"
           >
           <Spin spinning={loading || isLoadingData}>
               <div className="mb-4">
