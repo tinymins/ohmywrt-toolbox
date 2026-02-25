@@ -17,8 +17,15 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
+import { keepPreviousData } from "@tanstack/react-query";
 import "dayjs/locale/zh-cn";
 import { trpc } from "../../../lib/trpc";
 
@@ -54,10 +61,12 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
   const [visible, setVisible] = useState(false);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
+  const [accessPage, setAccessPage] = useState(1);
+  const [accessPageSize, setAccessPageSize] = useState(20);
 
   const { data: stats, isLoading } = trpc.proxy.getStats.useQuery(
-    { id: subscribeId },
-    { enabled: !!subscribeId && visible },
+    { id: subscribeId, page: accessPage, pageSize: accessPageSize },
+    { enabled: !!subscribeId && visible, placeholderData: keepPreviousData },
   );
 
   useImperativeHandle(ref, () => ({
@@ -66,6 +75,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       setSubscribeRemark(
         remark || (lang === "zh" ? "未命名订阅" : "Unnamed Subscription"),
       );
+      setAccessPage(1);
       setVisible(true);
     },
   }));
@@ -282,11 +292,27 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
               <h4 className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {lang === "zh" ? "最近访问记录" : "Recent Access"}
               </h4>
-              {stats.recentAccess.length > 0 ? (
+              {stats.recentAccess.length > 0 ||
+              stats.recentAccessTotal > 0 ? (
                 <Table
                   size="small"
                   bordered
-                  pagination={false}
+                  pagination={{
+                    current: accessPage,
+                    pageSize: accessPageSize,
+                    total: stats.recentAccessTotal,
+                    showSizeChanger: true,
+                    pageSizeOptions: ["10", "20", "50", "100"],
+                    showTotal: (total) =>
+                      lang === "zh"
+                        ? `共 ${total} 条`
+                        : `${total} records`,
+                    size: "small",
+                    onChange: (page, pageSize) => {
+                      setAccessPage(page);
+                      setAccessPageSize(pageSize);
+                    },
+                  }}
                   dataSource={stats.recentAccess}
                   columns={isMobile ? mobileAccessColumns : accessColumns}
                   rowKey="createdAt"

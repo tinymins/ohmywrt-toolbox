@@ -170,7 +170,11 @@ export class ProxyRouter {
   /** 获取订阅统计信息 */
   @UseMiddlewares(requireUser)
   @Query({
-    input: z.object({ id: z.string() }),
+    input: z.object({
+      id: z.string(),
+      page: z.number().int().min(1).optional().default(1),
+      pageSize: z.number().int().min(1).max(100).optional().default(20),
+    }),
     output: z.object({
       totalAccess: z.number(),
       todayAccess: z.number(),
@@ -182,6 +186,7 @@ export class ProxyRouter {
           count: z.number(),
         }),
       ),
+      recentAccessTotal: z.number(),
       recentAccess: z.array(
         z.object({
           createdAt: z.string(),
@@ -193,8 +198,16 @@ export class ProxyRouter {
       ),
     }),
   })
-  async getStats(input: { id: string }, @Ctx() ctx: Context) {
-    return proxySubscribeService.getStats(input.id, ctx.userId!);
+  async getStats(
+    input: { id: string; page?: number; pageSize?: number },
+    @Ctx() ctx: Context,
+  ) {
+    return proxySubscribeService.getStats(
+      input.id,
+      ctx.userId!,
+      input.page,
+      input.pageSize,
+    );
   }
 
   /** 获取用户整体统计 */

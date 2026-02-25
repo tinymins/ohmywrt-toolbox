@@ -346,12 +346,15 @@ export class ProxySubscribeService {
   async getStats(
     id: string,
     userId: string,
+    page = 1,
+    pageSize = 20,
   ): Promise<{
     totalAccess: number;
     todayAccess: number;
     cachedNodeCount: number;
     lastAccessAt: string | null;
     accessByType: { type: string; count: number }[];
+    recentAccessTotal: number;
     recentAccess: {
       createdAt: string;
       accessType: string;
@@ -409,7 +412,8 @@ export class ProxySubscribeService {
       .where(eq(proxyAccessLogs.subscribeId, id))
       .groupBy(proxyAccessLogs.accessType);
 
-    // 获取最近10条访问记录
+    // 获取分页访问记录
+    const offset = (page - 1) * pageSize;
     const recentAccess = await db
       .select({
         createdAt: proxyAccessLogs.createdAt,
@@ -421,7 +425,8 @@ export class ProxySubscribeService {
       .from(proxyAccessLogs)
       .where(eq(proxyAccessLogs.subscribeId, id))
       .orderBy(sql`${proxyAccessLogs.createdAt} DESC`)
-      .limit(10);
+      .limit(pageSize)
+      .offset(offset);
 
     return {
       totalAccess: totalResult?.count ?? 0,
@@ -432,6 +437,7 @@ export class ProxySubscribeService {
         type: item.type,
         count: Number(item.count),
       })),
+      recentAccessTotal: Number(totalResult?.count ?? 0),
       recentAccess: recentAccess.map((item) => ({
         createdAt: item.createdAt?.toISOString() ?? new Date().toISOString(),
         accessType: item.accessType,
