@@ -41,7 +41,33 @@
 ### 🎨 主题
 支持明暗主题切换，可设为跟随系统。
 
-## 📚 技术栈
+## � 页面截图
+
+**编辑订阅** —— 管理多个上游订阅源，每个源可独立配置前缀、缓存时间与启用/禁用
+
+![编辑订阅](screenshots/edit-subscription.png)
+
+**订阅链接** —— 一键复制 Clash / Clash Meta / Sing-box 订阅地址
+
+![订阅链接](screenshots/subscription-links.png)
+
+**节点预览** —— 浏览全部代理节点，查看协议、服务器、端口、传输方式等详情
+
+![节点预览](screenshots/note-preview.png)
+
+**订阅调试** —— 实时流式查看处理管线（配置解析 → 源拉取 → 过滤 → 合并 → 输出）
+
+![订阅调试](screenshots/subscription-debug.png)
+
+**节点追踪** —— 单节点全生命周期追踪（来源 → 解析 → 过滤 → 名称增强 → 分组分配 → 格式转换 → 最终输出）
+
+![节点追踪](screenshots/node-trace.png)
+
+**访问统计** —— 订阅下载日志，包含类型分布、IP、UA、节点数量
+
+![访问统计](screenshots/subscription-stats.png)
+
+## �📚 技术栈
 
 | 层级 | 技术 |
 |------|------|

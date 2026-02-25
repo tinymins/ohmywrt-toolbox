@@ -41,7 +41,33 @@ A self-hosted proxy subscription management tool — aggregate multiple upstream
 ### 🎨 Themes
 Light / dark theme switching, with system-follow option.
 
-## 📚 Tech Stack
+## � Screenshots
+
+**Edit Subscription** — Manage multiple upstream sources with per-source prefix, cache TTL, and enable/disable
+
+![Edit Subscription](screenshots/edit-subscription.png)
+
+**Subscription Links** — One-click copy Clash / Clash Meta / Sing-box subscription URLs
+
+![Subscription Links](screenshots/subscription-links.png)
+
+**Node Preview** — Browse all proxy nodes with protocol, server, port, and transport details
+
+![Node Preview](screenshots/note-preview.png)
+
+**Subscription Debug** — Real-time streaming pipeline debug (config parsing → source fetching → filtering → merging → output)
+
+![Subscription Debug](screenshots/subscription-debug.png)
+
+**Node Trace** — Per-node lifecycle tracing (source → parse → filter → name enrichment → group assignment → format conversion → final output)
+
+![Node Trace](screenshots/node-trace.png)
+
+**Access Statistics** — Subscription download logs with type distribution, IP, user-agent, and node count
+
+![Access Statistics](screenshots/subscription-stats.png)
+
+## �📚 Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
