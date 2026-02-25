@@ -300,8 +300,22 @@ export const FLAG_MAP: Record<string, string> = {
   瑞士: "🇨🇭",
 };
 
-/** 为节点名称添加国旗图标 */
+/** 匹配国/地区旗帜 emoji（由两个 Regional Indicator 字符组成） */
+const FLAG_EMOJI_RE = /[\u{1F1E0}-\u{1F1FF}]{2}/gu;
+
+/** 为节点名称添加国旗图标，已有旗帜时提取到最前面并去重 */
 export const appendIcon = (name: string): string => {
+  // 提取名称中已有的所有旗帜 emoji
+  const existingFlags = name.match(FLAG_EMOJI_RE);
+
+  if (existingFlags && existingFlags.length > 0) {
+    // 去掉名称中所有旗帜 emoji 及其后可能跟随的空格
+    const stripped = name.replace(/[\u{1F1E0}-\u{1F1FF}]{2}\s*/gu, "").trim();
+    // 取第一个旗帜，放到最前面
+    return `${existingFlags[0]} ${stripped}`;
+  }
+
+  // 没有旗帜 emoji，按关键词查找并添加
   const flag = Object.keys(FLAG_MAP).find((key) => name.includes(key));
   if (flag && flag in FLAG_MAP) {
     return `${FLAG_MAP[flag]} ${name}`;
