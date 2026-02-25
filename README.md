@@ -41,11 +41,11 @@ A self-hosted proxy subscription management tool — aggregate multiple upstream
 ### 🎨 Themes
 Light / dark theme switching, with system-follow option.
 
-## � Screenshots
+## 📸 Screenshots
 
 **Edit Subscription** — Manage multiple upstream sources with per-source prefix, cache TTL, and enable/disable
 
-![Edit Subscription](screenshots/edit-subscription.png)
+![Edit Subscription](screenshots/subscription-edit.png)
 
 **Subscription Links** — One-click copy Clash / Clash Meta / Sing-box subscription URLs
 
@@ -53,7 +53,7 @@ Light / dark theme switching, with system-follow option.
 
 **Node Preview** — Browse all proxy nodes with protocol, server, port, and transport details
 
-![Node Preview](screenshots/note-preview.png)
+![Node Preview](screenshots/node-preview.png)
 
 **Subscription Debug** — Real-time streaming pipeline debug (config parsing → source fetching → filtering → merging → output)
 
@@ -67,7 +67,7 @@ Light / dark theme switching, with system-follow option.
 
 ![Access Statistics](screenshots/subscription-stats.png)
 
-## �📚 Tech Stack
+## 📚 Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
