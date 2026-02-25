@@ -412,26 +412,30 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     return (
       <>
         {contextHolder}
-        <Modal
-          title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
-          open={open}
-          onCancel={() => setOpen(false)}
-          onOk={handleSubmit}
-          confirmLoading={isPending}
-          width={800}
-          styles={{ body: { maxHeight: "70vh", overflow: "auto" } }}
-        >
+          <Modal
+            title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
+            open={open}
+            onCancel={() => setOpen(false)}
+            onOk={handleSubmit}
+            confirmLoading={isPending}
+            width="100vw"
+            style={{ top: 0, maxWidth: "100vw", margin: 0, padding: 0 }}
+            styles={{
+              body: { height: "calc(100vh - 110px)", overflow: "auto", padding: "16px 24px" },
+              wrapper: { overflow: "hidden" },
+            }}
+          >
           <Spin spinning={loading || isLoadingData}>
-            <div className="mb-4">
-              <Segmented
-                block
-                options={localizedTabs}
-                value={activeTab}
-                onChange={(value) => setActiveTab(value as string)}
-              />
-            </div>
+              <div className="mb-4">
+                <Segmented
+                  block
+                  options={localizedTabs}
+                  value={activeTab}
+                  onChange={(value) => setActiveTab(value as string)}
+                />
+              </div>
 
-            <Form form={form} layout="vertical">
+              <Form form={form} layout="vertical">
               {/* 基础信息 */}
               <div
                 style={{ display: activeTab === "basic" ? "block" : "none" }}
