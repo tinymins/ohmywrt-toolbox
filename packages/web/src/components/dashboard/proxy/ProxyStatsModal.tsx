@@ -4,11 +4,11 @@ import {
   CloudServerOutlined,
   GlobalOutlined,
 } from "@ant-design/icons";
+import { ScaledModal } from "@acme/components";
 import {
   Card,
   Col,
   Empty,
-  Modal,
   Row,
   Spin,
   Statistic,
@@ -139,7 +139,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
     {
       title: lang === "zh" ? "类型" : "Type",
       dataIndex: "accessType",
-      width: 100,
+      width: 140,
       render: (type: string) => {
         const colorMap: Record<string, string> = {
           clash: "blue",
@@ -168,7 +168,6 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
     {
       title: "User-Agent",
       dataIndex: "userAgent",
-      width: 200,
       ellipsis: true,
       render: (ua: string | null) => (
         <span title={ua || undefined} className="text-xs text-slate-500">
@@ -179,7 +178,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
   ];
 
   return (
-    <Modal
+    <ScaledModal
       title={
         <div className="flex items-center gap-2 flex-wrap">
           <BarChartOutlined />
@@ -194,12 +193,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width={isMobile ? "100%" : 800}
-      style={
-        isMobile
-          ? { top: 20, maxWidth: "100%", margin: "0 auto", padding: "0 8px" }
-          : undefined
-      }
+      size={isMobile ? "full" : "large"}
       destroyOnClose
     >
       <Spin spinning={isLoading}>
@@ -316,7 +310,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                   dataSource={stats.recentAccess}
                   columns={isMobile ? mobileAccessColumns : accessColumns}
                   rowKey="createdAt"
-                  scroll={isMobile ? { y: 200 } : { x: 500, y: 300 }}
+                  scroll={isMobile ? { y: 200 } : { y: 300 }}
                 />
               ) : (
                 <Empty
@@ -332,7 +326,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           <Empty description={lang === "zh" ? "加载中..." : "Loading..."} />
         )}
       </Spin>
-    </Modal>
+    </ScaledModal>
   );
 });
 

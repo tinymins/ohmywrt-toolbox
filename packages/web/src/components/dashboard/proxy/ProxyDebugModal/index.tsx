@@ -7,11 +7,11 @@ import {
   LoadingOutlined,
 } from "@ant-design/icons";
 import { skipToken } from "@tanstack/react-query";
+import { ScaledModal } from "@acme/components";
 import {
   Alert,
   AutoComplete,
   Divider,
-  Modal,
   Space,
   Spin,
   Steps,
@@ -258,7 +258,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   }, [allNodeNames, searchValue, t]);
 
   return (
-    <Modal
+    <ScaledModal
       title={
         <Space>
           <BugOutlined />
@@ -269,13 +269,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width="calc(100vw - 48px)"
-      centered
+      size="almost-full"
       destroyOnClose
-      styles={{
-        wrapper: { overflow: "hidden" },
-        body: { maxHeight: "calc(100vh - 120px)", overflowY: "auto" },
-      }}
     >
       {error && (
         <Alert
@@ -359,7 +354,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       )}
 
       <div ref={bottomRef} />
-    </Modal>
+    </ScaledModal>
   );
 });
 

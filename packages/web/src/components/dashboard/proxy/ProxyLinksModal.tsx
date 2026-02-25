@@ -7,7 +7,8 @@ import {
   GlobalOutlined,
   LinkOutlined,
 } from "@ant-design/icons";
-import { Button, Modal, message, Space, Tag, Typography } from "antd";
+import { ScaledModal } from "@acme/components";
+import { Button, message, Space, Tag, Typography } from "antd";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ProxyDebugModal, { type ProxyDebugModalRef } from "./ProxyDebugModal";
@@ -95,7 +96,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
     <>
       {contextHolder}
       <ProxyDebugModal ref={debugModalRef} />
-      <Modal
+      <ScaledModal
         title={
           <Space>
             <LinkOutlined />
@@ -177,7 +178,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
             </div>
           ))}
         </div>
-      </Modal>
+      </ScaledModal>
     </>
   );
 });

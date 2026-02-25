@@ -1,9 +1,9 @@
 import { EyeOutlined } from "@ant-design/icons";
+import { ScaledModal } from "@acme/components";
 import {
   Card,
   Descriptions,
   Empty,
-  Modal,
   Spin,
   Table,
   Tag,
@@ -575,7 +575,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   };
 
   return (
-    <Modal
+    <ScaledModal
       title={
         <div className="flex items-center gap-2 flex-wrap">
           <EyeOutlined />
@@ -586,24 +586,14 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       open={visible}
       onCancel={handleClose}
       footer={null}
-      width={isMobile ? "100vw" : "95vw"}
-      style={
-        isMobile
-          ? {
-              top: 0,
-              left: 0,
-              maxWidth: "100vw",
-              margin: 0,
-              padding: 0,
-              paddingBottom: 0,
-            }
-          : { top: 20, maxWidth: 1600 }
-      }
+      size={isMobile ? "full" : "almost-full"}
       styles={{
-        body: { padding: isMobile ? "12px 8px" : "16px 0" },
-        wrapper: isMobile ? { overflow: "hidden" } : undefined,
+        body: {
+          padding: isMobile ? "12px 8px" : "16px 0",
+          overflowY: "auto",
+          overflowX: "hidden",
+        },
       }}
-      className={isMobile ? "mobile-fullscreen-modal" : ""}
     >
       <Spin spinning={isLoading}>
         {!isLoading && nodes.length === 0 ? (
@@ -694,13 +684,13 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                   ],
                   showTotal: (total) => `${total}`,
                 }}
-                scroll={{ x: 1000, y: "calc(100vh - 280px)" }}
+                scroll={{ x: 1000, y: "calc(100vh - 340px)" }}
               />
             )}
           </>
         )}
       </Spin>
-    </Modal>
+    </ScaledModal>
   );
 });
 

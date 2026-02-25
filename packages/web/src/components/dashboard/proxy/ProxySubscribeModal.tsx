@@ -3,12 +3,12 @@ import type {
   SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
+import { ScaledModal } from "@acme/components";
 import Editor, { loader } from "@monaco-editor/react";
 import {
   Checkbox,
   Form,
   Input,
-  Modal,
   message,
   Segmented,
   Select,
@@ -412,18 +412,13 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     return (
       <>
         {contextHolder}
-          <Modal
+          <ScaledModal
             title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
             open={open}
             onCancel={() => setOpen(false)}
             onOk={handleSubmit}
             confirmLoading={isPending}
-            width="100vw"
-            style={{ top: 0, maxWidth: "100vw", margin: 0, padding: 0 }}
-            styles={{
-              body: { height: "calc(100vh - 110px)", overflow: "auto", padding: "16px 24px" },
-              wrapper: { overflow: "hidden" },
-            }}
+            size="full"
           >
           <Spin spinning={loading || isLoadingData}>
               <div className="mb-4">
@@ -531,7 +526,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               </div>
             </Form>
           </Spin>
-        </Modal>
+        </ScaledModal>
       </>
     );
   },

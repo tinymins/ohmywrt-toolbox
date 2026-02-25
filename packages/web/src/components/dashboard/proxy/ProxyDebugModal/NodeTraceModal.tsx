@@ -7,6 +7,7 @@ import {
   LoadingOutlined,
   MinusCircleOutlined,
 } from "@ant-design/icons";
+import { ScaledModal } from "@acme/components";
 import {
   Alert,
   AutoComplete,
@@ -14,7 +15,6 @@ import {
   Collapse,
   Descriptions,
   Empty,
-  Modal,
   Space,
   Spin,
   Steps,
@@ -525,7 +525,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
     const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
     return (
-      <Modal
+      <ScaledModal
         title={
           <div className="flex items-center gap-3">
             <Button
@@ -545,13 +545,8 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         open={visible}
         onCancel={handleClose}
         footer={null}
-        width="calc(100vw - 48px)"
-        centered
+        size="almost-full"
         destroyOnClose={false}
-        styles={{
-          wrapper: { overflow: "hidden" },
-          body: { maxHeight: "calc(100vh - 120px)", overflowY: "auto" },
-        }}
       >
         {/* 搜索栏 */}
         <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -605,7 +600,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         {tracingNodeName && data && data.steps.length > 0 && (
           <TraceStepsContent data={data} format={format} />
         )}
-      </Modal>
+      </ScaledModal>
     );
   },
 );

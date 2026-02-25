@@ -16,9 +16,5 @@
  * - 仅在单一页面使用的组件
  */
 
-// TODO: 从 web/components 中抽取通用组件到此处
-// export * from "./Button";
-// export * from "./Modal";
-// export * from "./Card";
-// export * from "./Loading";
-// export * from "./Empty";
+export { default as ScaledModal } from "./ScaledModal";
+export type { ScaledModalSize, ScaledModalProps } from "./ScaledModal";
