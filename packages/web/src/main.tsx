@@ -3,14 +3,33 @@ import "./index.css";
 import { StyleProvider } from "@ant-design/cssinjs";
 import { httpBatchLink } from "@trpc/client";
 import { App as AntdApp, theme as antdTheme, ConfigProvider } from "antd";
+import deDE from "antd/locale/de_DE";
+import enUS from "antd/locale/en_US";
+import jaJP from "antd/locale/ja_JP";
+import zhCN from "antd/locale/zh_CN";
+import zhTW from "antd/locale/zh_TW";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ThemeProvider, useThemeContext } from "./hooks";
 import i18n from "./lib/i18n";
 import { trpc } from "./lib/trpc";
+
+// Ant Design locale 映射
+const antdLocaleMap: Record<string, typeof zhCN> = {
+  "zh-CN": zhCN,
+  "zh-TW": zhTW,
+  "en-US": enUS,
+  "ja-JP": jaJP,
+  "de-DE": deDE,
+  // 方言 fallback 到简/繁体
+  yue: zhTW,
+  hak: zhTW,
+  wuu: zhCN,
+  lzh: zhTW,
+};
 
 // 系统保留的共享空间 slug
 export const SYSTEM_SHARED_SLUG = "::SYSTEM_SHARED::";
@@ -62,10 +81,15 @@ window.__REACT_ROOT__ ??= ReactDOM.createRoot(rootElement);
 
 function AppWrapper() {
   const { theme } = useThemeContext();
+  const { i18n: i18nInstance } = useTranslation();
+  const lang =
+    i18nInstance.resolvedLanguage ?? i18nInstance.language ?? "zh-CN";
+  const antdLocale = antdLocaleMap[lang] ?? zhCN;
 
   return (
     <StyleProvider>
       <ConfigProvider
+        locale={antdLocale}
         theme={{
           algorithm:
             theme === "dark"
