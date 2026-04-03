@@ -58,12 +58,12 @@ export function Button({
   block = false,
   shape = "default",
   icon,
-  htmlType = "button",
+  htmlType,
   danger = false,
   className,
   disabled,
   children,
-  type: _type,
+  type: nativeType,
   ...rest
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -78,7 +78,7 @@ export function Button({
   return (
     <button
       ref={ref}
-      type={htmlType}
+      type={htmlType ?? nativeType ?? "button"}
       disabled={isDisabled}
       className={cn(
         "inline-flex items-center justify-center gap-1.5 border font-medium transition-all duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] select-none cursor-pointer",
