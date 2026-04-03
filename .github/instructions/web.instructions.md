@@ -1,6 +1,6 @@
 ---
-description: "Use when working on frontend code: React components, hooks, pages, TailwindCSS styling, tRPC client calls, or UI architecture in packages/web or packages/components."
-applyTo: "packages/web/**,packages/components/**"
+description: "Use when working on frontend code: React components, hooks, pages, TailwindCSS styling, tRPC client calls, or UI architecture in packages/web."
+applyTo: "packages/web/**"
 ---
 
 # Frontend Patterns
@@ -8,9 +8,11 @@ applyTo: "packages/web/**,packages/components/**"
 ## Framework
 
 - **React Router v7** with SSR (server-side rendering)
-- **Vite 8** for dev server and build
+- **Vite 7** for dev server and build
 - **TailwindCSS 4** for all styling — no antd, no @ant-design/icons
+- **Lucide React** for icons — `lucide-react`
 - **Bun** as the production SSR runtime (`server.mjs`)
+- **禁止**直接 `fetch()` 绕过 tRPC client
 
 ## Route Structure
 
@@ -56,8 +58,8 @@ export { default } from "@/components/auth/AuthPage";
 
 | Type | Location | Rule |
 |------|----------|------|
-| Generic UI | `packages/components/src/` | Pure UI, no API calls, reusable across projects |
-| Business | `packages/web/src/components/` | May call tRPC, contains business logic |
+| Generic UI | `@acme/components`（`packages/components/src/`） | Pure UI, no API calls, no business logic |
+| Business | `packages/web/src/components/` | May call tRPC, contains business logic, uses i18n |
 
 Before creating a component: check `packages/components/src/` first. If it exists, reuse or extend it (add props). Only create a new generic component there if it's pure UI. Only create in `packages/web/src/components/` if it needs API access.
 

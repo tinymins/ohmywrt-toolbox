@@ -5,6 +5,19 @@ applyTo: "packages/server/**"
 
 # Server Patterns
 
+## 环境变量加载
+
+`env.ts` 必须是 `main.ts` 的 **第一个 import**（ESM import 全部被提升，side-effect import 保证执行顺序）：
+
+```typescript
+// main.ts
+import "./env";  // ← MUST be first
+import { Hono } from "hono";
+// ...
+```
+
+端口配置通过 `SERVER_PORT` 环境变量控制（默认 4000），CORS origin 自动从 `WEB_PORT` 推导。
+
 ## Module Structure
 
 Each module follows a consistent file layout:
