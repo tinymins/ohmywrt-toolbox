@@ -77,7 +77,7 @@ function ScrollNavRoot({
       const rect = section.getBoundingClientRect();
       // Section whose top has scrolled past the container top (with 50px offset)
       if (rect.top - containerRect.top <= 50) {
-        active = section.dataset.scrollKey!;
+        active = section.dataset.scrollKey ?? "";
       }
     }
     setActiveKey(active);

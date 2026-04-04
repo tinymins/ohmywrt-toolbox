@@ -43,7 +43,8 @@
       "!.turbo",
       "!**/src/generated",
       "!**/.react-router",
-      "!**/build"
+      "!**/build",
+      "!**/wasm/pkg"
     ]
   },
   "overrides": [

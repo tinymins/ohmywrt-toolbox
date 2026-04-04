@@ -191,7 +191,7 @@ function MenuItemRenderer({
       </button>
       {hasChildren && isOpen && !collapsed ? (
         <ul className="list-none p-0 m-0">
-          {item.children!.map((child) => (
+          {item.children?.map((child) => (
             <MenuItemRenderer
               key={child.key}
               item={child}

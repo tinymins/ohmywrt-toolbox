@@ -36,7 +36,6 @@ export function Avatar({
   const fontSize = Math.max(px * 0.45, 12);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally set based on onClick
     <span
       className={cn(
         "inline-flex items-center justify-center overflow-hidden bg-fill-tertiary text-fg-muted shrink-0 select-none",

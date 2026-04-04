@@ -244,7 +244,7 @@ function renderRows<T>(
     if (hasKids && expanded) {
       rows.push(
         ...renderRows(
-          kids!,
+          kids ?? [],
           columns,
           rowKey,
           expandable,
@@ -401,7 +401,7 @@ export function Table<T = Record<string, unknown>>({
   const allKeys = dataSource.map((r, i) => getKey(r, rowKey, i));
   const allSelectableKeys = rowSelection?.getCheckboxProps
     ? allKeys.filter(
-        (_, i) => !rowSelection.getCheckboxProps!(dataSource[i]).disabled,
+        (_, i) => !rowSelection.getCheckboxProps?.(dataSource[i]).disabled,
       )
     : allKeys;
   const allSelected =

@@ -164,14 +164,10 @@ export function PathBar({
       </button>
 
       {/* Segments area — click empty space to start editing */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: edit trigger on empty space */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: edit trigger on empty space */}
       <div
         className="flex flex-1 items-center gap-0.5 min-w-0 min-h-[24px] cursor-text"
         onClick={startEdit}
       >
-        {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation wrapper */}
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation wrapper */}
         <div
           className="flex items-center gap-0.5 shrink-0"
           onClick={(e) => e.stopPropagation()}

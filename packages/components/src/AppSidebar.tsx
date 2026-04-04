@@ -234,7 +234,6 @@ function SidebarItemButton({
 
   if (item.extra) {
     return (
-      // biome-ignore lint/a11y/useSemanticElements: div wrapper needed for nested interactive content in extra
       <div
         data-sidebar-key={item.key}
         role="button"

@@ -199,7 +199,6 @@ function ListItemComponent({
   onClick,
 }: ListItemProps) {
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally set based on onClick
     <div
       className={cn(
         "flex items-start gap-3",

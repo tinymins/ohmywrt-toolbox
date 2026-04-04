@@ -115,7 +115,6 @@ export function EmojiPicker({
   if (variant === "icon") {
     const TriggerIcon =
       triggerAs === "span" ? (
-        // biome-ignore lint/a11y/useSemanticElements: nested inside a <button>; cannot use <button> here
         <span
           ref={refs.setReference as React.Ref<HTMLSpanElement>}
           role="button"

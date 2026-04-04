@@ -104,7 +104,9 @@ export function Descriptions({
                         "text-fg-secondary bg-surface-elevated border border-border-base",
                       )}
                       colSpan={
-                        (item.span ?? 1) > 1 ? item.span! * 2 - 1 : undefined
+                        (item.span ?? 1) > 1
+                          ? (item.span ?? 1) * 2 - 1
+                          : undefined
                       }
                       style={contentStyle}
                     >

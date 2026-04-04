@@ -96,7 +96,6 @@ export function Image({
       {/* Simple preview overlay */}
       {isPreviewable &&
       (typeof preview === "object" ? preview.visible : previewVisible) ? (
-        // biome-ignore lint/a11y/noStaticElementInteractions: preview overlay click-to-dismiss
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 cursor-zoom-out"
           role="presentation"

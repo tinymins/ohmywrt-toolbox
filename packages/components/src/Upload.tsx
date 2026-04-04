@@ -233,7 +233,6 @@ const BaseUpload = forwardRef<HTMLDivElement, UploadProps>(function BaseUpload(
           )}
         </div>
       ) : (
-        // biome-ignore lint/a11y/useSemanticElements: wraps arbitrary children that may contain buttons
         <div
           role="button"
           tabIndex={0}
@@ -310,7 +309,6 @@ export function Dragger(props: DraggerProps) {
 
   return (
     <BaseUpload {...rest} disabled={disabled} className={className}>
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop zone */}
       <div
         role="presentation"
         onDragOver={(e) => {
