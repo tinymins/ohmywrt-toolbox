@@ -1,25 +1,17 @@
-import type { ProxyDebugFormat, ProxyNodeTraceStep } from "@acme/types";
 import {
   AimOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  LoadingOutlined,
-  MinusCircleOutlined,
-} from "@ant-design/icons";
-import {
-  Alert,
   Collapse,
   Descriptions,
   Empty,
-  Spin,
-  Steps,
+  Loading,
+  MinusCircleOutlined,
   Tag,
-  Typography,
-} from "antd";
+} from "@acme/components";
+import type { ProxyDebugFormat, ProxyNodeTraceStep } from "@acme/types";
 import { useTranslation } from "react-i18next";
-import { trpc } from "../../../../lib/trpc";
-
-const { Text } = Typography;
+import { proxyApi } from "@/generated/rust-api";
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -48,21 +40,33 @@ const SourceTraceContent = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-        <Descriptions.Item label={t("proxy.debug.traceSourceIndex")}>
-          <Tag color={data.sourceIndex === 0 ? "default" : "blue"}>
-            {data.sourceIndex === 0
-              ? t("proxy.debug.traceManual")
-              : `#${data.sourceIndex}`}
-          </Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.traceSourceUrl")}>
-          <Text className="!text-xs break-all">{data.sourceUrl}</Text>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.traceSourceFormat")}>
-          <Tag color="processing">{data.format}</Tag>
-        </Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={2}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.traceSourceIndex"),
+            children: (
+              <Tag color={data.sourceIndex === 0 ? "default" : "blue"}>
+                {data.sourceIndex === 0
+                  ? t("proxy.debug.traceManual")
+                  : `#${data.sourceIndex}`}
+              </Tag>
+            ),
+          },
+          {
+            label: t("proxy.debug.traceSourceUrl"),
+            children: (
+              <span className="text-xs break-all">{data.sourceUrl}</span>
+            ),
+          },
+          {
+            label: t("proxy.debug.traceSourceFormat"),
+            children: <Tag color="processing">{data.format}</Tag>,
+          },
+        ]}
+      />
       <Collapse
         size="small"
         items={[
@@ -131,24 +135,33 @@ const FilterTraceContent = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-        <Descriptions.Item label={t("proxy.debug.traceFilter")}>
-          {data.passed ? (
-            <Tag icon={<CheckCircleOutlined />} color="success">
-              {t("proxy.debug.traceFilterPassed")}
-            </Tag>
-          ) : (
-            <Tag icon={<CloseCircleOutlined />} color="error">
-              {t("proxy.debug.traceFilterBlocked")}
-            </Tag>
-          )}
-        </Descriptions.Item>
-        {data.matchedRule && (
-          <Descriptions.Item label={t("proxy.debug.traceMatchedRule")}>
-            <Tag color="orange">{data.matchedRule}</Tag>
-          </Descriptions.Item>
-        )}
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={2}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.traceFilter"),
+            children: data.passed ? (
+              <Tag icon={<CheckCircleOutlined />} color="success">
+                {t("proxy.debug.traceFilterPassed")}
+              </Tag>
+            ) : (
+              <Tag icon={<CloseCircleOutlined />} color="error">
+                {t("proxy.debug.traceFilterBlocked")}
+              </Tag>
+            ),
+          },
+          ...(data.matchedRule
+            ? [
+                {
+                  label: t("proxy.debug.traceMatchedRule"),
+                  children: <Tag color="orange">{data.matchedRule}</Tag>,
+                },
+              ]
+            : []),
+        ]}
+      />
       {data.filtersApplied.length > 0 && (
         <Collapse
           size="small"
@@ -163,7 +176,7 @@ const FilterTraceContent = ({
               ),
               children: (
                 <div className="flex flex-wrap gap-1">
-                  {data.filtersApplied.map((f, i) => (
+                  {data.filtersApplied.map((f, _i) => (
                     <Tag
                       key={f}
                       color={f === data.matchedRule ? "orange" : "default"}
@@ -193,21 +206,32 @@ const EnrichTraceContent = ({
   const nameChanged = data.originalName !== data.enrichedName;
 
   return (
-    <Descriptions size="small" column={1} bordered>
-      <Descriptions.Item label={t("proxy.debug.traceOriginalName")}>
-        <Text className="!text-xs font-mono">{data.originalName}</Text>
-      </Descriptions.Item>
-      <Descriptions.Item label={t("proxy.debug.traceEnrichedName")}>
-        <Text className="!text-xs font-mono">
-          {data.enrichedName}
-          {nameChanged && (
-            <Tag color="green" className="ml-2">
-              ✨
-            </Tag>
-          )}
-        </Text>
-      </Descriptions.Item>
-    </Descriptions>
+    <Descriptions
+      size="small"
+      column={1}
+      bordered
+      items={[
+        {
+          label: t("proxy.debug.traceOriginalName"),
+          children: (
+            <span className="text-xs font-mono">{data.originalName}</span>
+          ),
+        },
+        {
+          label: t("proxy.debug.traceEnrichedName"),
+          children: (
+            <span className="text-xs font-mono">
+              {data.enrichedName}
+              {nameChanged && (
+                <Tag color="green" className="ml-2">
+                  ✨
+                </Tag>
+              )}
+            </span>
+          ),
+        },
+      ]}
+    />
   );
 };
 
@@ -221,13 +245,21 @@ const MergeTraceContent = ({
   const { data } = step;
 
   return (
-    <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-      <Descriptions.Item label={t("proxy.debug.tracePosition")}>
-        <Tag color="blue">
-          #{data.positionInFinalList} / {data.totalNodes}
-        </Tag>
-      </Descriptions.Item>
-    </Descriptions>
+    <Descriptions
+      size="small"
+      column={2}
+      bordered
+      items={[
+        {
+          label: t("proxy.debug.tracePosition"),
+          children: (
+            <Tag color="blue">
+              #{data.positionInFinalList} / {data.totalNodes}
+            </Tag>
+          ),
+        },
+      ]}
+    />
   );
 };
 
@@ -242,18 +274,17 @@ const GroupAssignTraceContent = ({
 
   if (data.assignedGroups.length === 0) {
     return (
-      <Text type="secondary">{t("proxy.debug.traceNoGroupAssigned")}</Text>
+      <span className="text-slate-500">
+        {t("proxy.debug.traceNoGroupAssigned")}
+      </span>
     );
   }
 
   return (
     <div className="flex flex-wrap gap-1">
-      {data.assignedGroups.map((g, i) => (
+      {data.assignedGroups.map((g, _i) => (
         <Tag key={g.name} color="purple">
-          {g.name}{" "}
-          <Text type="secondary" className="!text-xs">
-            ({g.type})
-          </Text>
+          {g.name} <span className="text-slate-500 text-xs">({g.type})</span>
         </Tag>
       ))}
     </div>
@@ -338,7 +369,7 @@ const NodeTracePanel = ({
 }: NodeTracePanelProps) => {
   const { t } = useTranslation();
 
-  const { data, isLoading, error } = trpc.proxy.traceNode.useQuery(
+  const { data, isLoading, error } = proxyApi.traceNode.useQuery(
     { id: subscribeId, format, nodeName },
     { enabled: !!nodeName },
   );
@@ -385,22 +416,24 @@ const NodeTracePanel = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Spin indicator={<LoadingOutlined spin />} />
-        <Text type="secondary" className="ml-2">
+        <Loading />
+        <span className="text-slate-500 ml-2">
           {t("proxy.debug.traceLoading")}
-        </Text>
+        </span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert
-        type="error"
-        message={t("proxy.debug.error")}
-        description={error.message}
-        showIcon
-      />
+      <div className="mb-4 p-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+        <div className="font-semibold text-red-600 dark:text-red-400">
+          {t("proxy.debug.error")}
+        </div>
+        <div className="text-sm text-red-500 dark:text-red-400 mt-1">
+          {error.message}
+        </div>
+      </div>
     );
   }
 
@@ -436,33 +469,17 @@ const NodeTracePanel = ({
     <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
       <div className="flex items-center gap-2 mb-4">
         <AimOutlined className="text-blue-500" />
-        <Text strong>{t("proxy.debug.traceTitle")}</Text>
+        <span className="font-semibold">{t("proxy.debug.traceTitle")}</span>
         <Tag color="blue">{data.nodeName}</Tag>
         {isFiltered && (
           <Tag color="orange">{t("proxy.debug.traceFilteredLabel")}</Tag>
         )}
       </div>
 
-      <Steps
-        direction="vertical"
-        size="small"
-        current={displaySteps.length - 1}
-        items={displaySteps.map(({ stepType, actualStep, isSkipped }) => ({
-          title: (
-            <Text
-              strong
-              className="!text-sm"
-              type={isSkipped ? "secondary" : undefined}
-            >
-              {getStepLabel(stepType)}
-            </Text>
-          ),
-          status: isSkipped
-            ? ("wait" as const)
-            : actualStep
-              ? ("finish" as const)
-              : ("wait" as const),
-          icon: isSkipped ? (
+      <div className="space-y-0">
+        {displaySteps.map(({ stepType, actualStep, isSkipped }, index) => {
+          const isLast = index === displaySteps.length - 1;
+          const icon = isSkipped ? (
             <MinusCircleOutlined className="text-gray-400" />
           ) : actualStep ? (
             stepType === "filter" && isFiltered ? (
@@ -470,16 +487,48 @@ const NodeTracePanel = ({
             ) : (
               <CheckCircleOutlined />
             )
-          ) : undefined,
-          description: isSkipped ? (
-            <Text type="secondary" className="!text-xs">
-              {t("proxy.debug.traceSkipped")}
-            </Text>
-          ) : actualStep ? (
-            <div className="mt-2 mb-4">{renderStepContent(actualStep)}</div>
-          ) : null,
-        }))}
-      />
+          ) : undefined;
+          const color = isSkipped
+            ? "#9ca3af"
+            : actualStep
+              ? stepType === "filter" && isFiltered
+                ? "#ef4444"
+                : "#22c55e"
+              : "#9ca3af";
+
+          return (
+            <div key={stepType} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div
+                  className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-current text-sm shrink-0"
+                  style={{ color }}
+                >
+                  {icon}
+                </div>
+                {!isLast && (
+                  <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 my-1" />
+                )}
+              </div>
+              <div className="flex-1 pb-4">
+                <div
+                  className={`font-semibold text-sm ${isSkipped ? "text-slate-500" : ""}`}
+                >
+                  {getStepLabel(stepType)}
+                </div>
+                {isSkipped ? (
+                  <div className="text-xs text-slate-500 mt-2 mb-4">
+                    {t("proxy.debug.traceSkipped")}
+                  </div>
+                ) : actualStep ? (
+                  <div className="mt-2 mb-4">
+                    {renderStepContent(actualStep)}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

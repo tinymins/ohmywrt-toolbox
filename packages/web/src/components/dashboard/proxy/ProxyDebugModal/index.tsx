@@ -1,33 +1,26 @@
-import type { ProxyDebugFormat, ProxyDebugStep } from "@acme/types";
 import {
   AimOutlined,
+  AutoComplete,
   BugOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  Loading,
   LoadingOutlined,
-} from "@ant-design/icons";
-import { skipToken } from "@tanstack/react-query";
-import { ScaledModal } from "@acme/components";
-import {
-  Alert,
-  AutoComplete,
-  Divider,
-  Space,
-  Spin,
-  Steps,
+  Modal,
   Tag,
-  Typography,
-} from "antd";
+} from "@acme/components";
+import type { ProxyDebugFormat, ProxyDebugStep } from "@acme/types";
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { trpc } from "../../../../lib/trpc";
+import { proxyApi } from "@/generated/rust-api";
 import {
   ConfigStepContent,
   DoneStepContent,
@@ -37,10 +30,8 @@ import {
   SourceResultStepContent,
   SourceStartStepContent,
 } from "./DebugStepContent";
-import NodeTraceModal from "./NodeTraceModal";
 import type { NodeTraceModalRef } from "./NodeTraceModal";
-
-const { Text } = Typography;
+import NodeTraceModal from "./NodeTraceModal";
 
 export interface ProxyDebugModalRef {
   open: (subscribeId: string, format: ProxyDebugFormat) => void;
@@ -76,35 +67,43 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     },
   }));
 
-  // Subscribe to debug stream
-  trpc.proxy.debugSubscription.useSubscription(
-    subscribeId ? { id: subscribeId, format } : skipToken,
-    {
-      onData: (step: ProxyDebugStep) => {
-        setSteps((prev) => {
-          // If a source-result arrives, replace matching source-start
-          if (step.type === "source-result") {
-            const filtered = prev.filter(
-              (s) =>
-                !(
-                  s.type === "source-start" &&
-                  s.data.sourceIndex === step.data.sourceIndex
-                ),
-            );
-            return [...filtered, step];
+  // Subscribe to debug stream via SSE
+  useEffect(() => {
+    if (!subscribeId || !visible) return;
+
+    const controller = new AbortController();
+    proxyApi.debugSubscription
+      .stream(
+        { id: subscribeId, format },
+        (step: ProxyDebugStep) => {
+          setSteps((prev) => {
+            if (step.type === "source-result") {
+              const filtered = prev.filter(
+                (s) =>
+                  !(
+                    s.type === "source-start" &&
+                    s.data.sourceIndex === step.data.sourceIndex
+                  ),
+              );
+              return [...filtered, step];
+            }
+            return [...prev, step];
+          });
+          if (step.type === "done") {
+            setDone(true);
           }
-          return [...prev, step];
-        });
-        if (step.type === "done") {
-          setDone(true);
+          scrollToBottom();
+        },
+        controller.signal,
+      )
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setError(err.message);
         }
-        scrollToBottom();
-      },
-      onError: (err) => {
-        setError(err.message);
-      },
-    },
-  );
+      });
+
+    return () => controller.abort();
+  }, [subscribeId, format, visible, scrollToBottom]);
 
   // 收集所有节点名称（有效节点 + 被过滤节点）
   const allNodeNames = useMemo(() => {
@@ -240,13 +239,11 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         value: n.name,
         label: (
           <div className="flex items-center justify-between">
-            <Text
-              className="!text-xs truncate flex-1"
-              type={n.filtered ? "secondary" : undefined}
-              delete={n.filtered}
+            <span
+              className={`text-xs truncate flex-1 ${n.filtered ? "text-slate-500 line-through" : ""}`}
             >
               {n.name}
-            </Text>
+            </span>
             {n.filtered && (
               <Tag color="orange" className="!text-xs ml-1 shrink-0">
                 {t("proxy.debug.traceFilteredLabel")}
@@ -258,13 +255,13 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   }, [allNodeNames, searchValue, t]);
 
   return (
-    <ScaledModal
+    <Modal
       title={
-        <Space>
+        <div className="flex gap-2 items-center">
           <BugOutlined />
           <span>{t("proxy.debug.title")}</span>
           <Tag color="processing">{formatLabel[format]}</Tag>
-        </Space>
+        </div>
       }
       open={visible}
       onCancel={handleClose}
@@ -273,75 +270,96 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       destroyOnClose
     >
       {error && (
-        <Alert
-          type="error"
-          message={t("proxy.debug.error")}
-          description={error}
-          showIcon
-          className="mb-4"
-        />
+        <div className="mb-4 p-3 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+          <div className="font-semibold text-red-600 dark:text-red-400">
+            {t("proxy.debug.error")}
+          </div>
+          <div className="text-sm text-red-500 dark:text-red-400 mt-1">
+            {error}
+          </div>
+        </div>
       )}
 
       {steps.length === 0 && !error && (
         <div className="flex items-center justify-center py-12">
-          <Space>
-            <Spin />
-            <Text type="secondary">{t("proxy.debug.fetchingSource")}</Text>
-          </Space>
+          <div className="flex gap-2 items-center">
+            <Loading />
+            <span className="text-slate-500">
+              {t("proxy.debug.fetchingSource")}
+            </span>
+          </div>
         </div>
       )}
 
       {steps.length > 0 && (
-        <Steps
-          direction="vertical"
-          size="small"
-          current={steps.length - 1}
-          items={steps.map((step) => ({
-            title: (
-              <Text strong className="!text-sm">
-                {getStepLabel(step)}
-              </Text>
-            ),
-            status: getStepStatus(step),
-            icon: getStepIcon(step),
-            description: (
-              <div className="mt-2 mb-4">{renderStepContent(step)}</div>
-            ),
-          }))}
-        />
+        <div className="space-y-0">
+          {steps.map((step, index) => {
+            const isLast = index === steps.length - 1;
+            const status = getStepStatus(step);
+            const color =
+              status === "error"
+                ? "#ef4444"
+                : status === "process"
+                  ? "#3b82f6"
+                  : "#22c55e";
+            const stepKey =
+              step.type === "source-start" || step.type === "source-result"
+                ? `${step.type}-${step.data.sourceIndex}`
+                : step.type;
+
+            return (
+              <div key={stepKey} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div
+                    className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-current text-sm shrink-0"
+                    style={{ color }}
+                  >
+                    {getStepIcon(step)}
+                  </div>
+                  {!isLast && (
+                    <div className="w-0.5 flex-1 bg-gray-200 dark:bg-gray-700 my-1" />
+                  )}
+                </div>
+                <div className="flex-1 pb-4">
+                  <div className="font-semibold text-sm">
+                    {getStepLabel(step)}
+                  </div>
+                  <div className="mt-2 mb-4">{renderStepContent(step)}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {!done && steps.length > 0 && !error && (
         <div className="flex items-center gap-2 py-2 pl-8">
           <LoadingOutlined spin />
-          <Text type="secondary" className="!text-xs">
-            {t("common.loading")}
-          </Text>
+          <span className="text-slate-500 text-xs">{t("common.loading")}</span>
         </div>
       )}
 
       {/* 节点追踪区域 */}
       {done && allNodeNames.length > 0 && subscribeId && (
         <>
-          <Divider />
+          <hr className="my-4 border-gray-200 dark:border-gray-700" />
           <div className="flex items-center gap-3 flex-wrap">
             <AimOutlined className="text-blue-500 text-lg" />
-            <Text strong>{t("proxy.debug.traceTitle")}</Text>
+            <span className="font-semibold">{t("proxy.debug.traceTitle")}</span>
             <AutoComplete
               value={searchValue}
               options={autoCompleteOptions}
-              onSearch={setSearchValue}
+              onSearch={(value: string) => {
+                setSearchValue(value);
+              }}
               onSelect={(value: string) => handleTraceNode(value)}
               placeholder={t("proxy.debug.traceSearchPlaceholder")}
               className="flex-1 min-w-[200px] max-w-[500px]"
               allowClear
-              onClear={() => {
-                setSearchValue("");
-              }}
             />
-            <Text type="secondary" className="!text-xs">
+            <span className="text-slate-500 text-xs">
               {t("proxy.debug.traceNodeList")}: {allNodeNames.length}
-            </Text>
+            </span>
           </div>
 
           <NodeTraceModal
@@ -354,7 +372,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       )}
 
       <div ref={bottomRef} />
-    </ScaledModal>
+    </Modal>
   );
 });
 

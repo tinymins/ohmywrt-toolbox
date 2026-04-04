@@ -1,23 +1,17 @@
-import type { ProxyDebugStep } from "@acme/types";
 import {
   AimOutlined,
+  Button,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  LoadingOutlined,
-} from "@ant-design/icons";
-import {
-  Button,
   Collapse,
   Descriptions,
-  Space,
+  LoadingOutlined,
   Table,
   Tag,
   Tooltip,
-  Typography,
-} from "antd";
+} from "@acme/components";
+import type { ProxyDebugStep } from "@acme/types";
 import { useTranslation } from "react-i18next";
-
-const { Text, Paragraph } = Typography;
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -51,17 +45,20 @@ export const ConfigStepContent = ({
         {
           key: "urls",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.subscribeUrls")}</span>
               <Tag color="blue">{data.subscribeUrls.length}</Tag>
-            </Space>
+            </div>
           ),
           children: (
             <div className="flex flex-col gap-1">
-              {data.subscribeUrls.map((url, i) => (
-                <Text key={i} code className="!text-xs break-all">
+              {data.subscribeUrls.map((url) => (
+                <code
+                  key={url}
+                  className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded break-all"
+                >
                   {url}
-                </Text>
+                </code>
               ))}
             </div>
           ),
@@ -69,29 +66,29 @@ export const ConfigStepContent = ({
         {
           key: "filters",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.filterRules")}</span>
               <Tag color="orange">{data.filters.length}</Tag>
-            </Space>
+            </div>
           ),
           children:
             data.filters.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {data.filters.map((f, i) => (
-                  <Tag key={i}>{f}</Tag>
+                {data.filters.map((f) => (
+                  <Tag key={f}>{f}</Tag>
                 ))}
               </div>
             ) : (
-              <Text type="secondary">-</Text>
+              <span className="text-slate-500">-</span>
             ),
         },
         {
           key: "groups",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.groupConfig")}</span>
               <Tag color="purple">{data.groups.length}</Tag>
-            </Space>
+            </div>
           ),
           children: (
             <CodeBlock content={JSON.stringify(data.groups, null, 2)} />
@@ -100,10 +97,10 @@ export const ConfigStepContent = ({
         {
           key: "ruleProviders",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.ruleProviders")}</span>
               <Tag color="cyan">{Object.keys(data.ruleProviders).length}</Tag>
-            </Space>
+            </div>
           ),
           children: (
             <CodeBlock content={JSON.stringify(data.ruleProviders, null, 2)} />
@@ -112,10 +109,10 @@ export const ConfigStepContent = ({
         {
           key: "customConfig",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.customConfigRules")}</span>
               <Tag>{data.customConfig.length}</Tag>
-            </Space>
+            </div>
           ),
           children: (
             <CodeBlock content={JSON.stringify(data.customConfig, null, 2)} />
@@ -124,10 +121,10 @@ export const ConfigStepContent = ({
         {
           key: "servers",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.manualServers")}</span>
               <Tag>{data.servers.length}</Tag>
-            </Space>
+            </div>
           ),
           children: (
             <CodeBlock content={JSON.stringify(data.servers, null, 2)} />
@@ -136,14 +133,14 @@ export const ConfigStepContent = ({
         {
           key: "dnsConfig",
           label: (
-            <Space>
+            <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.dnsConfig")}</span>
               <Tag color="geekblue">
                 {Object.keys(data.dnsConfig.overrides).length > 0
                   ? `shared + ${Object.keys(data.dnsConfig.overrides).join(", ")}`
                   : "shared"}
               </Tag>
-            </Space>
+            </div>
           ),
           children: (
             <CodeBlock content={JSON.stringify(data.dnsConfig, null, 2)} />
@@ -166,16 +163,24 @@ export const ManualServersStepContent = ({
   const { data } = step;
 
   if (data.count === 0) {
-    return <Text type="secondary">{t("proxy.debug.noManualServers")}</Text>;
+    return (
+      <span className="text-slate-500">{t("proxy.debug.noManualServers")}</span>
+    );
   }
 
   return (
     <div>
-      <Descriptions size="small" column={1} bordered>
-        <Descriptions.Item label={t("proxy.debug.serverCount")}>
-          <Tag color="blue">{data.count}</Tag>
-        </Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={1}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.serverCount"),
+            children: <Tag color="blue">{data.count}</Tag>,
+          },
+        ]}
+      />
       <div className="mt-2">
         <Table
           size="small"
@@ -212,7 +217,7 @@ export const ManualServersStepContent = ({
                     render: (_: unknown, record: { name: string }) => (
                       <Tooltip title={t("proxy.debug.traceNode")}>
                         <Button
-                          type="text"
+                          variant="text"
                           size="small"
                           icon={<AimOutlined />}
                           onClick={() => onTraceNode(record.name)}
@@ -240,10 +245,10 @@ export const SourceStartStepContent = ({
   return (
     <div className="flex items-center gap-2">
       <LoadingOutlined spin />
-      <Text>{t("proxy.debug.fetchingSource")}</Text>
-      <Text code className="!text-xs break-all">
+      <span>{t("proxy.debug.fetchingSource")}</span>
+      <code className="text-xs bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded break-all">
         {step.data.url}
-      </Text>
+      </code>
     </div>
   );
 };
@@ -262,55 +267,67 @@ export const SourceResultStepContent = ({
   return (
     <div className="flex flex-col gap-2">
       {/* Basic info */}
-      <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-        <Descriptions.Item label={t("proxy.debug.sourceUrl")}>
-          <Text className="!text-xs break-all">{data.url}</Text>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.httpStatus")}>
-          {data.error ? (
-            <Tag icon={<CloseCircleOutlined />} color="error">
-              {t("proxy.debug.error")}
-            </Tag>
-          ) : (
-            <Tag
-              icon={<CheckCircleOutlined />}
-              color={data.httpStatus === 200 ? "success" : "warning"}
-            >
-              {data.httpStatus}
-            </Tag>
-          )}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.detectedFormat")}>
-          <Tag color="processing">{data.format}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.dataSource")}>
-          {data.cached ? (
-            <Tag color="green">{t("proxy.debug.cached")}</Tag>
-          ) : (
-            <Tag color="blue">{t("proxy.debug.liveFetch")}</Tag>
-          )}
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.fetchDuration")}>
-          {data.fetchDurationMs}ms
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.parsedNodes")}>
-          <Tag color="blue">{data.parsedNodeCount}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.afterFilter")}>
-          <Tag color="green">{data.nodesAfterFilter.length}</Tag>
-          {data.filteredNodes.length > 0 && (
-            <Tag color="orange" className="ml-1">
-              -{data.filteredNodes.length}
-            </Tag>
-          )}
-        </Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={2}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.sourceUrl"),
+            children: <span className="text-xs break-all">{data.url}</span>,
+          },
+          {
+            label: t("proxy.debug.httpStatus"),
+            children: data.error ? (
+              <Tag icon={<CloseCircleOutlined />} color="error">
+                {t("proxy.debug.error")}
+              </Tag>
+            ) : (
+              <Tag
+                icon={<CheckCircleOutlined />}
+                color={data.httpStatus === 200 ? "success" : "warning"}
+              >
+                {data.httpStatus}
+              </Tag>
+            ),
+          },
+          {
+            label: t("proxy.debug.detectedFormat"),
+            children: <Tag color="processing">{data.format}</Tag>,
+          },
+          {
+            label: t("proxy.debug.dataSource"),
+            children: data.cached ? (
+              <Tag color="green">{t("proxy.debug.cached")}</Tag>
+            ) : (
+              <Tag color="blue">{t("proxy.debug.liveFetch")}</Tag>
+            ),
+          },
+          {
+            label: t("proxy.debug.fetchDuration"),
+            children: <>{data.fetchDurationMs}ms</>,
+          },
+          {
+            label: t("proxy.debug.parsedNodes"),
+            children: <Tag color="blue">{data.parsedNodeCount}</Tag>,
+          },
+          {
+            label: t("proxy.debug.afterFilter"),
+            children: (
+              <>
+                <Tag color="green">{data.nodesAfterFilter.length}</Tag>
+                {data.filteredNodes.length > 0 && (
+                  <Tag color="orange" className="ml-1">
+                    -{data.filteredNodes.length}
+                  </Tag>
+                )}
+              </>
+            ),
+          },
+        ]}
+      />
 
-      {data.error && (
-        <Paragraph type="danger" className="!text-xs !mb-0">
-          {data.error}
-        </Paragraph>
-      )}
+      {data.error && <p className="text-xs text-red-500 !mb-0">{data.error}</p>}
 
       {/* Collapsible details */}
       <Collapse
@@ -319,12 +336,12 @@ export const SourceResultStepContent = ({
           {
             key: "raw",
             label: (
-              <Space>
+              <div className="flex gap-2 items-center">
                 <span>{t("proxy.debug.rawResponse")}</span>
                 <Tag>
                   {data.rawText.length} {t("proxy.debug.chars")}
                 </Tag>
-              </Space>
+              </div>
             ),
             children: <CodeBlock content={data.rawText} maxHeight={300} />,
           },
@@ -333,10 +350,10 @@ export const SourceResultStepContent = ({
                 {
                   key: "filtered",
                   label: (
-                    <Space>
+                    <div className="flex gap-2 items-center">
                       <span>{t("proxy.debug.filteredNodes")}</span>
                       <Tag color="orange">{data.filteredNodes.length}</Tag>
-                    </Space>
+                    </div>
                   ),
                   children: (
                     <Table
@@ -367,7 +384,7 @@ export const SourceResultStepContent = ({
                                 ) => (
                                   <Tooltip title={t("proxy.debug.traceNode")}>
                                     <Button
-                                      type="text"
+                                      variant="text"
                                       size="small"
                                       icon={<AimOutlined />}
                                       onClick={() =>
@@ -388,10 +405,10 @@ export const SourceResultStepContent = ({
           {
             key: "nodes",
             label: (
-              <Space>
+              <div className="flex gap-2 items-center">
                 <span>{t("proxy.debug.nodesAfterFilter")}</span>
                 <Tag color="green">{data.nodesAfterFilter.length}</Tag>
-              </Space>
+              </div>
             ),
             children: (
               <Table
@@ -430,7 +447,7 @@ export const SourceResultStepContent = ({
                           render: (_: unknown, record: { name: string }) => (
                             <Tooltip title={t("proxy.debug.traceNode")}>
                               <Button
-                                type="link"
+                                variant="link"
                                 size="small"
                                 icon={<AimOutlined />}
                                 onClick={() => onTraceNode(record.name)}
@@ -463,20 +480,29 @@ export const MergeStepContent = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <Descriptions size="small" column={{ xs: 1, sm: 2 }} bordered>
-        <Descriptions.Item label={t("proxy.debug.totalNodes")}>
-          <Tag color="blue">{data.totalNodesBeforeFilter}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.activeNodes")}>
-          <Tag color="green">{data.totalNodesAfterFilter}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.filteredCount")}>
-          <Tag color="orange">{data.totalFiltered}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.nodeStats")}>
-          {data.finalNodeNames.length} nodes
-        </Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={2}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.totalNodes"),
+            children: <Tag color="blue">{data.totalNodesBeforeFilter}</Tag>,
+          },
+          {
+            label: t("proxy.debug.activeNodes"),
+            children: <Tag color="green">{data.totalNodesAfterFilter}</Tag>,
+          },
+          {
+            label: t("proxy.debug.filteredCount"),
+            children: <Tag color="orange">{data.totalFiltered}</Tag>,
+          },
+          {
+            label: t("proxy.debug.nodeStats"),
+            children: <>{data.finalNodeNames.length} nodes</>,
+          },
+        ]}
+      />
 
       <Collapse
         size="small"
@@ -484,14 +510,14 @@ export const MergeStepContent = ({
           {
             key: "finalNodes",
             label: (
-              <Space>
+              <div className="flex gap-2 items-center">
                 <span>{t("proxy.debug.nodeStats")}</span>
                 <Tag>{data.finalNodeNames.length}</Tag>
-              </Space>
+              </div>
             ),
             children: (
               <div className="flex flex-wrap gap-1">
-                {data.finalNodeNames.map((name, i) =>
+                {data.finalNodeNames.map((name, _i) =>
                   onTraceNode ? (
                     <Tooltip key={name} title={t("proxy.debug.traceNode")}>
                       <Tag
@@ -527,17 +553,25 @@ export const OutputStepContent = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <Descriptions size="small" column={{ xs: 1, sm: 3 }} bordered>
-        <Descriptions.Item label={t("proxy.debug.proxyGroups")}>
-          <Tag color="purple">{data.proxyGroupCount}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.rules")}>
-          <Tag color="cyan">{data.ruleCount}</Tag>
-        </Descriptions.Item>
-        <Descriptions.Item label={t("proxy.debug.ruleProviders")}>
-          <Tag>{data.ruleProviderCount}</Tag>
-        </Descriptions.Item>
-      </Descriptions>
+      <Descriptions
+        size="small"
+        column={3}
+        bordered
+        items={[
+          {
+            label: t("proxy.debug.proxyGroups"),
+            children: <Tag color="purple">{data.proxyGroupCount}</Tag>,
+          },
+          {
+            label: t("proxy.debug.rules"),
+            children: <Tag color="cyan">{data.ruleCount}</Tag>,
+          },
+          {
+            label: t("proxy.debug.ruleProviders"),
+            children: <Tag>{data.ruleProviderCount}</Tag>,
+          },
+        ]}
+      />
 
       <Collapse
         size="small"
@@ -545,12 +579,12 @@ export const OutputStepContent = ({
           {
             key: "config",
             label: (
-              <Space>
+              <div className="flex gap-2 items-center">
                 <span>{t("proxy.debug.finalConfig")}</span>
                 <Tag>
                   {data.configOutput.length} {t("proxy.debug.chars")}
                 </Tag>
-              </Space>
+              </div>
             ),
             children: <CodeBlock content={data.configOutput} maxHeight={500} />,
           },
@@ -569,13 +603,20 @@ export const DoneStepContent = ({
   const { t } = useTranslation();
 
   return (
-    <Descriptions size="small" column={1}>
-      <Descriptions.Item label={t("proxy.debug.totalDuration")}>
-        <Tag color="green">
-          <CheckCircleOutlined className="mr-1" />
-          {step.data.totalDurationMs}ms
-        </Tag>
-      </Descriptions.Item>
-    </Descriptions>
+    <Descriptions
+      size="small"
+      column={1}
+      items={[
+        {
+          label: t("proxy.debug.totalDuration"),
+          children: (
+            <Tag color="green">
+              <CheckCircleOutlined className="mr-1" />
+              {step.data.totalDurationMs}ms
+            </Tag>
+          ),
+        },
+      ]}
+    />
   );
 };
