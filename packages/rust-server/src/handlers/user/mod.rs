@@ -13,9 +13,9 @@ use crate::AppState;
 
 pub async fn get_profile(
     State(state): State<Arc<AppState>>,
-    AuthUser(auth): AuthUser,
+    auth_user: AuthUser,
 ) -> Response {
-    let user = match UserRepo::get_by_id(&state.db, &auth.user_id).await {
+    let user = match UserRepo::get_by_id(&state.db, &auth_user.user_id).await {
         Ok(Some(u)) => u,
         Ok(None) => return AppError::NotFound("user not found".into()).into_response(),
         Err(e) => return e.into_response(),
@@ -38,12 +38,12 @@ pub struct UserUpdateInput {
 
 pub async fn update_profile(
     State(state): State<Arc<AppState>>,
-    AuthUser(auth): AuthUser,
+    auth_user: AuthUser,
     Json(body): Json<UserUpdateInput>,
 ) -> Response {
     let user = match UserRepo::update_profile(
         &state.db,
-        &auth.user_id,
+        &auth_user.user_id,
         body.name.as_deref(),
         body.email.as_deref(),
         body.settings,
@@ -64,9 +64,9 @@ pub async fn update_profile(
 
 pub async fn delete_avatar(
     State(state): State<Arc<AppState>>,
-    AuthUser(auth): AuthUser,
+    auth_user: AuthUser,
 ) -> Response {
-    let user = match UserRepo::clear_avatar_key(&state.db, &auth.user_id).await {
+    let user = match UserRepo::clear_avatar_key(&state.db, &auth_user.user_id).await {
         Ok(u) => u,
         Err(e) => return e.into_response(),
     };

@@ -1,5 +1,6 @@
 const userMenu = {
   profileSettings: "Profileinstellungen",
+  admin: "Admin",
   signOut: "Abmelden",
   name: "Name",
   email: "E-Mail",

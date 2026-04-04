@@ -11,7 +11,9 @@ use std::sync::Arc;
 use axum::extract::FromRequestParts;
 use axum::http::HeaderMap;
 
+use crate::db::entities::users::UserRole;
 use crate::db::repos::auth_repo::AuthRepo;
+use crate::db::repos::user_repo::UserRepo;
 use crate::error::AppError;
 use crate::AppState;
 
@@ -20,8 +22,12 @@ pub struct SessionAuth {
     pub session_id: String,
 }
 
-/// Axum extractor: reads SESSION_ID cookie, validates session, provides user_id.
-pub struct AuthUser(pub SessionAuth);
+/// Axum extractor: reads SESSION_ID cookie, validates session, provides user_id + role.
+pub struct AuthUser {
+    pub user_id: String,
+    pub session_id: String,
+    pub role: UserRole,
+}
 
 impl FromRequestParts<Arc<AppState>> for AuthUser {
     type Rejection = AppError;
@@ -31,7 +37,14 @@ impl FromRequestParts<Arc<AppState>> for AuthUser {
         state: &Arc<AppState>,
     ) -> Result<Self, Self::Rejection> {
         let auth = extract_session_auth(&state.db, &parts.headers).await?;
-        Ok(AuthUser(auth))
+        let user = UserRepo::get_by_id(&state.db, &auth.user_id)
+            .await?
+            .ok_or_else(|| AppError::Unauthorized("User not found".into()))?;
+        Ok(AuthUser {
+            user_id: auth.user_id,
+            session_id: auth.session_id,
+            role: user.role,
+        })
     }
 }
 

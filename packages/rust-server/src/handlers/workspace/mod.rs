@@ -38,9 +38,9 @@ impl From<workspaces::Model> for WorkspaceOutput {
 
 pub async fn list_workspaces(
     State(state): State<Arc<AppState>>,
-    AuthUser(auth): AuthUser,
+    auth_user: AuthUser,
 ) -> Response {
-    let workspaces = match WorkspaceRepo::list_by_user(&state.db, &auth.user_id).await {
+    let workspaces = match WorkspaceRepo::list_by_user(&state.db, &auth_user.user_id).await {
         Ok(ws) => ws,
         Err(e) => return e.into_response(),
     };
@@ -63,7 +63,7 @@ pub struct CreateWorkspaceInput {
 
 pub async fn create_workspace(
     State(state): State<Arc<AppState>>,
-    AuthUser(auth): AuthUser,
+    auth_user: AuthUser,
     Json(body): Json<CreateWorkspaceInput>,
 ) -> Response {
     let slug = body.slug.unwrap_or_else(|| {
@@ -75,7 +75,7 @@ pub async fn create_workspace(
             .collect()
     });
 
-    let ws = match WorkspaceRepo::create_with_owner(&state.db, &body.name, &slug, &auth.user_id)
+    let ws = match WorkspaceRepo::create_with_owner(&state.db, &body.name, &slug, &auth_user.user_id)
         .await
     {
         Ok(ws) => ws,

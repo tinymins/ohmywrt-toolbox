@@ -1,5 +1,6 @@
 const userMenu = {
   profileSettings: "プロフィール設定",
+  admin: "管理",
   signOut: "ログアウト",
   name: "名前",
   email: "メールアドレス",
