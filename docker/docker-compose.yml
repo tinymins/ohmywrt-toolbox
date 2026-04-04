@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-apps_db}
     volumes:
-      - ./${DATA_LOCAL_PATH:-data}/postgres:/var/lib/postgresql
+      - ./${DATA_LOCAL_PATH:-data}/postgres:/var/lib/postgresql/data
     networks:
       - app-network
     healthcheck:
@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis — 分布式限流 / 缓存
+  # Redis — 缓存 / 限流
   redis:
     image: redis:7-alpine
     container_name: apps-redis
@@ -31,9 +31,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
 
-  # MinIO — S3-compatible object storage
+  # MinIO — S3 兼容对象存储
   minio:
     image: minio/minio:latest
     container_name: apps-minio
@@ -85,7 +84,7 @@ services:
       - app-network
     restart: "no"
 
-  # 后端服务
+  # 后端服务（Node.js + Hono + tRPC）
   server:
     image: apps-server:latest
     container_name: apps-server
@@ -105,8 +104,6 @@ services:
       STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost:9000}
       STORAGE_PATH_STYLE: "true"
       REDIS_URL: redis://redis:6379
-    ports:
-      - "${SERVER_PORT:-4000}:4000"
     depends_on:
       db:
         condition: service_healthy
@@ -120,7 +117,7 @@ services:
       - app-network
     restart: unless-stopped
 
-  # 前端服务（React Router SSR）
+  # 前端服务（React + Vite）
   web:
     image: apps-web:latest
     container_name: apps-web
@@ -128,9 +125,9 @@ services:
       context: ..
       dockerfile: packages/web/Dockerfile
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - API_URL=http://server:4000
+      NODE_ENV: production
+      PORT: 3000
+      API_URL: http://server:4000
     ports:
       - "${WEB_PORT:-8080}:3000"
     depends_on:

@@ -10,24 +10,13 @@ YELLOW='\033[0;33m'
 DIM='\033[2m'
 NC='\033[0m'
 
-# 从根目录 .env 读取端口配置（如存在），否则用默认值
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(dirname "$SCRIPT_DIR")"
-if [[ -f "$ROOT_DIR/.env" ]]; then
-  # shellcheck disable=SC1091
-  set -a; source "$ROOT_DIR/.env"; set +a
-fi
-
-SERVER_PORT="${SERVER_PORT:-4000}"
-WEB_PORT="${WEB_PORT:-5173}"
-WEB_PORT_NEXT=$((WEB_PORT + 1))
-
-PORTS=("$SERVER_PORT" "$WEB_PORT" "$WEB_PORT_NEXT")
+PORTS=(4000 5173 5174)
 
 PROCESS_PATTERNS=(
-  "turbo.*dev"
+  "turbo dev"
   "tsx watch"
   "vite"
+  "node.*server"
 )
 
 killed=0
@@ -92,10 +81,15 @@ else
   done
 fi
 
-# ── 停止 Docker 容器 ────────────────────────────────────
-echo -e "${YELLOW}🐳 停止 Docker 容器...${NC}"
-docker compose -p ai-stack -f "$ROOT_DIR/docker/docker-compose.dev.yml" --env-file "$ROOT_DIR/.env" down 2>/dev/null && {
+# ── 停止 Docker 开发容器 ────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+COMPOSE_FILE="$PROJECT_ROOT/docker/docker-compose.dev.yml"
+ENV_FILE="$PROJECT_ROOT/.env"
+
+echo -e "${YELLOW}🐳 停止 Docker 开发容器...${NC}"
+if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down 2>/dev/null; then
   echo -e "${GREEN}✓ Docker 容器已停止${NC}"
-} || {
+else
   echo -e "${GREEN}✓ 没有正在运行的容器${NC}"
-}
+fi

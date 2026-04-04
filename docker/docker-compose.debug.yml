@@ -1,0 +1,23 @@
+# ======================================
+# 调试端口暴露叠加文件
+# ======================================
+# 将后端 API、Redis、PostgreSQL 端口暴露到宿主机，用于调试
+#
+# 启用方式：在 .env 中添加
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
+#   DB_PORT=5432
+#   SERVER_PORT=4000
+#   REDIS_PORT=6379
+
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"
+
+  redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  server:
+    ports:
+      - "${SERVER_PORT:-4000}:4000"

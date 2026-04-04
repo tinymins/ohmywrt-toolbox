@@ -1,6 +1,6 @@
 # 服务器部署指南
 
-本文档描述如何从零开始将 apps 部署到服务器。
+本文档描述如何从零开始将应用部署到服务器。
 
 ## 前置要求
 
@@ -18,25 +18,26 @@
 ### 1. 本地构建 Docker 镜像
 
 ```bash
-cd /path/to/apps
+cd /path/to/project
 
-# 构建 server 和 web 镜像
+# 构建 server、migrate、web 镜像
 make docker
 ```
 
-构建完成后会生成两个镜像：
-- `apps-server:latest`
-- `apps-web:latest`
+构建完成后会生成三个镜像：
+- `apps-server:latest` — 后端 API 服务
+- `apps-server-migrate:latest` — 数据库迁移（一次性容器）
+- `apps-web:latest` — 前端服务
 
 ### 2. 导出并上传镜像
 
 ```bash
 # 导出镜像为 tar 文件
-docker save apps-server:latest apps-web:latest \
-  -o /tmp/apps-docker-images.tar
+docker save apps-server:latest apps-server-migrate:latest apps-web:latest \
+  -o apps-docker-images.tar
 
 # 上传到服务器
-scp /tmp/apps-docker-images.tar <server>:/tmp/
+scp apps-docker-images.tar <server>:/tmp/
 ```
 
 ### 3. 服务器端准备
@@ -59,16 +60,17 @@ rm /tmp/apps-docker-images.tar
 从本地上传配置文件：
 
 ```bash
-# 上传 docker/docker-compose.yml
+# 上传 docker-compose.yml 和 debug 叠加文件
 scp docker/docker-compose.yml <server>:/mnt/docker/apps/
+scp docker/docker-compose.debug.yml <server>:/mnt/docker/apps/
 
-# 上传环境变量文件（使用 .env.example 作为模板）
-scp .env.example <server>:/mnt/docker/apps/.env
+# 上传环境变量文件（使用 docker/.env.example 作为模板）
+scp docker/.env.example <server>:/mnt/docker/apps/.env
 ```
 
-### 5. 配置环境变量（可选）
+### 5. 配置环境变量
 
-如需自定义数据库配置，编辑服务器上的 `.env` 文件：
+编辑服务器上的 `.env` 文件：
 
 ```bash
 ssh <server> "vi /mnt/docker/apps/.env"
@@ -80,13 +82,17 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=apps_db
 
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+
 # 前端端口
 WEB_PORT=8080
 
 # 暴露后端/数据库端口到宿主机（可选，取消注释启用）
-# COMPOSE_FILE=docker/docker-compose.yml:docker/docker-compose.debug.yml
+# COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
 # SERVER_PORT=4000
 # DB_PORT=5432
+# REDIS_PORT=6379
 ```
 
 ### 6. 启动服务
@@ -96,23 +102,20 @@ ssh <server> "cd /mnt/docker/apps && docker compose up -d"
 ```
 
 等待所有容器启动：
-- `apps-db` - PostgreSQL 数据库
-- `apps-redis` - Redis 缓存
-- `apps-minio` - MinIO 对象存储
-- `apps-minio-init` - MinIO 初始化（运行后退出）
-- `apps-db-migrate` - 数据库迁移（运行后退出）
-- `apps-server` - Hono 后端
-- `apps-web` - React SSR 前端 (Bun)
+- `apps-postgres` — PostgreSQL 数据库
+- `apps-redis` — Redis 缓存
+- `apps-minio` — MinIO 对象存储
+- `apps-db-migrate` — 数据库迁移（运行后自动退出）
+- `apps-server` — Node.js 后端
+- `apps-web` — React 前端
 
-### 7. 初始化数据库
+### 7. 初始化数据库（首次部署）
 
-首次部署时，`db-migrate` 服务会自动在 `docker compose up` 时执行 Prisma 迁移。
-
-如需手动执行数据库迁移：
+首次部署时，数据库迁移由 `db-migrate` 容器自动完成。
+如需手动执行种子数据：
 
 ```bash
-# 执行数据库迁移（通过 db-migrate 服务）
-ssh <server> "cd /mnt/docker/apps && docker compose run --rm db-migrate"
+ssh <server> "docker exec apps-server node dist/seed.js"
 ```
 
 ### 8. 验证部署
@@ -131,12 +134,21 @@ ssh <server> "cd /mnt/docker/apps && docker compose logs --tail=50 server"
 
 | 服务 | 默认端口 | 环境变量 | 说明 |
 |------|---------|---------|------|
-| 前端 | 8080 | `WEB_PORT` | React SSR 应用 (Bun) |
-| 后端 | 不暴露 | `SERVER_PORT` | 需启用 debug 叠加文件（见下方说明） |
-| 数据库 | 不暴露 | `DB_PORT` | 需启用 debug 叠加文件（见下方说明） |
-| tRPC | ${WEB_PORT}/trpc | - | API 端点 (通过前端代理) |
+| 前端 | 8080 | `WEB_PORT` | React 应用 |
+| 后端 | 不暴露 | `SERVER_PORT` | 需启用 debug 叠加文件 |
+| 数据库 | 不暴露 | `DB_PORT` | 需启用 debug 叠加文件 |
+| Redis | 不暴露 | `REDIS_PORT` | 需启用 debug 叠加文件 |
 
 > **注意**: 如端口被占用，修改 `.env` 文件中对应的端口变量即可。
+
+## 默认账号
+
+初始化后可使用以下账号登录：
+
+| 邮箱 | 密码 | 角色 |
+|------|------|------|
+| admin@example.com | password | 超级管理员 |
+| user@example.com | password | 普通用户 |
 
 ## 更新部署
 
@@ -147,18 +159,15 @@ ssh <server> "cd /mnt/docker/apps && docker compose logs --tail=50 server"
 make docker
 
 # 2. 导出并上传
-docker save apps-server:latest apps-web:latest \
-  -o /tmp/apps-docker-images.tar
-scp /tmp/apps-docker-images.tar <server>:/tmp/
+docker save apps-server:latest apps-server-migrate:latest apps-web:latest \
+  -o apps-docker-images.tar
+scp apps-docker-images.tar <server>:/tmp/
 
 # 3. 服务器加载新镜像并重启
 ssh <server> "docker load -i /tmp/apps-docker-images.tar && \
   rm /tmp/apps-docker-images.tar && \
   cd /mnt/docker/apps && \
   docker compose up -d"
-
-# 4. 如有数据库变更，执行迁移
-ssh <server> "cd /mnt/docker/apps && docker compose run --rm db-migrate"
 ```
 
 ## 重置数据库
@@ -168,11 +177,11 @@ ssh <server> "cd /mnt/docker/apps && docker compose run --rm db-migrate"
 ```bash
 ssh <server> "cd /mnt/docker/apps && \
   docker compose down && \
-  rm -rf .data && \
-  docker compose up -d"
+  rm -rf data && \
+  docker compose up -d && \
+  sleep 10 && \
+  docker exec apps-server node dist/seed.js"
 ```
-
-`db-migrate` 服务会在启动时自动执行 Prisma 迁移。
 
 ## 常见问题
 
@@ -188,14 +197,15 @@ WEB_PORT=8180
 ### 暴露后端/数据库端口（可选）
 
 默认仅前端暴露端口到宿主机，后端和数据库通过 Docker 内网通信（更安全）。
-前端自动代理 `/trpc` 请求到后端，无需额外暴露。
+前端自动代理 API 请求到后端，无需额外暴露。
 
 如需直接访问后端 API 或用数据库工具（DBeaver、pgAdmin）连接调试，在 `.env` 中添加：
 
 ```env
-COMPOSE_FILE=docker/docker-compose.yml:docker/docker-compose.debug.yml
+COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
 SERVER_PORT=4000
 DB_PORT=5432
+REDIS_PORT=6379
 ```
 
 > 可以只暴露其中一个，不需要的端口变量不设置即可（叠加文件中有默认值）。
