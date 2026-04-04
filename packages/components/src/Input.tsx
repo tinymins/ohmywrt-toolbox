@@ -48,7 +48,7 @@ const BaseInput = forwardRef<HTMLInputElement, InputProps>(
   ) => (
     <div
       className={cn(
-        "inline-flex items-center gap-2 rounded-md border bg-[var(--input-bg)] transition-colors focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)] dark:focus-within:border-[var(--accent)]",
+        "w-full flex items-center gap-2 rounded-md border bg-[var(--input-bg)] transition-colors focus-within:border-[var(--accent)] focus-within:ring-1 focus-within:ring-[var(--accent)] dark:focus-within:border-[var(--accent)]",
         status === "error"
           ? "border-red-500"
           : status === "warning"

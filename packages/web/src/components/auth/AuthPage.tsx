@@ -1,4 +1,4 @@
-import { Button, Input } from "@acme/components";
+import { Alert, Button, Form, Input, Spin } from "@acme/components";
 import type { User } from "@acme/types";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -28,18 +28,16 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
   const isFirstUser = registrationStatusQuery.data?.isFirstUser ?? false;
 
   const [mode, setMode] = useState<"login" | "register">(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const error = (
-    mode === "login" ? loginMutation.error : registerMutation.error
-  )?.message;
-  const isPending = loginMutation.isPending || registerMutation.isPending;
+  const [form] = Form.useForm();
   const redirect = searchParams.get("redirect");
   const didNavigate = useRef(false);
   const didAutoSwitch = useRef(false);
 
-  // Auto-switch to register if invitation code is present
+  const isSetupMode = !registrationStatusQuery.isLoading && isFirstUser;
+  const activeMutation = mode === "login" ? loginMutation : registerMutation;
+  const isPending = activeMutation.isPending;
+  const error = activeMutation.error?.message;
+
   useEffect(() => {
     if (
       hasValidInvitation &&
@@ -59,20 +57,21 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
 
   useEffect(() => {
     setMode(initialMode);
-    setEmail("");
-    setPassword("");
-    setName("");
-  }, [initialMode]);
+    form.resetFields();
+  }, [initialMode, form]);
 
   if (isLoading || registrationStatusQuery.isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-[var(--bg-base)]">
-        <p className="text-[var(--text-muted)]">{t("login.loading")}</p>
+      <div
+        className="fixed inset-0 flex items-center justify-center"
+        style={{ background: "var(--bg-base)" }}
+      >
+        <div className="aurora-bg" />
+        <Spin size="large" />
       </div>
     );
   }
 
-  // Registration disabled and user is on register page without invitation
   const registrationBlocked =
     mode === "register" &&
     !registrationAllowed &&
@@ -88,43 +87,23 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
     if (mode === "login") return t("login.pleaseLogin");
     if (isFirstUser) return t("login.firstAdmin");
     if (hasValidInvitation) return t("login.invitedRegister");
-    return "";
+    return t("login.register");
   })();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (mode === "login") {
-      const result = await loginMutation.mutateAsync({ email, password });
-      login(result.user as User);
-      didNavigate.current = true;
-      if (singleWorkspaceMode) {
-        navigate(redirect || "/dashboard/shared");
-      } else {
-        navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
-      }
+  const handleSuccess = (user: User, defaultWorkspaceSlug?: string) => {
+    login(user);
+    didNavigate.current = true;
+    if (singleWorkspaceMode) {
+      navigate(redirect || "/dashboard/shared");
     } else {
-      const result = await registerMutation.mutateAsync({
-        name: name.trim(),
-        email,
-        password,
-        invitationCode: invitationCode || undefined,
-      });
-      login(result.user as User);
-      didNavigate.current = true;
-      if (singleWorkspaceMode) {
-        navigate(redirect || "/dashboard/shared");
-      } else {
-        navigate(redirect || `/dashboard/${result.defaultWorkspaceSlug}`);
-      }
+      navigate(redirect || `/dashboard/${defaultWorkspaceSlug ?? ""}`);
     }
   };
 
   const switchMode = () => {
     const next = mode === "login" ? "register" : "login";
     setMode(next);
-    setEmail("");
-    setPassword("");
-    setName("");
+    form.resetFields();
     const q = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
     const inviteQ = invitationCode
       ? `${q ? "&" : "?"}invite=${encodeURIComponent(invitationCode)}`
@@ -133,27 +112,27 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center px-4 bg-[var(--bg-base)]">
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4"
+      style={{ background: "var(--bg-base)" }}
+    >
       <div className="aurora-bg" />
-      <div className="w-full max-w-sm z-10">
-        <div className="glass glass-accent p-8">
-          <h1 className="text-xl font-semibold mb-1 text-[var(--text-primary)]">
-            {mode === "login" ? t("login.login") : t("login.register")}
-          </h1>
-          {subtitle && (
-            <p className="text-sm text-[var(--text-muted)] mb-5">{subtitle}</p>
-          )}
-          {!subtitle && <div className="mb-5" />}
 
+      <div className="relative z-10 w-full max-w-md">
+        <div className="glass glass-accent rounded-2xl shadow-xl p-8">
           {registrationBlocked ? (
             <div className="space-y-4">
-              <p
-                className="rounded-md border px-3 py-2 text-sm
-                  text-[var(--accent-text)] bg-[var(--accent-subtle)]
-                  border-[var(--accent-text)]"
-              >
-                {t("login.registrationDisabled")}
-              </p>
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+                  {t("login.register")}
+                </h1>
+              </div>
+              <Alert
+                type="error"
+                message={t("login.registrationDisabled")}
+                showIcon
+                className="mb-4"
+              />
               <button
                 type="button"
                 onClick={switchMode}
@@ -163,72 +142,151 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  {t("login.email")}
-                </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="me@example.com"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                  {t("login.password")}
-                </label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                />
+            <>
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-2">
+                  {mode === "login" ? t("login.title") : t("login.register")}
+                </h1>
+                <p className="text-[var(--text-secondary)]">{subtitle}</p>
               </div>
 
-              {mode === "register" && (
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                    {t("login.name")}
-                  </label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t("login.namePlaceholder")}
-                    required
-                  />
-                </div>
-              )}
+              <Form
+                form={form}
+                layout="vertical"
+                requiredMark={false}
+                onFinish={async (values) => {
+                  if (mode === "login") {
+                    const result = await loginMutation.mutateAsync({
+                      email: values.email,
+                      password: values.password,
+                    });
+                    handleSuccess(
+                      result.user as User,
+                      result.defaultWorkspaceSlug,
+                    );
+                  } else {
+                    const result = await registerMutation.mutateAsync({
+                      name: (values.name as string).trim(),
+                      email: values.email,
+                      password: values.password,
+                      invitationCode: invitationCode || undefined,
+                    });
+                    handleSuccess(
+                      result.user as User,
+                      result.defaultWorkspaceSlug,
+                    );
+                  }
+                }}
+              >
+                {mode === "register" && (
+                  <Form.Item
+                    label={t("login.name")}
+                    name="name"
+                    rules={[
+                      { required: true, message: t("login.nameRequired") },
+                    ]}
+                  >
+                    <Input
+                      placeholder={t("login.namePlaceholder")}
+                      size="large"
+                    />
+                  </Form.Item>
+                )}
 
-              {error && (
-                <p
-                  className="rounded-md border px-3 py-2 text-sm
-                    text-[var(--accent-text)] bg-[var(--accent-subtle)]
-                    border-[var(--accent-text)]"
+                <Form.Item
+                  label={t("login.email")}
+                  name="email"
+                  rules={[{ required: true, message: t("login.email") }]}
                 >
-                  {error}
-                </p>
-              )}
+                  <Input
+                    type="email"
+                    placeholder={t("login.emailPlaceholder")}
+                    size="large"
+                    autoComplete="email"
+                  />
+                </Form.Item>
 
-              <Button type="submit" block loading={isPending} className="mt-1">
-                {mode === "login" ? t("login.login") : t("login.register")}
-              </Button>
+                <Form.Item
+                  label={t("login.password")}
+                  name="password"
+                  rules={[
+                    { required: true, message: t("login.password") },
+                    ...(isSetupMode
+                      ? [
+                          {
+                            validator: (_: unknown, value: string) => {
+                              if (!value) return Promise.resolve();
+                              const hasLetter = /[a-zA-Z]/.test(value);
+                              const hasDigit = /\d/.test(value);
+                              const hasSpecial = /[^a-zA-Z0-9]/.test(value);
+                              if (
+                                value.length >= 6 &&
+                                hasLetter &&
+                                hasDigit &&
+                                hasSpecial
+                              ) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(
+                                new Error(t("login.passwordComplexityHint")),
+                              );
+                            },
+                          },
+                        ]
+                      : []),
+                  ]}
+                  extra={
+                    isSetupMode ? t("login.passwordComplexityHint") : undefined
+                  }
+                >
+                  <Input.Password
+                    placeholder={t("login.passwordPlaceholder")}
+                    size="large"
+                    autoComplete={
+                      isSetupMode || mode === "register"
+                        ? "new-password"
+                        : "current-password"
+                    }
+                  />
+                </Form.Item>
+
+                {error ? (
+                  <Alert
+                    type="error"
+                    message={error}
+                    showIcon
+                    className="mb-4"
+                  />
+                ) : null}
+
+                <Button
+                  variant="primary"
+                  htmlType="submit"
+                  size="large"
+                  block
+                  loading={isPending}
+                  className="!mt-4"
+                >
+                  {isPending
+                    ? t("login.loading")
+                    : mode === "login"
+                      ? t("login.submit")
+                      : t("login.register")}
+                </Button>
+              </Form>
 
               {canShowSwitchButton && (
                 <button
                   type="button"
                   onClick={switchMode}
-                  className="cursor-pointer w-full text-sm hover:underline text-[var(--text-muted)]"
+                  className="cursor-pointer w-full text-sm hover:underline text-[var(--text-muted)] mt-4"
                 >
                   {mode === "login"
                     ? t("login.noAccountRegister")
                     : t("login.haveAccountLogin")}
                 </button>
               )}
-            </form>
+            </>
           )}
         </div>
       </div>
