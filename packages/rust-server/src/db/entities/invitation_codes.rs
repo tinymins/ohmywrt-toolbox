@@ -3,14 +3,14 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "invitation_codes")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Uuid")]
-    pub id: String,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
     #[sea_orm(column_type = "Text", unique)]
     pub code: String,
-    #[sea_orm(column_name = "created_by", column_type = "Uuid")]
-    pub created_by: String,
-    #[sea_orm(column_name = "used_by", column_type = "Uuid", nullable)]
-    pub used_by: Option<String>,
+    #[sea_orm(column_name = "created_by")]
+    pub created_by: Uuid,
+    #[sea_orm(column_name = "used_by", nullable)]
+    pub used_by: Option<Uuid>,
     #[sea_orm(column_name = "used_at")]
     pub used_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_name = "expires_at")]

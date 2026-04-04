@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::db::entities::{
     invitation_codes, sessions, system_settings, users, workspace_members, workspaces,
 };
-use crate::error::AppError;
+use crate::error::{parse_uuid, AppError};
 use crate::services::auth::hash_password;
 
 pub struct AdminRepo;
@@ -25,8 +25,9 @@ impl AdminRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<Option<DateTimeWithTimeZone>, AppError> {
+        let uid = parse_uuid(user_id)?;
         let row = sessions::Entity::find()
-            .filter(sessions::Column::UserId.eq(user_id))
+            .filter(sessions::Column::UserId.eq(uid))
             .order_by_desc(sessions::Column::CreatedAt)
             .one(db)
             .await?;
@@ -50,9 +51,9 @@ impl AdminRepo {
 
         let password_hash =
             hash_password(password).map_err(|e| AppError::Internal(format!("Hash error: {e}")))?;
-        let user_id = Uuid::new_v4().to_string();
+        let user_id = Uuid::new_v4();
         let user_active = users::ActiveModel {
-            id: Set(user_id.clone()),
+            id: Set(user_id),
             name: Set(name.to_string()),
             email: Set(email.to_string()),
             password_hash: Set(password_hash),
@@ -89,21 +90,21 @@ impl AdminRepo {
             suffix += 1;
         }
 
-        let ws_id = Uuid::new_v4().to_string();
+        let ws_id = Uuid::new_v4();
         let ws_active = workspaces::ActiveModel {
-            id: Set(ws_id.clone()),
+            id: Set(ws_id),
             slug: Set(slug),
             name: Set(workspace_name),
             description: Set(None),
-            owner_id: Set(Some(user_id.clone())),
+            owner_id: Set(Some(user_id)),
             created_at: Set(Some(Utc::now().into())),
         };
         workspaces::Entity::insert(ws_active).exec(db).await?;
 
         let member_active = workspace_members::ActiveModel {
-            id: Set(Uuid::new_v4().to_string()),
+            id: Set(Uuid::new_v4()),
             workspace_id: Set(ws_id),
-            user_id: Set(user_id.clone()),
+            user_id: Set(user_id),
             role: Set("owner".to_string()),
             created_at: Set(Some(Utc::now().into())),
         };
@@ -122,7 +123,8 @@ impl AdminRepo {
         user_id: &str,
         role: &str,
     ) -> Result<users::Model, AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".into()))?;
@@ -138,7 +140,8 @@ impl AdminRepo {
         user_id: &str,
         new_password: &str,
     ) -> Result<(), AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".into()))?;
@@ -152,7 +155,8 @@ impl AdminRepo {
     }
 
     pub async fn delete_user(db: &DatabaseConnection, user_id: &str) -> Result<(), AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".into()))?;
@@ -165,17 +169,17 @@ impl AdminRepo {
 
         // 1. Delete user's sessions
         sessions::Entity::delete_many()
-            .filter(sessions::Column::UserId.eq(user_id))
+            .filter(sessions::Column::UserId.eq(uid))
             .exec(db)
             .await?;
 
         // 2. Get workspaces owned by user
         let owned_workspaces = workspaces::Entity::find()
-            .filter(workspaces::Column::OwnerId.eq(user_id))
+            .filter(workspaces::Column::OwnerId.eq(uid))
             .all(db)
             .await?;
 
-        let owned_ws_ids: Vec<String> = owned_workspaces.iter().map(|w| w.id.clone()).collect();
+        let owned_ws_ids: Vec<Uuid> = owned_workspaces.iter().map(|w| w.id).collect();
 
         if !owned_ws_ids.is_empty() {
             // 3. Delete members of owned workspaces
@@ -193,12 +197,12 @@ impl AdminRepo {
 
         // 5. Delete user's memberships in other workspaces
         workspace_members::Entity::delete_many()
-            .filter(workspace_members::Column::UserId.eq(user_id))
+            .filter(workspace_members::Column::UserId.eq(uid))
             .exec(db)
             .await?;
 
         // 6. Delete user
-        users::Entity::delete_by_id(user_id).exec(db).await?;
+        users::Entity::delete_by_id(uid).exec(db).await?;
         Ok(())
     }
 
@@ -212,10 +216,10 @@ impl AdminRepo {
             Some(s) => Ok(s),
             None => {
                 // Create default settings
-                let id = Uuid::new_v4().to_string();
+                let id = Uuid::new_v4();
                 let now: DateTimeWithTimeZone = Utc::now().into();
                 let active = system_settings::ActiveModel {
-                    id: Set(id.clone()),
+                    id: Set(id),
                     allow_registration: Set(true),
                     single_workspace_mode: Set(false),
                     created_at: Set(Some(now)),
@@ -266,16 +270,17 @@ impl AdminRepo {
         created_by: &str,
         expires_in_hours: Option<f64>,
     ) -> Result<invitation_codes::Model, AppError> {
-        let id = Uuid::new_v4().to_string();
+        let creator_id = parse_uuid(created_by)?;
+        let id = Uuid::new_v4();
         let code = Uuid::new_v4().to_string();
         let now = Utc::now();
         let expires_at = expires_in_hours
             .map(|h| (now + chrono::Duration::seconds((h * 3600.0) as i64)).into());
 
         let active = invitation_codes::ActiveModel {
-            id: Set(id.clone()),
+            id: Set(id),
             code: Set(code),
-            created_by: Set(created_by.to_string()),
+            created_by: Set(creator_id),
             used_by: Set(None),
             used_at: Set(None),
             expires_at: Set(expires_at),
@@ -321,6 +326,7 @@ impl AdminRepo {
         code: &str,
         used_by: &str,
     ) -> Result<(), AppError> {
+        let user_id = parse_uuid(used_by)?;
         let row = invitation_codes::Entity::find()
             .filter(invitation_codes::Column::Code.eq(code))
             .one(db)
@@ -328,7 +334,7 @@ impl AdminRepo {
             .ok_or_else(|| AppError::NotFound("Invitation code not found".into()))?;
 
         let mut active: invitation_codes::ActiveModel = row.into();
-        active.used_by = Set(Some(used_by.to_string()));
+        active.used_by = Set(Some(user_id));
         active.used_at = Set(Some(Utc::now().into()));
         active.update(db).await?;
         Ok(())

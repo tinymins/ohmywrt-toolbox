@@ -40,9 +40,9 @@ pub async fn list_users(
     let mut outputs = Vec::with_capacity(users.len());
 
     for user in &users {
-        let last_login = AdminRepo::get_last_login_at(&state.db, &user.id).await?;
+        let last_login = AdminRepo::get_last_login_at(&state.db, &user.id.to_string()).await?;
         outputs.push(AdminUserOutput {
-            id: user.id.clone(),
+            id: user.id.to_string(),
             name: user.name.clone(),
             email: user.email.clone(),
             role: user.role.clone(),
@@ -87,7 +87,7 @@ pub async fn create_user(
         .await?;
 
     let output = AdminUserOutput {
-        id: user.id.clone(),
+        id: user.id.to_string(),
         name: user.name.clone(),
         email: user.email.clone(),
         role: user.role.clone(),
@@ -129,9 +129,9 @@ pub async fn update_user_role(
     let role = validate_role(&input.role)?;
     let user = AdminRepo::update_user_role(&state.db, &input.user_id, role).await?;
 
-    let last_login = AdminRepo::get_last_login_at(&state.db, &user.id).await?;
+    let last_login = AdminRepo::get_last_login_at(&state.db, &user.id.to_string()).await?;
     let output = AdminUserOutput {
-        id: user.id.clone(),
+        id: user.id.to_string(),
         name: user.name.clone(),
         email: user.email.clone(),
         role: user.role.clone(),

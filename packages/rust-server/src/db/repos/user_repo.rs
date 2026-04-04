@@ -1,7 +1,7 @@
 use sea_orm::*;
 
 use crate::db::entities::users;
-use crate::error::AppError;
+use crate::error::{parse_uuid, AppError};
 
 pub struct UserRepo;
 
@@ -10,7 +10,8 @@ impl UserRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<Option<users::Model>, AppError> {
-        Ok(users::Entity::find_by_id(user_id).one(db).await?)
+        let uid = parse_uuid(user_id)?;
+        Ok(users::Entity::find_by_id(uid).one(db).await?)
     }
 
     pub async fn update_profile(
@@ -20,7 +21,8 @@ impl UserRepo {
         email: Option<&str>,
         settings: Option<serde_json::Value>,
     ) -> Result<users::Model, AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("user not found".into()))?;
@@ -43,7 +45,8 @@ impl UserRepo {
         user_id: &str,
         password_hash: &str,
     ) -> Result<(), AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("user not found".into()))?;
@@ -57,7 +60,8 @@ impl UserRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<users::Model, AppError> {
-        let user = users::Entity::find_by_id(user_id)
+        let uid = parse_uuid(user_id)?;
+        let user = users::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("user not found".into()))?;

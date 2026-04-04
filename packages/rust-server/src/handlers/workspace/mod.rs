@@ -29,7 +29,7 @@ impl From<workspaces::Model> for WorkspaceOutput {
             slug: w.slug,
             name: w.name,
             description: w.description,
-            owner_id: w.owner_id,
+            owner_id: w.owner_id.map(|id| id.to_string()),
             created_at: w
                 .created_at
                 .map(|dt| dt.to_rfc3339())
@@ -72,7 +72,7 @@ pub async fn list_workspaces(
                 Ok(shared_ws) => {
                     let _ = WorkspaceRepo::add_member(
                         &state.db,
-                        &shared_ws.id,
+                        &shared_ws.id.to_string(),
                         &auth_user.user_id,
                         "member",
                     )
@@ -175,7 +175,8 @@ pub async fn get_workspace_by_slug(
         Err(e) => return e.into_response(),
     };
 
-    let is_member = match WorkspaceRepo::is_member(&state.db, &workspace.id, &auth_user.user_id)
+    let ws_id_str = workspace.id.to_string();
+    let is_member = match WorkspaceRepo::is_member(&state.db, &ws_id_str, &auth_user.user_id)
         .await
     {
         Ok(b) => b,
@@ -213,7 +214,7 @@ pub async fn update_workspace(
         Err(e) => return e.into_response(),
     };
 
-    if workspace.owner_id.as_deref() != Some(&auth_user.user_id) {
+    if workspace.owner_id.map(|id| id.to_string()).as_deref() != Some(&auth_user.user_id) {
         return AppError::Forbidden("Only workspace owner can update".into()).into_response();
     }
 
@@ -263,7 +264,7 @@ pub async fn delete_workspace(
         Err(e) => return e.into_response(),
     };
 
-    if workspace.owner_id.as_deref() != Some(&auth_user.user_id) {
+    if workspace.owner_id.map(|id| id.to_string()).as_deref() != Some(&auth_user.user_id) {
         return AppError::Forbidden("Only workspace owner can delete".into()).into_response();
     }
 

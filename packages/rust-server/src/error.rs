@@ -47,6 +47,11 @@ impl From<serde_json::Error> for AppError {
     }
 }
 
+/// Parse a string as UUID, returning `AppError::BadRequest` on failure.
+pub fn parse_uuid(s: &str) -> Result<uuid::Uuid, AppError> {
+    uuid::Uuid::parse_str(s).map_err(|_| AppError::BadRequest("Invalid ID format".into()))
+}
+
 #[derive(Serialize)]
 struct ErrorBody {
     success: bool,

@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
   settings     Json?
-  role         String   @default("user")
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  role         String    @default("user")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamptz
 
   sessions         Session[]
   workspaceMembers WorkspaceMember[]
@@ -34,8 +35,6 @@ model Session {
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([userId], name: "sessions_user_id_idx")
-  @@index([expiresAt], name: "sessions_expires_at_idx")
   @@map("sessions")
 }
 
@@ -47,23 +46,22 @@ model Workspace {
   ownerId     String?  @map("owner_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  owner   User?              @relation(fields: [ownerId], references: [id])
-  members WorkspaceMember[]
+  owner            User?              @relation(fields: [ownerId], references: [id])
+  members          WorkspaceMember[]
 
   @@map("workspaces")
 }
 
 model WorkspaceMember {
-  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId String              @map("workspace_id") @db.Uuid
-  userId      String              @map("user_id") @db.Uuid
-  role        String              @default("member")
-  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workspaceId String   @map("workspace_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  role        String   @default("member")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
 
-  @@unique([workspaceId, userId], name: "workspace_members_workspace_user_uidx")
   @@map("workspace_members")
 }
 

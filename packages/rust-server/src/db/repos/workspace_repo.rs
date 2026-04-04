@@ -3,7 +3,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::db::entities::{workspace_members, workspaces};
-use crate::error::AppError;
+use crate::error::{parse_uuid, AppError};
 
 /// Slug used for the shared workspace in single workspace mode
 pub const SYSTEM_SHARED_SLUG: &str = "::SYSTEM_SHARED::";
@@ -15,13 +15,13 @@ impl WorkspaceRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<Vec<workspaces::Model>, AppError> {
+        let uid = parse_uuid(user_id)?;
         let member_rows = workspace_members::Entity::find()
-            .filter(workspace_members::Column::UserId.eq(user_id))
+            .filter(workspace_members::Column::UserId.eq(uid))
             .all(db)
             .await?;
 
-        let workspace_ids: Vec<String> =
-            member_rows.iter().map(|m| m.workspace_id.clone()).collect();
+        let workspace_ids: Vec<Uuid> = member_rows.iter().map(|m| m.workspace_id).collect();
         if workspace_ids.is_empty() {
             return Ok(vec![]);
         }
@@ -39,22 +39,23 @@ impl WorkspaceRepo {
         slug: &str,
         user_id: &str,
     ) -> Result<workspaces::Model, AppError> {
-        let ws_id = Uuid::new_v4().to_string();
+        let uid = parse_uuid(user_id)?;
+        let ws_id = Uuid::new_v4();
 
         let ws = workspaces::ActiveModel {
-            id: Set(ws_id.clone()),
+            id: Set(ws_id),
             slug: Set(slug.to_string()),
             name: Set(name.to_string()),
             description: Set(None),
-            owner_id: Set(Some(user_id.to_string())),
+            owner_id: Set(Some(uid)),
             created_at: Set(Some(Utc::now().into())),
         };
         workspaces::Entity::insert(ws).exec(db).await?;
 
         let member = workspace_members::ActiveModel {
-            id: Set(Uuid::new_v4().to_string()),
-            workspace_id: Set(ws_id.clone()),
-            user_id: Set(user_id.to_string()),
+            id: Set(Uuid::new_v4()),
+            workspace_id: Set(ws_id),
+            user_id: Set(uid),
             role: Set("owner".to_string()),
             created_at: Set(Some(Utc::now().into())),
         };
@@ -70,8 +71,9 @@ impl WorkspaceRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<Option<workspaces::Model>, AppError> {
+        let uid = parse_uuid(user_id)?;
         let member = workspace_members::Entity::find()
-            .filter(workspace_members::Column::UserId.eq(user_id))
+            .filter(workspace_members::Column::UserId.eq(uid))
             .one(db)
             .await?;
 
@@ -95,7 +97,8 @@ impl WorkspaceRepo {
         db: &DatabaseConnection,
         id: &str,
     ) -> Result<Option<workspaces::Model>, AppError> {
-        Ok(workspaces::Entity::find_by_id(id).one(db).await?)
+        let uid = parse_uuid(id)?;
+        Ok(workspaces::Entity::find_by_id(uid).one(db).await?)
     }
 
     pub async fn is_member(
@@ -103,9 +106,11 @@ impl WorkspaceRepo {
         workspace_id: &str,
         user_id: &str,
     ) -> Result<bool, AppError> {
+        let ws_id = parse_uuid(workspace_id)?;
+        let uid = parse_uuid(user_id)?;
         let member = workspace_members::Entity::find()
-            .filter(workspace_members::Column::WorkspaceId.eq(workspace_id))
-            .filter(workspace_members::Column::UserId.eq(user_id))
+            .filter(workspace_members::Column::WorkspaceId.eq(ws_id))
+            .filter(workspace_members::Column::UserId.eq(uid))
             .one(db)
             .await?;
         Ok(member.is_some())
@@ -117,13 +122,14 @@ impl WorkspaceRepo {
         db: &DatabaseConnection,
         user_id: &str,
     ) -> Result<workspaces::Model, AppError> {
+        let uid = parse_uuid(user_id)?;
         if let Some(existing) = Self::find_by_slug(db, SYSTEM_SHARED_SLUG).await? {
             return Ok(existing);
         }
 
-        let ws_id = Uuid::new_v4().to_string();
+        let ws_id = Uuid::new_v4();
         let ws = workspaces::ActiveModel {
-            id: Set(ws_id.clone()),
+            id: Set(ws_id),
             slug: Set(SYSTEM_SHARED_SLUG.to_string()),
             name: Set("Shared Workspace".to_string()),
             description: Set(Some(
@@ -135,9 +141,9 @@ impl WorkspaceRepo {
         workspaces::Entity::insert(ws).exec(db).await?;
 
         let member = workspace_members::ActiveModel {
-            id: Set(Uuid::new_v4().to_string()),
-            workspace_id: Set(ws_id.clone()),
-            user_id: Set(user_id.to_string()),
+            id: Set(Uuid::new_v4()),
+            workspace_id: Set(ws_id),
+            user_id: Set(uid),
             role: Set("owner".to_string()),
             created_at: Set(Some(Utc::now().into())),
         };
@@ -156,9 +162,11 @@ impl WorkspaceRepo {
         user_id: &str,
         role: &str,
     ) -> Result<(), AppError> {
+        let ws_id = parse_uuid(workspace_id)?;
+        let uid = parse_uuid(user_id)?;
         let existing = workspace_members::Entity::find()
-            .filter(workspace_members::Column::WorkspaceId.eq(workspace_id))
-            .filter(workspace_members::Column::UserId.eq(user_id))
+            .filter(workspace_members::Column::WorkspaceId.eq(ws_id))
+            .filter(workspace_members::Column::UserId.eq(uid))
             .one(db)
             .await?;
 
@@ -167,9 +175,9 @@ impl WorkspaceRepo {
         }
 
         let member = workspace_members::ActiveModel {
-            id: Set(Uuid::new_v4().to_string()),
-            workspace_id: Set(workspace_id.to_string()),
-            user_id: Set(user_id.to_string()),
+            id: Set(Uuid::new_v4()),
+            workspace_id: Set(ws_id),
+            user_id: Set(uid),
             role: Set(role.to_string()),
             created_at: Set(Some(Utc::now().into())),
         };
@@ -184,7 +192,8 @@ impl WorkspaceRepo {
         slug: Option<String>,
         description: Option<String>,
     ) -> Result<workspaces::Model, AppError> {
-        let ws = workspaces::Entity::find_by_id(id)
+        let uid = parse_uuid(id)?;
+        let ws = workspaces::Entity::find_by_id(uid)
             .one(db)
             .await?
             .ok_or_else(|| AppError::NotFound("Workspace not found".into()))?;
@@ -202,7 +211,8 @@ impl WorkspaceRepo {
     }
 
     pub async fn delete(db: &DatabaseConnection, id: &str) -> Result<(), AppError> {
-        workspaces::Entity::delete_by_id(id).exec(db).await?;
+        let uid = parse_uuid(id)?;
+        workspaces::Entity::delete_by_id(uid).exec(db).await?;
         Ok(())
     }
 

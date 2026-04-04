@@ -38,7 +38,7 @@ pub struct UserDto {
 impl From<users::Model> for UserDto {
     fn from(u: users::Model) -> Self {
         Self {
-            id: u.id,
+            id: u.id.to_string(),
             name: u.name,
             email: u.email,
             role: u.role,
@@ -61,8 +61,8 @@ pub async fn login(
         return AppError::BadRequest("邮箱或密码错误".into()).into_response();
     }
 
-    let user_id_str = user.id.clone();
-    let session_id = match AuthRepo::create_session(&state.db, &user.id).await {
+    let user_id_str = user.id.to_string();
+    let session_id = match AuthRepo::create_session(&state.db, &user_id_str).await {
         Ok(s) => s,
         Err(e) => return e.into_response(),
     };

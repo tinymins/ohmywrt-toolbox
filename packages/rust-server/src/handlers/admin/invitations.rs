@@ -40,10 +40,10 @@ pub async fn list_codes(
     let outputs: Vec<InvitationCodeOutput> = codes
         .into_iter()
         .map(|c| InvitationCodeOutput {
-            id: c.id,
+            id: c.id.to_string(),
             code: c.code,
-            created_by: c.created_by,
-            used_by: c.used_by,
+            created_by: c.created_by.to_string(),
+            used_by: c.used_by.map(|u| u.to_string()),
             used_at: c.used_at.map(|dt| dt.to_rfc3339()),
             expires_at: c.expires_at.map(|dt| dt.to_rfc3339()),
             created_at: c
@@ -73,10 +73,10 @@ pub async fn generate_code(
             .await?;
 
     let output = InvitationCodeOutput {
-        id: code.id,
+        id: code.id.to_string(),
         code: code.code,
-        created_by: code.created_by,
-        used_by: code.used_by,
+        created_by: code.created_by.to_string(),
+        used_by: code.used_by.map(|u| u.to_string()),
         used_at: code.used_at.map(|dt| dt.to_rfc3339()),
         expires_at: code.expires_at.map(|dt| dt.to_rfc3339()),
         created_at: code

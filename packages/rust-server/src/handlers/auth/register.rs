@@ -109,10 +109,10 @@ pub async fn register(
             Err(e) => return e.into_response(),
         };
 
-    let user_id_str = user.id.clone();
+    let user_id_str = user.id.to_string();
 
     // Create session
-    let session_id = match AuthRepo::create_session(&state.db, &user.id).await {
+    let session_id = match AuthRepo::create_session(&state.db, &user_id_str).await {
         Ok(s) => s,
         Err(e) => return e.into_response(),
     };
@@ -127,7 +127,7 @@ pub async fn register(
                 // First member = owner (handled by get_or_create_shared), rest = member
                 if let Err(e) = WorkspaceRepo::add_member(
                     &state.db,
-                    &ws.id,
+                    &ws.id.to_string(),
                     &user_id_str,
                     "member",
                 )

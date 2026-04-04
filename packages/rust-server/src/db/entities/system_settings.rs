@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "system_settings")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Uuid")]
-    pub id: String,
+    #[sea_orm(primary_key, auto_increment = false)]
+    pub id: Uuid,
     pub allow_registration: bool,
     pub single_workspace_mode: bool,
     pub created_at: Option<DateTimeWithTimeZone>,
