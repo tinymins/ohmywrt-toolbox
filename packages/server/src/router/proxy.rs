@@ -1,4 +1,4 @@
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::Router;
 use std::sync::Arc;
 
@@ -22,8 +22,17 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
             "/api/proxy/subscribes/{id}/stats",
             get(proxy::get_subscribe_stats),
         )
+        .route(
+            "/api/proxy/subscribes/{id}/preview-nodes",
+            get(proxy::preview_nodes),
+        )
+        .route(
+            "/api/proxy/subscribes/{id}/trace-node",
+            get(proxy::trace_node),
+        )
         .route("/api/proxy/defaults", get(proxy::get_defaults))
         .route("/api/proxy/user-stats", get(proxy::get_user_stats))
+        .route("/api/proxy/debug", post(proxy::debug_proxy))
         // Public endpoints (no auth)
         .route(
             "/api/public/proxy/{uuid}/clash",

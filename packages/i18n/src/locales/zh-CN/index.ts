@@ -7,6 +7,7 @@ import generalSettings from "./generalSettings.js";
 import hero from "./hero.js";
 import login from "./login.js";
 import nav from "./nav.js";
+import proxy from "./proxy.js";
 import systemSettings from "./systemSettings.js";
 import userMenu from "./userMenu.js";
 import userSettings from "./userSettings.js";
@@ -28,6 +29,7 @@ export const zhCN = {
     nav,
     footer,
     features,
+    proxy,
   },
 };
 

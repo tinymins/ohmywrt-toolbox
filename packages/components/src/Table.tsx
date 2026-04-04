@@ -353,6 +353,16 @@ export function Table<T = Record<string, unknown>>({
     return sortState.dir === "desc" ? arr.reverse() : arr;
   }, [dataSource, sortState]);
 
+  // Client-side pagination
+  const paginationConfig = typeof pagination === "object" ? pagination : null;
+  const [paginationState, setPaginationState] = useState({ current: 1, pageSize: paginationConfig?.defaultPageSize ?? 10 });
+  const paginatedData = useMemo(() => {
+    if (!paginationConfig) return sortedData;
+    const { current, pageSize } = paginationState;
+    const start = (current - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, paginationConfig, paginationState]);
+
   // Virtual scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -379,22 +389,23 @@ export function Table<T = Record<string, unknown>>({
     [],
   );
 
+  const effectiveData = paginationConfig ? paginatedData : sortedData;
   const effectiveContainerH = containerH || 600;
   const visibleCount = Math.ceil(effectiveContainerH / rowHeight);
   const startIdx = virtual
     ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN)
     : 0;
   const endIdx = virtual
-    ? Math.min(sortedData.length - 1, startIdx + visibleCount + OVERSCAN * 2)
-    : sortedData.length - 1;
+    ? Math.min(effectiveData.length - 1, startIdx + visibleCount + OVERSCAN * 2)
+    : effectiveData.length - 1;
   const virtualTopH = startIdx * rowHeight;
   const virtualBottomH = Math.max(
     0,
-    (sortedData.length - endIdx - 1) * rowHeight,
+    (effectiveData.length - endIdx - 1) * rowHeight,
   );
   const renderData = virtual
-    ? sortedData.slice(startIdx, endIdx + 1)
-    : sortedData;
+    ? effectiveData.slice(startIdx, endIdx + 1)
+    : effectiveData;
 
   // Row selection helpers
   const selectedSet = new Set(rowSelection?.selectedRowKeys ?? []);
@@ -684,7 +695,11 @@ export function Table<T = Record<string, unknown>>({
         <div className="mt-4 flex justify-end">
           <Pagination
             {...pagination}
+            total={pagination.total ?? sortedData.length}
+            current={paginationState.current}
+            pageSize={paginationState.pageSize}
             onChange={(page, pageSize) => {
+              setPaginationState({ current: page, pageSize });
               pagination.onChange?.(page, pageSize);
               onChange?.({ current: page, pageSize });
             }}

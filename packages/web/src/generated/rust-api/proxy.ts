@@ -6,6 +6,12 @@ import {
 
 // ─── Types ───
 
+export interface UserBrief {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface ProxySubscribe {
   id: string;
   userId: string;
@@ -24,12 +30,15 @@ export interface ProxySubscribe {
   useSystemCustomConfig: boolean;
   dnsConfig: string | null;
   useSystemDnsConfig: boolean;
-  authorizedUserIds: string[] | null;
+  authorizedUserIds: string[];
   cacheTtlMinutes: number | null;
-  cachedNodeCount: number | null;
+  cachedNodeCount: number;
+  totalAccessCount: number;
   lastAccessAt: string | null;
   createdAt: string;
   updatedAt: string;
+  user: UserBrief;
+  authorizedUsers: UserBrief[];
 }
 
 export interface CreateProxySubscribeInput {
@@ -74,14 +83,25 @@ export interface ProxyAccessLog {
   createdAt: string;
 }
 
+export interface AccessByType {
+  accessType: string;
+  count: number;
+}
+
 export interface ProxyStats {
   totalAccesses: number;
+  todayAccess: number;
+  cachedNodeCount: number;
+  lastAccessAt: string | null;
+  accessByType: AccessByType[];
+  recentAccessTotal: number;
   recentAccesses: ProxyAccessLog[];
 }
 
 export interface ProxyUserStats {
-  subscribeCount: number;
-  totalAccesses: number;
+  totalSubscriptions: number;
+  totalNodes: number;
+  todayRequests: number;
 }
 
 // ─── API ───
