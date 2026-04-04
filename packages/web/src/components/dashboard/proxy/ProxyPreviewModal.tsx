@@ -1,21 +1,17 @@
-import { EyeOutlined } from "@ant-design/icons";
-import { ScaledModal } from "@acme/components";
+import { EyeOutlined } from "@acme/components";
 import {
   Card,
-  Descriptions,
   Empty,
+  Modal,
   Spin,
   Table,
   Tag,
   Tooltip,
-  Typography,
-} from "antd";
-import type { ColumnsType } from "antd/es/table";
+} from "@acme/components";
+import type { TableColumnsType } from "@acme/components";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { trpc } from "../../../lib/trpc";
-
-const { Text } = Typography;
+import { proxyApi } from "@/generated/rust-api";
 
 // 检测是否为移动设备
 const useIsMobile = () => {
@@ -142,95 +138,6 @@ const formatValue = (
   return String(value);
 };
 
-/** 渲染展开行内容 */
-const ExpandedRow = ({
-  record,
-  noDetailText,
-  clickToCopyText,
-  yesText,
-  noText,
-}: {
-  record: ProxyNode;
-  noDetailText: string;
-  clickToCopyText: string;
-  yesText: string;
-  noText: string;
-}) => {
-  const fields = protocolFields[record.type] || [];
-  const raw = record.raw || {};
-
-  // 获取该协议定义的字段
-  const definedKeys = fields.map((f) => f.key);
-  // 获取 raw 中存在但未在 fields 中定义的字段（排除基本字段）
-  const basicKeys = ["name", "type", "server", "port"];
-  const extraKeys = Object.keys(raw).filter(
-    (k) => !definedKeys.includes(k) && !basicKeys.includes(k),
-  );
-
-  if (fields.length === 0 && extraKeys.length === 0) {
-    return (
-      <div className="px-4 py-2 text-gray-500">
-        <Text type="secondary">{noDetailText}</Text>
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800">
-      <Descriptions
-        size="small"
-        column={{ xs: 1, sm: 2, md: 3, lg: 4 }}
-        bordered
-        labelStyle={{ fontWeight: 500, width: 140 }}
-      >
-        {fields.map((field) => {
-          const value = raw[field.key];
-          if (value === undefined) return null;
-          return (
-            <Descriptions.Item key={field.key} label={field.label}>
-              {field.sensitive ? (
-                <Text
-                  copyable={{ text: formatValue(value, yesText, noText) }}
-                  className="font-mono text-xs"
-                >
-                  <Tooltip title={clickToCopyText}>
-                    {typeof value === "string" && value.length > 20
-                      ? `${value.slice(0, 8)}...${value.slice(-8)}`
-                      : formatValue(value, yesText, noText)}
-                  </Tooltip>
-                </Text>
-              ) : typeof value === "object" ? (
-                <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-h-24 overflow-auto">
-                  {formatValue(value, yesText, noText)}
-                </pre>
-              ) : (
-                <Text className="font-mono text-xs">
-                  {formatValue(value, yesText, noText)}
-                </Text>
-              )}
-            </Descriptions.Item>
-          );
-        })}
-        {/* 显示额外字段 */}
-        {extraKeys.map((key) => {
-          const value = raw[key];
-          return (
-            <Descriptions.Item key={key} label={key}>
-              {typeof value === "object" ? (
-                <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-h-24 overflow-auto">
-                  {formatValue(value)}
-                </pre>
-              ) : (
-                <Text className="font-mono text-xs">{formatValue(value)}</Text>
-              )}
-            </Descriptions.Item>
-          );
-        })}
-      </Descriptions>
-    </div>
-  );
-};
-
 const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
@@ -238,8 +145,8 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
 
-  const { data, isLoading } = trpc.proxy.previewNodes.useQuery(
-    { id: subscribeId },
+  const { data, isLoading } = proxyApi.previewNodes.useQuery(
+    { id: subscribeId, format: "clash" },
     { enabled: !!subscribeId && visible },
   );
 
@@ -256,7 +163,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
     setSubscribeId("");
   };
 
-  const columns: ColumnsType<ProxyNode> = [
+  const columns: TableColumnsType<ProxyNode> = [
     {
       title: t("proxy.preview.source"),
       dataIndex: "sourceIndex",
@@ -269,11 +176,6 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
           </Tag>
         </Tooltip>
       ),
-      filters: [
-        { text: t("proxy.preview.filters.validNodes"), value: false },
-        { text: t("proxy.preview.filters.filtered"), value: true },
-      ],
-      onFilter: (value, record) => record.filtered === value,
     },
     {
       title: t("proxy.preview.protocol"),
@@ -287,16 +189,6 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
           {type.toUpperCase()}
         </Tag>
       ),
-      filters: [
-        { text: "VMess", value: "vmess" },
-        { text: "VLESS", value: "vless" },
-        { text: "Shadowsocks", value: "ss" },
-        { text: "Trojan", value: "trojan" },
-        { text: "Hysteria2", value: "hysteria2" },
-        { text: "Hysteria", value: "hysteria" },
-        { text: "TUIC", value: "tuic" },
-      ],
-      onFilter: (value, record) => record.type === value,
     },
     {
       title: t("proxy.preview.nodeName"),
@@ -310,12 +202,15 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               : name
           }
         >
-          <Text
-            delete={record.filtered}
-            type={record.filtered ? "secondary" : undefined}
+          <span
+            className={
+              record.filtered
+                ? "line-through text-slate-500"
+                : undefined
+            }
           >
             {name}
-          </Text>
+          </span>
         </Tooltip>
       ),
     },
@@ -326,13 +221,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       ellipsis: true,
       render: (server: string, record) => (
         <Tooltip title={server}>
-          <Text
-            copyable={{ text: server }}
-            className="font-mono text-xs"
-            type={record.filtered ? "secondary" : undefined}
+          <span
+            className={`font-mono text-xs${record.filtered ? " text-slate-500" : ""}`}
           >
             {server}
-          </Text>
+          </span>
         </Tooltip>
       ),
     },
@@ -342,12 +235,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       width: 80,
       align: "center",
       render: (port: number, record) => (
-        <Text
-          className="font-mono text-xs"
-          type={record.filtered ? "secondary" : undefined}
+        <span
+          className={`font-mono text-xs${record.filtered ? " text-slate-500" : ""}`}
         >
           {port}
-        </Text>
+        </span>
       ),
     },
     {
@@ -375,25 +267,23 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
         const secret = (raw?.uuid || raw?.password || raw?.["auth-str"]) as
           | string
           | undefined;
-        if (!secret) return <Text type="secondary">-</Text>;
+        if (!secret) return <span className="text-slate-500">-</span>;
         return (
-          <Text
-            copyable={{ text: secret }}
-            className="font-mono text-xs"
-            type={record.filtered ? "secondary" : undefined}
-          >
-            <Tooltip title={t("proxy.preview.clickToCopyFull")}>
+          <Tooltip title={t("proxy.preview.clickToCopyFull")}>
+            <span
+              className={`font-mono text-xs${record.filtered ? " text-slate-500" : ""}`}
+            >
               {secret.length > 16
                 ? `${secret.slice(0, 8)}...${secret.slice(-4)}`
                 : secret}
-            </Tooltip>
-          </Text>
+            </span>
+          </Tooltip>
         );
       },
     },
   ];
 
-  const nodes: ProxyNode[] = data?.nodes ?? [];
+  const nodes = (data?.nodes ?? []) as ProxyNode[];
 
   // 统计节点数量
   const totalCount = nodes.length;
@@ -435,14 +325,12 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
         className={`${node.filtered ? "opacity-60" : ""}`}
         title={
           <div className="flex items-center justify-between gap-2">
-            <Text
-              delete={node.filtered}
-              type={node.filtered ? "secondary" : undefined}
-              className="truncate flex-1"
+            <span
+              className={`truncate flex-1${node.filtered ? " line-through text-slate-500" : ""}`}
               title={node.name}
             >
               {node.name}
-            </Text>
+            </span>
             <Tag
               color={
                 node.filtered ? "default" : typeColorMap[node.type] || "default"
@@ -457,13 +345,12 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
         <div className="space-y-2 text-xs">
           <div className="flex justify-between">
             <span className="text-gray-500">{t("proxy.preview.server")}:</span>
-            <Text
-              copyable={{ text: node.server }}
+            <span
               className="font-mono truncate max-w-[180px]"
               title={node.server}
             >
               {node.server}
-            </Text>
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-500">{t("proxy.preview.port")}:</span>
@@ -530,14 +417,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                       {field.label}:
                     </span>
                     {field.sensitive ? (
-                      <Text
-                        copyable={{ text: formatValue(value) }}
-                        className="font-mono text-xs text-right max-w-[60%] break-all"
-                      >
+                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
                         {typeof value === "string" && value.length > 20
                           ? `${value.slice(0, 8)}...${value.slice(-8)}`
                           : formatValue(value)}
-                      </Text>
+                      </span>
                     ) : typeof value === "object" ? (
                       <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
                         {formatValue(value)}
@@ -575,7 +459,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
   };
 
   return (
-    <ScaledModal
+    <Modal
       title={
         <div className="flex items-center gap-2 flex-wrap">
           <EyeOutlined />
@@ -609,7 +493,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
             {/* 统计信息 */}
             <div className="mb-4 px-2 md:px-4 flex items-center gap-2 flex-wrap">
-              <Text type="secondary" className="text-xs md:text-sm">
+              <span className="text-slate-500 text-xs md:text-sm">
                 {t("proxy.preview.totalNodes", {
                   total: totalCount,
                   active: activeCount,
@@ -617,11 +501,11 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                 {filteredCount > 0 && (
                   <span>
                     , {t("proxy.preview.filtered")}{" "}
-                    <Text type="warning">{filteredCount}</Text>
+                    <span className="text-orange-500">{filteredCount}</span>
                   </span>
                 )}
-                {!isMobile && <>({t("proxy.preview.clickToExpand")}):</>}
-              </Text>
+                :
+              </span>
               {Object.entries(typeCounts).map(([type, count]) => (
                 <Tag
                   key={type}
@@ -650,26 +534,14 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             ) : (
               /* PC端表格 */
               <Table<ProxyNode>
-                rowKey={(record, index) =>
-                  `${record.sourceIndex}-${record.server}-${record.port}-${index}`
+                rowKey={(record) =>
+                  `${record.sourceIndex}-${record.server}-${record.port}`
                 }
                 size="small"
                 bordered
                 columns={columns}
                 dataSource={nodes}
                 rowClassName={(record) => (record.filtered ? "opacity-60" : "")}
-                expandable={{
-                  expandedRowRender: (record) => (
-                    <ExpandedRow
-                      record={record}
-                      noDetailText={t("proxy.preview.noDetailInfo")}
-                      clickToCopyText={t("proxy.preview.clickToCopy")}
-                      yesText={t("proxy.common.confirm")}
-                      noText={t("proxy.common.cancel")}
-                    />
-                  ),
-                  rowExpandable: () => true,
-                }}
                 pagination={{
                   defaultPageSize: 500,
                   showSizeChanger: true,
@@ -690,7 +562,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
           </>
         )}
       </Spin>
-    </ScaledModal>
+    </Modal>
   );
 });
 

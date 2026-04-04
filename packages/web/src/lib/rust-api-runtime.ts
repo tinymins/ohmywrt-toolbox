@@ -39,12 +39,14 @@ interface ApiErr {
 type ApiResult<T> = ApiOk<T> | ApiErr;
 
 class RustApiError extends Error {
+  status: number;
   constructor(
     message: string,
-    public status: number,
+    status: number,
   ) {
     super(message);
     this.name = "RustApiError";
+    this.status = status;
   }
 }
 

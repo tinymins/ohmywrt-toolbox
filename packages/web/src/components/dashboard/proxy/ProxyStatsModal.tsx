@@ -1,33 +1,29 @@
 import {
   BarChartOutlined,
   ClockCircleOutlined,
-  CloudServerOutlined,
   GlobalOutlined,
-} from "@ant-design/icons";
-import { ScaledModal } from "@acme/components";
+} from "@acme/components";
 import {
-  Card,
-  Col,
   Empty,
-  Row,
+  Modal,
   Spin,
   Statistic,
   Table,
   Tag,
-} from "antd";
+} from "@acme/components";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import {
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
 import { keepPreviousData } from "@tanstack/react-query";
 import "dayjs/locale/zh-cn";
-import { trpc } from "../../../lib/trpc";
+import { proxyApi } from "@/generated/rust-api";
 
 dayjs.extend(relativeTime);
 
@@ -61,13 +57,31 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
   const [visible, setVisible] = useState(false);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const [subscribeRemark, setSubscribeRemark] = useState<string>("");
-  const [accessPage, setAccessPage] = useState(1);
-  const [accessPageSize, setAccessPageSize] = useState(20);
 
-  const { data: stats, isLoading } = trpc.proxy.getStats.useQuery(
-    { id: subscribeId, page: accessPage, pageSize: accessPageSize },
+  const { data: stats, isLoading } = proxyApi.getStats.useQuery(
+    { id: subscribeId },
     { enabled: !!subscribeId && visible, placeholderData: keepPreviousData },
   );
+
+  const recentAccesses = stats?.recentAccesses ?? [];
+
+  const todayAccess = useMemo(() => {
+    const todayStart = dayjs().startOf("day");
+    return recentAccesses.filter((a) => dayjs(a.createdAt).isAfter(todayStart)).length;
+  }, [recentAccesses]);
+
+  const lastAccessAt = useMemo(() => {
+    if (recentAccesses.length === 0) return null;
+    return recentAccesses[0]?.createdAt ?? null;
+  }, [recentAccesses]);
+
+  const accessByType = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const a of recentAccesses) {
+      counts[a.accessType] = (counts[a.accessType] || 0) + 1;
+    }
+    return Object.entries(counts).map(([type, count]) => ({ type, count }));
+  }, [recentAccesses]);
 
   useImperativeHandle(ref, () => ({
     open: (id: string, remark?: string | null) => {
@@ -75,7 +89,6 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
       setSubscribeRemark(
         remark || (lang === "zh" ? "未命名订阅" : "Unnamed Subscription"),
       );
-      setAccessPage(1);
       setVisible(true);
     },
   }));
@@ -178,7 +191,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
   ];
 
   return (
-    <ScaledModal
+    <Modal
       title={
         <div className="flex items-center gap-2 flex-wrap">
           <BarChartOutlined />
@@ -207,68 +220,48 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
             )}
 
             {/* 统计卡片 */}
-            <Row gutter={[8, 8]}>
-              <Col span={isMobile ? 12 : 6}>
-                <Card size="small" className="text-center h-full">
-                  <Statistic
-                    title={lang === "zh" ? "总访问" : "Total"}
-                    value={stats.totalAccess}
-                    prefix={<GlobalOutlined />}
-                    valueStyle={isMobile ? { fontSize: 20 } : undefined}
-                  />
-                </Card>
-              </Col>
-              <Col span={isMobile ? 12 : 6}>
-                <Card size="small" className="text-center h-full">
-                  <Statistic
-                    title={lang === "zh" ? "今日" : "Today"}
-                    value={stats.todayAccess}
-                    prefix={<ClockCircleOutlined />}
-                    valueStyle={
-                      isMobile
-                        ? { fontSize: 20, color: "#3f8600" }
-                        : { color: "#3f8600" }
-                    }
-                  />
-                </Card>
-              </Col>
-              <Col span={isMobile ? 12 : 6}>
-                <Card size="small" className="text-center h-full">
-                  <Statistic
-                    title={lang === "zh" ? "活跃节点" : "Nodes"}
-                    value={stats.cachedNodeCount}
-                    prefix={<CloudServerOutlined />}
-                    valueStyle={
-                      isMobile
-                        ? { fontSize: 20, color: "#1677ff" }
-                        : { color: "#1677ff" }
-                    }
-                  />
-                </Card>
-              </Col>
-              <Col span={isMobile ? 12 : 6}>
-                <Card size="small" className="text-center h-full">
-                  <Statistic
-                    title={lang === "zh" ? "最后访问" : "Last"}
-                    value={
-                      stats.lastAccessAt
-                        ? dayjs(stats.lastAccessAt).fromNow()
-                        : "-"
-                    }
-                    valueStyle={{ fontSize: isMobile ? 14 : 16 }}
-                  />
-                </Card>
-              </Col>
-            </Row>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="text-center h-full rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <Statistic
+                  title={lang === "zh" ? "总访问" : "Total"}
+                  value={stats.totalAccesses}
+                  prefix={<GlobalOutlined />}
+                  valueStyle={isMobile ? { fontSize: 20 } : undefined}
+                />
+              </div>
+              <div className="text-center h-full rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <Statistic
+                  title={lang === "zh" ? "今日" : "Today"}
+                  value={todayAccess}
+                  prefix={<ClockCircleOutlined />}
+                  valueStyle={
+                    isMobile
+                      ? { fontSize: 20, color: "#3f8600" }
+                      : { color: "#3f8600" }
+                  }
+                />
+              </div>
+              <div className="text-center h-full rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <Statistic
+                  title={lang === "zh" ? "最后访问" : "Last"}
+                  value={
+                    lastAccessAt
+                      ? dayjs(lastAccessAt).fromNow()
+                      : "-"
+                  }
+                  valueStyle={{ fontSize: isMobile ? 14 : 16 }}
+                />
+              </div>
+            </div>
 
             {/* 按类型统计 */}
-            {stats.accessByType.length > 0 && (
+            {accessByType.length > 0 && (
               <div>
                 <h4 className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-400">
                   {lang === "zh" ? "访问类型分布" : "Access by Type"}
                 </h4>
                 <div className="flex gap-2 md:gap-4 flex-wrap">
-                  {stats.accessByType.map((item) => (
+                  {accessByType.map((item) => (
                     <Tag
                       key={item.type}
                       color={item.type === "clash" ? "blue" : "green"}
@@ -286,15 +279,12 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
               <h4 className="mb-2 text-sm font-medium text-slate-600 dark:text-slate-400">
                 {lang === "zh" ? "最近访问记录" : "Recent Access"}
               </h4>
-              {stats.recentAccess.length > 0 ||
-              stats.recentAccessTotal > 0 ? (
+              {recentAccesses.length > 0 ? (
                 <Table
                   size="small"
                   bordered
                   pagination={{
-                    current: accessPage,
-                    pageSize: accessPageSize,
-                    total: stats.recentAccessTotal,
+                    defaultPageSize: 20,
                     showSizeChanger: true,
                     pageSizeOptions: ["10", "20", "50", "100"],
                     showTotal: (total) =>
@@ -302,12 +292,8 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                         ? `共 ${total} 条`
                         : `${total} records`,
                     size: "small",
-                    onChange: (page, pageSize) => {
-                      setAccessPage(page);
-                      setAccessPageSize(pageSize);
-                    },
                   }}
-                  dataSource={stats.recentAccess}
+                  dataSource={recentAccesses}
                   columns={isMobile ? mobileAccessColumns : accessColumns}
                   rowKey="createdAt"
                   scroll={isMobile ? { y: 200 } : { y: 300 }}
@@ -326,7 +312,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           <Empty description={lang === "zh" ? "加载中..." : "Loading..."} />
         )}
       </Spin>
-    </ScaledModal>
+    </Modal>
   );
 });
 

@@ -3,21 +3,14 @@ import type {
   SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
-import { ScaledModal } from "@acme/components";
+import { Checkbox, Form, Modal, Select, Spin, Tabs, TextArea } from "@acme/components";
 import Editor, { loader } from "@monaco-editor/react";
-import {
-  Checkbox,
-  Form,
-  Input,
-  message,
-  Segmented,
-  Select,
-  Spin,
-} from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { trpc } from "../../../lib/trpc";
+import { proxyApi, adminApi, userApi } from "@/generated/rust-api";
+import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
 
@@ -48,7 +41,7 @@ const JsoncEditor = ({ value, onChange, readOnly }: JsoncEditorProps) => {
         language="json"
         value={value || ""}
         theme="vs-dark"
-        onChange={(val) => {
+        onChange={(val: string | undefined) => {
           if (!readOnly) onChange?.(val || "");
         }}
         options={{
@@ -64,7 +57,7 @@ const JsoncEditor = ({ value, onChange, readOnly }: JsoncEditorProps) => {
           tabSize: 2,
           readOnly: readOnly ?? false,
         }}
-        beforeMount={(monaco) => {
+        beforeMount={(monaco: any) => {
           // 配置 JSON 语言允许注释和尾随逗号
           monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
             validate: true,
@@ -197,7 +190,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     const [activeTab, setActiveTab] = useState("basic");
     const [isOwner, setIsOwner] = useState(true); // 是否是创建者
     const [form] = Form.useForm();
-    const [messageApi, contextHolder] = message.useMessage();
+    const queryClient = useQueryClient();
 
     // 获取 tabs 的本地化标签
     const localizedTabs = TABS.map((tab) => ({
@@ -206,43 +199,40 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     }));
 
     // 获取用户列表
-    const { data: userList } = trpc.user.list.useQuery();
+    const { data: userList } = adminApi.listUsers.useQuery();
 
     // 获取当前用户信息
-    const { data: currentUser } = trpc.user.getProfile.useQuery();
+    const { data: currentUser } = userApi.getProfile.useQuery();
 
     // 获取默认配置
-    const { data: defaults } = trpc.proxy.getDefaults.useQuery();
-
-    // tRPC utils for cache invalidation
-    const utils = trpc.useUtils();
+    const { data: defaults } = proxyApi.getDefaults.useQuery();
 
     const { data: existingData, isLoading: isLoadingData } =
-      trpc.proxy.getById.useQuery({ id: id! }, { enabled: !!id });
+      proxyApi.getById.useQuery({ id: id! }, { enabled: !!id });
 
-    const createMutation = trpc.proxy.create.useMutation({
+    const createMutation = proxyApi.create.useMutation({
       onSuccess: () => {
-        messageApi.success(t("proxy.createSuccess"));
+        message.success(t("proxy.createSuccess"));
         setOpen(false);
         onSuccess();
       },
       onError: (error) => {
-        messageApi.error(error.message || t("proxy.createFailed"));
+        message.error(error.message || t("proxy.createFailed"));
       },
     });
 
-    const updateMutation = trpc.proxy.update.useMutation({
+    const updateMutation = proxyApi.update.useMutation({
       onSuccess: () => {
-        messageApi.success(t("proxy.updateSuccess"));
+        message.success(t("proxy.updateSuccess"));
         // 使 getById 缓存失效，下次打开时重新获取
         if (id) {
-          utils.proxy.getById.invalidate({ id });
+          proxyApi.getById.invalidate(queryClient, { id });
         }
         setOpen(false);
         onSuccess();
       },
       onError: (error) => {
-        messageApi.error(error.message || t("proxy.updateFailed"));
+        message.error(error.message || t("proxy.updateFailed"));
       },
     });
 
@@ -290,7 +280,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         existingData.subscribeItems.length > 0
       ) {
         // 如果 item 没有自己的 cacheTtlMinutes，用全局值回填
-        items = existingData.subscribeItems.map((item) => ({
+        items = (existingData.subscribeItems as SubscribeItem[]).map((item: SubscribeItem) => ({
           ...item,
           cacheTtlMinutes: item.cacheTtlMinutes ?? globalCacheTtl,
         }));
@@ -356,7 +346,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             parseJsonc(values[field]);
             return true;
           } catch {
-            messageApi.error(`${field} ${t("proxy.form.jsonFormatError")}`);
+            message.error(`${field} ${t("proxy.form.jsonFormatError")}`);
             return false;
           }
         };
@@ -457,9 +447,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     ];
 
     return (
-      <>
-        {contextHolder}
-          <ScaledModal
+        <Modal
             title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
             open={open}
             onCancel={() => setOpen(false)}
@@ -469,11 +457,11 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           >
           <Spin spinning={loading || isLoadingData}>
               <div className="mb-4">
-                <Segmented
-                  block
-                  options={localizedTabs}
-                  value={activeTab}
-                  onChange={(value) => setActiveTab(value as string)}
+                <Tabs
+                  type="segment"
+                  activeKey={activeTab}
+                  onChange={(key) => setActiveTab(key)}
+                  items={localizedTabs.map(tab => ({ key: tab.value, label: tab.label }))}
                 />
               </div>
 
@@ -483,7 +471,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 style={{ display: activeTab === "basic" ? "block" : "none" }}
               >
                 <Form.Item label={t("proxy.form.remark")} name="remark">
-                  <Input.TextArea
+                  <TextArea
                     rows={3}
                     placeholder={t("proxy.form.remarkPlaceholder")}
                   />
@@ -601,8 +589,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               </div>
             </Form>
           </Spin>
-        </ScaledModal>
-      </>
+        </Modal>
     );
   },
 );

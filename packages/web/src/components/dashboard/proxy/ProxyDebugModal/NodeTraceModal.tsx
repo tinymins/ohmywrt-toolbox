@@ -8,9 +8,9 @@ import {
   Collapse,
   Descriptions,
   Empty,
-  Loading,
   MinusCircleOutlined,
   Modal,
+  Spin,
   Tag,
 } from "@acme/components";
 import type { ProxyDebugFormat, ProxyNodeTraceStep } from "@acme/types";
@@ -188,7 +188,7 @@ const FilterTraceContent = ({
               ),
               children: (
                 <div className="flex flex-wrap gap-1">
-                  {data.filtersApplied.map((f) => (
+                  {data.filtersApplied.map((f: string) => (
                     <Tag
                       key={f}
                       color={f === data.matchedRule ? "orange" : "default"}
@@ -294,7 +294,7 @@ const GroupAssignTraceContent = ({
 
   return (
     <div className="flex flex-wrap gap-1">
-      {data.assignedGroups.map((g) => (
+      {data.assignedGroups.map((g: any) => (
         <Tag key={g.name} color="purple">
           {g.name} <span className="text-slate-500 text-xs">({g.type})</span>
         </Tag>
@@ -563,7 +563,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         }));
     }, [allNodeNames, searchValue, t]);
 
-    const filterStep = data?.steps.find((s) => s.type === "filter");
+    const filterStep = data?.steps.find((s: any) => s.type === "filter") as Extract<ProxyNodeTraceStep, { type: "filter" }> | undefined;
     const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
     return (
@@ -620,7 +620,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
 
         {tracingNodeName && isLoading && (
           <div className="flex items-center justify-center py-12">
-            <Loading />
+            <Spin />
             <span className="text-slate-500 ml-2">
               {t("proxy.debug.traceLoading")}
             </span>
@@ -643,7 +643,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         )}
 
         {tracingNodeName && data && data.steps.length > 0 && (
-          <TraceStepsContent data={data} format={format} />
+          <TraceStepsContent data={data as { nodeName: string; steps: ProxyNodeTraceStep[] }} format={format} />
         )}
       </Modal>
     );

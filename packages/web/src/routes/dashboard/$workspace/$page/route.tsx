@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import { PAGE_NAMES } from "@/components/dashboard/nav-config";
+import { ProxySubscribeList } from "@/components/dashboard/proxy";
 import GeneralSettingsPage from "@/components/settings/GeneralSettingsPage";
 
 export default function DemoPageRoute() {
@@ -14,6 +15,10 @@ export default function DemoPageRoute() {
 
   if (page === "admin") {
     return <AdminSettingsPage />;
+  }
+
+  if (page === "proxy") {
+    return <ProxySubscribeList />;
   }
 
   const pageName =

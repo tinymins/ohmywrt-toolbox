@@ -74,7 +74,7 @@ export const ConfigStepContent = ({
           children:
             data.filters.length > 0 ? (
               <div className="flex flex-wrap gap-1">
-                {data.filters.map((f) => (
+                {data.filters.map((f: string) => (
                   <Tag key={f}>{f}</Tag>
                 ))}
               </div>
@@ -186,7 +186,7 @@ export const ManualServersStepContent = ({
           size="small"
           pagination={false}
           dataSource={data.nodes}
-          rowKey={(_, i) => String(i)}
+          rowKey={(record: any) => String(data.nodes.indexOf(record))}
           columns={[
             {
               title: t("proxy.preview.nodeName"),
@@ -360,11 +360,11 @@ export const SourceResultStepContent = ({
                       size="small"
                       pagination={false}
                       dataSource={data.filteredNodes}
-                      rowKey={(_, i) => String(i)}
+                      rowKey={(record: any) => String(data.filteredNodes.indexOf(record))}
                       columns={[
                         {
                           title: t("proxy.preview.nodeName"),
-                          dataIndex: ["node", "name"],
+                          dataIndex: ["node", "name"] as any,
                           ellipsis: true,
                         },
                         {
@@ -416,7 +416,7 @@ export const SourceResultStepContent = ({
                 pagination={false}
                 scroll={{ y: 300 }}
                 dataSource={data.nodesAfterFilter}
-                rowKey={(_, i) => String(i)}
+                rowKey={(record: any) => String(data.nodesAfterFilter.indexOf(record))}
                 columns={[
                   {
                     title: t("proxy.preview.nodeName"),
@@ -517,7 +517,7 @@ export const MergeStepContent = ({
             ),
             children: (
               <div className="flex flex-wrap gap-1">
-                {data.finalNodeNames.map((name, _i) =>
+                {data.finalNodeNames.map((name: string, _i: number) =>
                   onTraceNode ? (
                     <Tooltip key={name} title={t("proxy.debug.traceNode")}>
                       <Tag

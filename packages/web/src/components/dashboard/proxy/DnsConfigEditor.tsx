@@ -1,12 +1,6 @@
 import type { DnsConfig, DnsSharedConfig } from "@acme/types";
 import Editor, { loader } from "@monaco-editor/react";
-import {
-  Input,
-  InputNumber,
-  Segmented,
-  Switch,
-  Typography,
-} from "antd";
+import { Input, InputNumber, Switch, Tabs } from "@acme/components";
 import { parse as parseJsonc } from "jsonc-parser";
 import { useCallback, useMemo, useState } from "react";
 import type React from "react";
@@ -160,17 +154,18 @@ const DnsConfigEditor = ({
   return (
     <div className="space-y-3">
       {!readOnly && (
-        <Segmented
+        <Tabs
+          type="segment"
           size="small"
-          options={[
-            { label: t("proxy.form.dnsTabShared"), value: "shared" },
-            { label: "Clash", value: "clash" },
-            { label: "Clash Meta", value: "clashMeta" },
-            { label: "Sing-box v1.11", value: "singbox" },
-            { label: "Sing-box v1.12+", value: "singboxV12" },
-          ]}
-          value={tab}
+          activeKey={tab}
           onChange={(v) => setTab(v as TopTab)}
+          items={[
+            { key: "shared", label: t("proxy.form.dnsTabShared") },
+            { key: "clash", label: "Clash" },
+            { key: "clashMeta", label: "Clash Meta" },
+            { key: "singbox", label: "Sing-box v1.11" },
+            { key: "singboxV12", label: "Sing-box v1.12+" },
+          ]}
         />
       )}
 
@@ -184,9 +179,9 @@ const DnsConfigEditor = ({
 
       {overrideKey && !readOnly && (
         <div className="space-y-2">
-          <Typography.Text type="secondary" className="text-xs">
+          <span className="text-xs text-slate-500">
             {t("proxy.form.dnsOverrideHint")}
-          </Typography.Text>
+          </span>
           <JsoncEditor
             value={overrideValue}
             onChange={(val) => handleOverrideChange(overrideKey, val)}
@@ -372,7 +367,7 @@ const JsoncEditor = ({ value, onChange, placeholder }: JsoncEditorProps) => (
       language="json"
       value={value || (placeholder ?? "")}
       theme="vs-dark"
-      onChange={(val) => onChange(val || "")}
+      onChange={(val: string | undefined) => onChange(val || "")}
       options={{
         automaticLayout: true,
         selectOnLineNumbers: true,
@@ -385,7 +380,7 @@ const JsoncEditor = ({ value, onChange, placeholder }: JsoncEditorProps) => (
         minimap: { enabled: false },
         tabSize: 2,
       }}
-      beforeMount={(monaco) => {
+      beforeMount={(monaco: any) => {
         monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
           validate: true,
           allowComments: true,
@@ -408,12 +403,9 @@ const JsoncEditor = ({ value, onChange, placeholder }: JsoncEditorProps) => (
 
 /** 小节标题 */
 const SectionTitle = ({ title }: { title: string }) => (
-  <Typography.Text
-    strong
-    className="block text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide pt-1"
-  >
+  <span className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide pt-1">
     {title}
-  </Typography.Text>
+  </span>
 );
 
 /** 一行表单字段 */

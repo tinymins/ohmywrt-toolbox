@@ -1,9 +1,14 @@
 import type { SubscribeItem } from "@acme/types";
 import {
+  Button,
+  Checkbox,
   DeleteOutlined,
   HolderOutlined,
+  Input,
+  InputNumber,
   PlusOutlined,
-} from "@ant-design/icons";
+  Tooltip,
+} from "@acme/components";
 import {
   DndContext,
   type DragEndEvent,
@@ -19,7 +24,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Button, Checkbox, Input, InputNumber, Tooltip } from "antd";
+
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -104,7 +109,7 @@ const SortableCard = ({
           className="flex-1"
         />
         <Button
-          type="text"
+          variant="text"
           size="small"
           danger
           icon={<DeleteOutlined />}
@@ -143,7 +148,7 @@ const SortableCard = ({
               placeholder={t("proxy.form.subscribeItemCacheTtlPlaceholder")}
               value={item.cacheTtlMinutes}
               onChange={(val) => onUpdate({ cacheTtlMinutes: val ?? undefined })}
-              suffix={t("proxy.form.cacheTtlUnit")}
+              addonAfter={t("proxy.form.cacheTtlUnit")}
               style={{ width: 130 }}
             />
           </Tooltip>
@@ -251,7 +256,7 @@ const SubscribeItemsEditor = ({ value = [], onChange }: Props) => {
       </SortableContext>
 
       <Button
-        type="dashed"
+        variant="dashed"
         block
         icon={<PlusOutlined />}
         onClick={add}

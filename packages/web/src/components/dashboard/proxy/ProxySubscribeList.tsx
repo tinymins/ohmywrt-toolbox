@@ -5,23 +5,21 @@ import {
   EyeOutlined,
   LinkOutlined,
   PlusOutlined,
-} from "@ant-design/icons";
+} from "@acme/components";
 import {
   Button,
   Card,
-  message,
   Popconfirm,
-  Space,
   Spin,
   Table,
   Tag,
   Tooltip,
-  Typography,
-} from "antd";
+} from "@acme/components";
 import dayjs from "dayjs";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { trpc } from "../../../lib/trpc";
+import { message } from "@/lib/message";
+import { proxyApi } from "@/generated/rust-api";
 import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
 import ProxyPreviewModal, {
   type ProxyPreviewModalRef,
@@ -30,8 +28,6 @@ import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
 import ProxySubscribeModal, {
   type ProxySubscribeModalRef,
 } from "./ProxySubscribeModal";
-
-const { Text } = Typography;
 
 // 检测是否为移动设备
 const useIsMobile = () => {
@@ -76,35 +72,33 @@ export default function ProxySubscribeList() {
   const previewModalRef = useRef<ProxyPreviewModalRef>(null);
   const statsModalRef = useRef<ProxyStatsModalRef>(null);
   const linksModalRef = useRef<ProxyLinksModalRef>(null);
-  const [messageApi, contextHolder] = message.useMessage();
   const isMobile = useIsMobile();
 
-  const { data: list, isLoading, refetch } = trpc.proxy.list.useQuery();
+  const { data: list, isLoading, refetch } = proxyApi.list.useQuery();
 
-  const deleteMutation = trpc.proxy.delete.useMutation({
+  const deleteMutation = proxyApi.delete.useMutation({
     onSuccess: () => {
-      messageApi.success(t("proxy.deleteSuccess"));
+      message.success(t("proxy.deleteSuccess"));
       refetch();
     },
     onError: (error) => {
-      messageApi.error(error.message || t("proxy.deleteFailed"));
+      message.error(error.message || t("proxy.deleteFailed"));
     },
   });
 
   return (
     <div>
-      {contextHolder}
       <ProxySubscribeModal ref={modalRef} onSuccess={refetch} />
       <ProxyPreviewModal ref={previewModalRef} />
       <ProxyStatsModal ref={statsModalRef} />
       <ProxyLinksModal ref={linksModalRef} />
 
       <div className="flex justify-between items-center mb-3 md:mb-4">
-        <Typography.Title level={4} className="!mb-0 !text-lg md:!text-xl">
+        <h4 className="mb-0 text-lg md:text-xl">
           {t("proxy.title")}
-        </Typography.Title>
+        </h4>
         <Button
-          type="primary"
+          variant="primary"
           icon={<PlusOutlined />}
           onClick={() => modalRef.current?.open()}
           size={isMobile ? "middle" : "middle"}
@@ -128,11 +122,11 @@ export default function ProxySubscribeList() {
                   {/* Header: Creator & Remark */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <Text strong>
+                      <span className="font-semibold">
                         {record.remark || t("proxy.preview.unnamed")}
-                      </Text>
+                      </span>
                       <div className="text-xs text-gray-500 mt-0.5">
-                        {record.user.name} ·{" "}
+                        {(record as any).user?.name ?? "-"} ·{" "}
                         {dayjs(record.updatedAt).format("MM-DD HH:mm")}
                       </div>
                     </div>
@@ -142,7 +136,7 @@ export default function ProxySubscribeList() {
                       </Tag>
                       <Tag color="green">
                         {t("proxy.columns.accessCount")}:{" "}
-                        {record.totalAccessCount}
+                        {(record as any).totalAccessCount ?? "-"}
                       </Tag>
                     </div>
                   </div>
@@ -150,7 +144,7 @@ export default function ProxySubscribeList() {
                   {/* Actions */}
                   <div className="flex justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
                     <Button
-                      type="link"
+                      variant="link"
                       size="small"
                       icon={<LinkOutlined />}
                       onClick={() =>
@@ -162,7 +156,7 @@ export default function ProxySubscribeList() {
                       }
                     />
                     <Button
-                      type="link"
+                      variant="link"
                       size="small"
                       icon={<BarChartOutlined />}
                       onClick={() =>
@@ -170,7 +164,7 @@ export default function ProxySubscribeList() {
                       }
                     />
                     <Button
-                      type="link"
+                      variant="link"
                       size="small"
                       icon={<EyeOutlined />}
                       onClick={() =>
@@ -178,7 +172,7 @@ export default function ProxySubscribeList() {
                       }
                     />
                     <Button
-                      type="link"
+                      variant="link"
                       size="small"
                       icon={<EditOutlined />}
                       onClick={() => modalRef.current?.open(record.id)}
@@ -191,7 +185,7 @@ export default function ProxySubscribeList() {
                       cancelText={t("proxy.common.cancel")}
                     >
                       <Button
-                        type="link"
+                        variant="link"
                         danger
                         size="small"
                         icon={<DeleteOutlined />}
@@ -220,9 +214,9 @@ export default function ProxySubscribeList() {
             columns={[
               {
                 title: t("proxy.columns.creator"),
-                dataIndex: ["user", "name"],
                 width: 100,
                 ellipsis: true,
+                render: (_, record) => (record as any).user?.name ?? "-",
               },
               {
                 title: t("proxy.columns.remark"),
@@ -243,7 +237,7 @@ export default function ProxySubscribeList() {
                 dataIndex: "totalAccessCount",
                 width: 90,
                 align: "center",
-                render: (val: number) => <Tag color="green">{val}</Tag>,
+                render: (val: number) => <Tag color="green">{val ?? "-"}</Tag>,
               },
               {
                 title: t("proxy.columns.lastUpdate"),
@@ -259,10 +253,10 @@ export default function ProxySubscribeList() {
                 width: 200,
                 fixed: "right",
                 render: (_, record) => (
-                  <Space size="middle">
+                  <div className="flex gap-4 items-center justify-center">
                     <Tooltip title={t("proxy.links.title")}>
                       <Button
-                        type="link"
+                        variant="link"
                         size="small"
                         icon={<LinkOutlined />}
                         onClick={() =>
@@ -276,7 +270,7 @@ export default function ProxySubscribeList() {
                     </Tooltip>
                     <Tooltip title={t("proxy.actions.stats")}>
                       <Button
-                        type="link"
+                        variant="link"
                         size="small"
                         icon={<BarChartOutlined />}
                         onClick={() =>
@@ -286,7 +280,7 @@ export default function ProxySubscribeList() {
                     </Tooltip>
                     <Tooltip title={t("proxy.actions.preview")}>
                       <Button
-                        type="link"
+                        variant="link"
                         size="small"
                         icon={<EyeOutlined />}
                         onClick={() =>
@@ -299,7 +293,7 @@ export default function ProxySubscribeList() {
                     </Tooltip>
                     <Tooltip title={t("proxy.actions.edit")}>
                       <Button
-                        type="link"
+                        variant="link"
                         size="small"
                         icon={<EditOutlined />}
                         onClick={() => modalRef.current?.open(record.id)}
@@ -314,7 +308,7 @@ export default function ProxySubscribeList() {
                     >
                       <Tooltip title={t("proxy.actions.delete")}>
                         <Button
-                          type="link"
+                          variant="link"
                           danger
                           size="small"
                           icon={<DeleteOutlined />}
@@ -322,7 +316,7 @@ export default function ProxySubscribeList() {
                         />
                       </Tooltip>
                     </Popconfirm>
-                  </Space>
+                  </div>
                 ),
               },
             ]}

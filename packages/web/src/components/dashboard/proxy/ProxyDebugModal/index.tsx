@@ -4,7 +4,6 @@ import {
   BugOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  Loading,
   LoadingOutlined,
   Modal,
   Tag,
@@ -75,7 +74,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     proxyApi.debugSubscription
       .stream(
         { id: subscribeId, format },
-        (step: ProxyDebugStep) => {
+        (chunk: unknown) => {
+          const step = chunk as ProxyDebugStep;
           setSteps((prev) => {
             if (step.type === "source-result") {
               const filtered = prev.filter(
@@ -168,6 +168,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         return t("proxy.debug.configBuild");
       case "done":
         return t("proxy.debug.complete");
+      default:
+        return (step as any).type;
     }
   };
 
@@ -283,7 +285,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       {steps.length === 0 && !error && (
         <div className="flex items-center justify-center py-12">
           <div className="flex gap-2 items-center">
-            <Loading />
+            <LoadingOutlined spin />
             <span className="text-slate-500">
               {t("proxy.debug.fetchingSource")}
             </span>

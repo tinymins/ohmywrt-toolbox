@@ -2,18 +2,18 @@ import type { ProxyDebugFormat } from "@acme/types";
 import {
   ApiOutlined,
   BugOutlined,
+  Button,
   CopyOutlined,
   ExportOutlined,
   GlobalOutlined,
   LinkOutlined,
-} from "@ant-design/icons";
-import { ScaledModal } from "@acme/components";
-import { Button, message, Space, Tag, Typography } from "antd";
+  Modal,
+  Tag,
+} from "@acme/components";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { message } from "@/lib/message";
 import ProxyDebugModal, { type ProxyDebugModalRef } from "./ProxyDebugModal";
-
-const { Text, Paragraph } = Typography;
 
 /** Map link item key to debug format */
 const DEBUG_FORMAT_MAP: Record<string, ProxyDebugFormat> = {
@@ -29,7 +29,6 @@ export interface ProxyLinksModalRef {
 
 const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const { t } = useTranslation();
-  const [messageApi, contextHolder] = message.useMessage();
   const [visible, setVisible] = useState(false);
   const [uuid, setUuid] = useState("");
   const [remark, setRemark] = useState<string | null>(null);
@@ -53,7 +52,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url).then(() => {
-      messageApi.success(t("proxy.copiedToClipboard"));
+      message.success(t("proxy.copiedToClipboard"));
     });
   };
 
@@ -94,14 +93,13 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
 
   return (
     <>
-      {contextHolder}
       <ProxyDebugModal ref={debugModalRef} />
-      <ScaledModal
+      <Modal
         title={
-          <Space>
+          <div className="flex gap-2 items-center">
             <LinkOutlined />
             <span>{t("proxy.links.title")}</span>
-          </Space>
+          </div>
         }
         open={visible}
         onCancel={() => setVisible(false)}
@@ -111,7 +109,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
       >
         {remark && (
           <div className="mb-4">
-            <Text type="secondary">{remark}</Text>
+            <span className="text-slate-500">{remark}</span>
           </div>
         )}
 
@@ -122,7 +120,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
               className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50"
             >
               <div className="flex items-center justify-between mb-2">
-                <Space size={8}>
+                <div className="flex gap-2 items-center">
                   <Tag
                     color={item.tagColor}
                     className="!mr-0"
@@ -130,10 +128,10 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
                   >
                     {item.icon} {item.label}
                   </Tag>
-                </Space>
-                <Space size={4}>
+                </div>
+                <div className="flex gap-1 items-center">
                   <Button
-                    type="text"
+                    variant="text"
                     size="small"
                     icon={<CopyOutlined style={{ color: "#3b82f6" }} />}
                     style={{ color: "#3b82f6" }}
@@ -142,7 +140,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
                     {t("proxy.links.copy")}
                   </Button>
                   <Button
-                    type="text"
+                    variant="text"
                     size="small"
                     icon={<ExportOutlined style={{ color: "#22c55e" }} />}
                     style={{ color: "#22c55e" }}
@@ -152,7 +150,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
                   </Button>
                   {subscribeId && (
                     <Button
-                      type="text"
+                      variant="text"
                       size="small"
                       icon={<BugOutlined style={{ color: "#f59e0b" }} />}
                       style={{ color: "#f59e0b" }}
@@ -166,19 +164,18 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
                       {t("proxy.links.debug")}
                     </Button>
                   )}
-                </Space>
+                </div>
               </div>
-              <Paragraph
-                className="!mb-0 !text-xs break-all select-all"
-                type="secondary"
+              <p
+                className="mb-0 text-xs break-all select-all text-slate-500"
                 style={{ lineHeight: 1.6 }}
               >
                 {item.url}
-              </Paragraph>
+              </p>
             </div>
           ))}
         </div>
-      </ScaledModal>
+      </Modal>
     </>
   );
 });

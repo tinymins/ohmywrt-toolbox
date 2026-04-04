@@ -5,8 +5,8 @@ import {
   Collapse,
   Descriptions,
   Empty,
-  Loading,
   MinusCircleOutlined,
+  Spin,
   Tag,
 } from "@acme/components";
 import type { ProxyDebugFormat, ProxyNodeTraceStep } from "@acme/types";
@@ -176,7 +176,7 @@ const FilterTraceContent = ({
               ),
               children: (
                 <div className="flex flex-wrap gap-1">
-                  {data.filtersApplied.map((f, _i) => (
+                  {data.filtersApplied.map((f: string, _i: number) => (
                     <Tag
                       key={f}
                       color={f === data.matchedRule ? "orange" : "default"}
@@ -282,7 +282,7 @@ const GroupAssignTraceContent = ({
 
   return (
     <div className="flex flex-wrap gap-1">
-      {data.assignedGroups.map((g, _i) => (
+      {data.assignedGroups.map((g: any, _i: number) => (
         <Tag key={g.name} color="purple">
           {g.name} <span className="text-slate-500 text-xs">({g.type})</span>
         </Tag>
@@ -416,7 +416,7 @@ const NodeTracePanel = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loading />
+        <Spin />
         <span className="text-slate-500 ml-2">
           {t("proxy.debug.traceLoading")}
         </span>
@@ -442,10 +442,10 @@ const NodeTracePanel = ({
   }
 
   // 找出存在的步骤类型
-  const existingStepTypes = new Set(data.steps.map((s) => s.type));
+  const existingStepTypes = new Set(data.steps.map((s: any) => s.type));
 
   // 检查节点是否被过滤
-  const filterStep = data.steps.find((s) => s.type === "filter");
+  const filterStep = data.steps.find((s: any) => s.type === "filter") as Extract<ProxyNodeTraceStep, { type: "filter" }> | undefined;
   const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
   // 构建显示步骤列表：包含已执行的和被跳过的步骤
@@ -460,7 +460,7 @@ const NodeTracePanel = ({
     }
     return true;
   }).map((stepType) => {
-    const actualStep = data.steps.find((s) => s.type === stepType);
+    const actualStep = data.steps.find((s: any) => s.type === stepType);
     const isSkipped = !existingStepTypes.has(stepType) && isFiltered;
     return { stepType, actualStep, isSkipped };
   });
@@ -470,7 +470,7 @@ const NodeTracePanel = ({
       <div className="flex items-center gap-2 mb-4">
         <AimOutlined className="text-blue-500" />
         <span className="font-semibold">{t("proxy.debug.traceTitle")}</span>
-        <Tag color="blue">{data.nodeName}</Tag>
+        <Tag color="blue">{(data as any).nodeName}</Tag>
         {isFiltered && (
           <Tag color="orange">{t("proxy.debug.traceFilteredLabel")}</Tag>
         )}
@@ -521,7 +521,7 @@ const NodeTracePanel = ({
                   </div>
                 ) : actualStep ? (
                   <div className="mt-2 mb-4">
-                    {renderStepContent(actualStep)}
+                    {renderStepContent(actualStep as ProxyNodeTraceStep)}
                   </div>
                 ) : null}
               </div>
