@@ -1,6 +1,14 @@
-import { Button, Input, Modal, Tabs } from "@acme/components";
+import {
+  Button,
+  ControlOutlined,
+  cn,
+  Form,
+  Input,
+  Modal,
+  WarningOutlined,
+} from "@acme/components";
 import { SYSTEM_SHARED_SLUG } from "@acme/types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { workspaceApi } from "@/generated/rust-api";
@@ -20,7 +28,10 @@ export default function WorkspaceSettingsModal({
   const navigate = useNavigate();
   const { workspace: workspaceSlug } = useParams<{ workspace: string }>();
   const { singleWorkspaceMode } = useSystemSettings();
+  const [activeTab, setActiveTab] = useState("general");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [form] = Form.useForm();
+  const hasOpenedRef = useRef(false);
 
   const effectiveSlug = singleWorkspaceMode
     ? SYSTEM_SHARED_SLUG
@@ -32,17 +43,22 @@ export default function WorkspaceSettingsModal({
   );
   const workspace = workspaceQuery.data;
 
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-
   useEffect(() => {
-    if (workspace) {
-      setName(workspace.name);
-      setSlug(workspace.slug);
-      setDescription(workspace.description ?? "");
+    if (!open) {
+      if (hasOpenedRef.current) {
+        setActiveTab("general");
+      }
+      return;
     }
-  }, [workspace]);
+    hasOpenedRef.current = true;
+    if (workspace) {
+      form.setFieldsValue({
+        name: workspace.name,
+        slug: workspace.slug,
+        description: workspace.description ?? "",
+      });
+    }
+  }, [open, workspace, form]);
 
   const updateMutation = workspaceApi.update.useMutation({
     onSuccess: (updated) => {
@@ -76,6 +92,7 @@ export default function WorkspaceSettingsModal({
         onCancel={onClose}
         title={t("workspace.settings")}
         footer={null}
+        width={660}
       >
         <div className="flex items-center justify-center py-8">
           <p className="text-[var(--text-muted)]">{t("login.loading")}</p>
@@ -84,19 +101,11 @@ export default function WorkspaceSettingsModal({
     );
   }
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedName = name.trim();
-    const trimmedSlug = slug.trim();
-    if (!trimmedName) {
-      message.error(t("workspace.nameRequired"));
-      return;
-    }
-    if (!singleWorkspaceMode) {
-      if (!trimmedSlug) {
-        message.error(t("workspace.slugRequired"));
-        return;
-      }
+  const handleSave = async () => {
+    const values = await form.validateFields();
+    const trimmedName = (values.name as string).trim();
+    const trimmedSlug = (values.slug as string | undefined)?.trim();
+    if (!singleWorkspaceMode && trimmedSlug) {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(trimmedSlug)) {
         message.error(t("workspace.slugPattern"));
         return;
@@ -106,7 +115,7 @@ export default function WorkspaceSettingsModal({
       id: workspace.id,
       name: trimmedName,
       slug: singleWorkspaceMode ? undefined : trimmedSlug,
-      description: description.trim() || null,
+      description: ((values.description as string) ?? "").trim() || null,
     });
   };
 
@@ -114,86 +123,66 @@ export default function WorkspaceSettingsModal({
     await deleteMutation.mutateAsync({ id: workspace.id });
   };
 
-  const tabItems = [
+  const tabs = [
     {
       key: "general",
+      icon: <ControlOutlined />,
       label: t("workspace.generalTab"),
-      children: (
-        <form onSubmit={handleSave} className="space-y-4 pt-2">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              {t("workspace.name")}
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("workspace.namePlaceholder")}
-              required
-            />
-          </div>
-
-          {!singleWorkspaceMode && (
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-                {t("workspace.slugLabel")}
-              </label>
-              <Input
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                placeholder={t("workspace.slugPlaceholder")}
-                required
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-              {t("workspace.description")}
-            </label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <Button
-              type="submit"
-              variant="primary"
-              loading={updateMutation.isPending}
-            >
-              {t("workspace.saveChanges")}
-            </Button>
-          </div>
-        </form>
-      ),
     },
     ...(!singleWorkspaceMode
       ? [
           {
             key: "danger",
+            icon: <WarningOutlined />,
             label: t("workspace.dangerTab"),
-            children: (
-              <div className="rounded-md border border-red-300 dark:border-red-800 p-4 mt-2">
-                <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
-                  {t("workspace.deleteWorkspace")}
-                </h3>
-                <p className="text-sm text-[var(--text-muted)] mb-4">
-                  {t("workspace.deleteWorkspaceDesc")}
-                </p>
-                <Button
-                  type="button"
-                  variant="danger"
-                  onClick={() => setDeleteModalOpen(true)}
-                >
-                  {t("workspace.deleteWorkspace")}
-                </Button>
-              </div>
-            ),
           },
         ]
       : []),
-  ];
+  ] as const;
+
+  const generalContent = (
+    <Form form={form} layout="vertical" autoComplete="off">
+      <Form.Item
+        label={t("workspace.name")}
+        name="name"
+        rules={[{ required: true, message: t("workspace.nameRequired") }]}
+      >
+        <Input placeholder={t("workspace.namePlaceholder")} />
+      </Form.Item>
+
+      {!singleWorkspaceMode && (
+        <Form.Item
+          label={t("workspace.slugLabel")}
+          name="slug"
+          rules={[{ required: true, message: t("workspace.slugRequired") }]}
+        >
+          <Input placeholder={t("workspace.slugPlaceholder")} />
+        </Form.Item>
+      )}
+
+      <Form.Item label={t("workspace.description")} name="description">
+        <Input />
+      </Form.Item>
+    </Form>
+  );
+
+  const dangerContent = (
+    <div className="rounded-md border border-red-300 dark:border-red-800 p-4">
+      <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
+        {t("workspace.deleteWorkspace")}
+      </h3>
+      <p className="text-sm text-[var(--text-muted)] mb-4">
+        {t("workspace.deleteWorkspaceDesc")}
+      </p>
+      <Button
+        type="button"
+        variant="danger"
+        onClick={() => setDeleteModalOpen(true)}
+      >
+        {t("workspace.deleteWorkspace")}
+      </Button>
+    </div>
+  );
 
   return (
     <>
@@ -201,11 +190,65 @@ export default function WorkspaceSettingsModal({
         open={open}
         onCancel={onClose}
         title={t("workspace.settings")}
-        subtitle={t("workspace.settingsSubtitle", { name: workspace.name })}
         footer={null}
-        width={520}
+        destroyOnHidden
+        width={660}
+        styles={{ body: { padding: 0 } }}
       >
-        <Tabs items={tabItems} />
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: "168px 1fr", height: 420 }}
+        >
+          {/* Left sidebar nav */}
+          <div className="border-r border-[var(--border-base)] bg-[var(--fill-tertiary)] overflow-y-auto rounded-bl-lg pt-4">
+            <div className="px-2">
+              {tabs.map(({ key, icon, label }) => {
+                const isActive = activeTab === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActiveTab(key)}
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg mb-0.5 text-left transition-colors cursor-pointer text-sm",
+                      isActive
+                        ? "bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--accent-subtle)]",
+                    )}
+                  >
+                    <span className="shrink-0">{icon}</span>
+                    <span className="leading-tight">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: content + footer */}
+          <div className="flex flex-col min-h-0">
+            <div
+              className="flex-1 overflow-y-auto px-6 py-5"
+              style={{ scrollbarWidth: "thin" }}
+            >
+              {activeTab === "general" && generalContent}
+              {activeTab === "danger" && dangerContent}
+            </div>
+
+            {/* Footer */}
+            {activeTab === "general" && (
+              <div className="flex justify-end gap-2 px-6 py-4 border-t border-[var(--border-base)] shrink-0">
+                <Button onClick={onClose}>{t("common.cancel")}</Button>
+                <Button
+                  variant="primary"
+                  loading={updateMutation.isPending}
+                  onClick={handleSave}
+                >
+                  {t("common.save")}
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       </Modal>
 
       <Modal

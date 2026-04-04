@@ -30,8 +30,22 @@ export default function WorkspaceSwitcher({
             key: "header",
             type: "label" as const,
             label: (
-              <div className="px-2 py-1.5 text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                {t("workspace.workspaces")}
+              <div className="flex items-center justify-between px-2 py-1.5">
+                <span className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
+                  {t("workspace.workspaces")}
+                </span>
+                <button
+                  type="button"
+                  title={t("workspace.settings")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    setSettingsOpen(true);
+                  }}
+                  className="cursor-pointer flex h-5 w-5 items-center justify-center rounded text-[var(--text-muted)] hover:bg-[var(--bg-glass-hover)] hover:text-[var(--text-primary)] transition-colors"
+                >
+                  <Settings size={13} />
+                </button>
               </div>
             ),
           },
@@ -75,34 +89,24 @@ export default function WorkspaceSwitcher({
 
   return (
     <>
-      <div className="flex items-center gap-1 px-2 py-1.5">
-        <Dropdown
-          open={open}
-          onOpenChange={setOpen}
-          trigger={["click"]}
-          placement="bottomLeft"
-          menu={{ items }}
-        >
-          <button
-            type="button"
-            className="cursor-pointer flex-1 min-w-0 flex items-center gap-2 rounded px-2 py-1.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-glass-hover)] transition-colors"
-          >
-            <WsIcon name={current?.name ?? "?"} size="md" />
-            <span className="flex-1 text-left truncate">
-              {current ? current.name : t("workspace.select")}
-            </span>
-            <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
-          </button>
-        </Dropdown>
+      <Dropdown
+        open={open}
+        onOpenChange={setOpen}
+        trigger={["click"]}
+        placement="bottomLeft"
+        menu={{ items }}
+      >
         <button
           type="button"
-          title={t("workspace.settings")}
-          onClick={() => setSettingsOpen(true)}
-          className="cursor-pointer flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--bg-glass-hover)] hover:text-[var(--text-primary)] transition-colors"
+          className="cursor-pointer w-full flex items-center gap-2 rounded px-2 py-1.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--bg-glass-hover)] transition-colors"
         >
-          <Settings size={15} />
+          <WsIcon name={current?.name ?? "?"} size="md" />
+          <span className="flex-1 text-left truncate">
+            {current ? current.name : t("workspace.select")}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-[var(--text-muted)] shrink-0" />
         </button>
-      </div>
+      </Dropdown>
       <WorkspaceSettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
