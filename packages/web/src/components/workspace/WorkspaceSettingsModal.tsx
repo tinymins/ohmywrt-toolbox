@@ -1,4 +1,4 @@
-import { Button, Input, Modal } from "@acme/components";
+import { Button, Input, Modal, Tabs } from "@acme/components";
 import { SYSTEM_SHARED_SLUG } from "@acme/types";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,14 +7,19 @@ import { workspaceApi } from "@/generated/rust-api";
 import { useSystemSettings } from "@/hooks";
 import { message } from "@/lib/message";
 
-type TabKey = "general" | "danger";
+interface WorkspaceSettingsModalProps {
+  open: boolean;
+  onClose: () => void;
+}
 
-export default function WorkspaceSettingsPage() {
+export default function WorkspaceSettingsModal({
+  open,
+  onClose,
+}: WorkspaceSettingsModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { workspace: workspaceSlug } = useParams<{ workspace: string }>();
   const { singleWorkspaceMode } = useSystemSettings();
-  const [activeTab, setActiveTab] = useState<TabKey>("general");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const effectiveSlug = singleWorkspaceMode
@@ -23,7 +28,7 @@ export default function WorkspaceSettingsPage() {
 
   const workspaceQuery = workspaceApi.getBySlug.useQuery(
     { slug: effectiveSlug },
-    { enabled: effectiveSlug.length > 0 },
+    { enabled: effectiveSlug.length > 0 && open },
   );
   const workspace = workspaceQuery.data;
 
@@ -43,8 +48,9 @@ export default function WorkspaceSettingsPage() {
     onSuccess: (updated) => {
       message.success(t("workspace.saveSuccess"));
       if (!singleWorkspaceMode && updated.slug !== workspaceSlug) {
-        navigate(`/dashboard/${updated.slug}/settings`, { replace: true });
+        navigate(`/dashboard/${updated.slug}`, { replace: true });
       }
+      onClose();
     },
     onError: (err) => {
       message.error(err.message);
@@ -55,6 +61,7 @@ export default function WorkspaceSettingsPage() {
     onSuccess: () => {
       message.success(t("workspace.deleteSuccess"));
       setDeleteModalOpen(false);
+      onClose();
       navigate("/dashboard", { replace: true });
     },
     onError: (err) => {
@@ -63,17 +70,17 @@ export default function WorkspaceSettingsPage() {
   });
 
   if (!workspace) {
-    if (workspaceQuery.isLoading) {
-      return (
-        <div className="flex h-full items-center justify-center p-8">
+    return (
+      <Modal
+        open={open}
+        onCancel={onClose}
+        title={t("workspace.settings")}
+        footer={null}
+      >
+        <div className="flex items-center justify-center py-8">
           <p className="text-[var(--text-muted)]">{t("login.loading")}</p>
         </div>
-      );
-    }
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-[var(--text-muted)]">{t("workspace.notFound")}</p>
-      </div>
+      </Modal>
     );
   }
 
@@ -107,43 +114,12 @@ export default function WorkspaceSettingsPage() {
     await deleteMutation.mutateAsync({ id: workspace.id });
   };
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: "general", label: t("workspace.generalTab") },
-    ...(!singleWorkspaceMode
-      ? [{ key: "danger" as TabKey, label: t("workspace.dangerTab") }]
-      : []),
-  ];
-
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="text-xl font-semibold text-[var(--text-primary)] mb-1">
-        {t("workspace.settings")}
-      </h1>
-      <p className="text-sm text-[var(--text-muted)] mb-6">
-        {t("workspace.settingsSubtitle", { name: workspace.name })}
-      </p>
-
-      {tabs.length > 1 && (
-        <div className="flex gap-4 border-b border-[var(--border-default)] mb-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`cursor-pointer pb-2 text-sm font-medium transition-colors border-b-2 ${
-                activeTab === tab.key
-                  ? "border-[var(--accent-text)] text-[var(--text-primary)]"
-                  : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {activeTab === "general" && (
-        <form onSubmit={handleSave} className="space-y-4">
+  const tabItems = [
+    {
+      key: "general",
+      label: t("workspace.generalTab"),
+      children: (
+        <form onSubmit={handleSave} className="space-y-4 pt-2">
           <div>
             <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
               {t("workspace.name")}
@@ -190,25 +166,47 @@ export default function WorkspaceSettingsPage() {
             </Button>
           </div>
         </form>
-      )}
+      ),
+    },
+    ...(!singleWorkspaceMode
+      ? [
+          {
+            key: "danger",
+            label: t("workspace.dangerTab"),
+            children: (
+              <div className="rounded-md border border-red-300 dark:border-red-800 p-4 mt-2">
+                <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
+                  {t("workspace.deleteWorkspace")}
+                </h3>
+                <p className="text-sm text-[var(--text-muted)] mb-4">
+                  {t("workspace.deleteWorkspaceDesc")}
+                </p>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => setDeleteModalOpen(true)}
+                >
+                  {t("workspace.deleteWorkspace")}
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
 
-      {activeTab === "danger" && !singleWorkspaceMode && (
-        <div className="rounded-md border border-red-300 dark:border-red-800 p-4">
-          <h3 className="text-base font-semibold text-red-600 dark:text-red-400 mb-2">
-            {t("workspace.deleteWorkspace")}
-          </h3>
-          <p className="text-sm text-[var(--text-muted)] mb-4">
-            {t("workspace.deleteWorkspaceDesc")}
-          </p>
-          <Button
-            type="button"
-            variant="danger"
-            onClick={() => setDeleteModalOpen(true)}
-          >
-            {t("workspace.deleteWorkspace")}
-          </Button>
-        </div>
-      )}
+  return (
+    <>
+      <Modal
+        open={open}
+        onCancel={onClose}
+        title={t("workspace.settings")}
+        subtitle={t("workspace.settingsSubtitle", { name: workspace.name })}
+        footer={null}
+        width={520}
+      >
+        <Tabs items={tabItems} />
+      </Modal>
 
       <Modal
         open={deleteModalOpen}
@@ -242,6 +240,6 @@ export default function WorkspaceSettingsPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

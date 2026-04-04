@@ -2,14 +2,14 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import { PAGE_NAMES } from "@/components/dashboard/nav-config";
-import WorkspaceSettingsPage from "@/components/workspace/WorkspaceSettingsPage";
+import GeneralSettingsPage from "@/components/settings/GeneralSettingsPage";
 
 export default function DemoPageRoute() {
   const { t } = useTranslation();
   const { page } = useParams<{ page: string }>();
 
   if (page === "settings") {
-    return <WorkspaceSettingsPage />;
+    return <GeneralSettingsPage />;
   }
 
   if (page === "admin") {

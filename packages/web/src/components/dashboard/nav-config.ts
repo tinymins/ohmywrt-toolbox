@@ -53,7 +53,6 @@ export const menuConfig: MenuItemConfig[] = [
         key: "generalSettings",
         labelKey: "settingsGroup.generalSettings",
         routeSuffix: "/settings",
-        requiredRole: "admin",
       },
       {
         key: "adminSettings",

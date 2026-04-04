@@ -4,6 +4,7 @@ import dashboard from "./dashboard.js";
 import errors from "./errors.js";
 import features from "./features.js";
 import footer from "./footer.js";
+import generalSettings from "./generalSettings.js";
 import hero from "./hero.js";
 import login from "./login.js";
 import nav from "./nav.js";
@@ -23,6 +24,7 @@ export const enUS: TranslationSchema = {
     dashboard,
     workspace,
     systemSettings,
+    generalSettings,
     hero,
     nav,
     footer,
