@@ -1,179 +1,79 @@
-# OhMyWrt Toolbox
+# rs-fullstack — Full-Stack Web Application
 
-[中文文档](README.zh-CN.md)
+Rust + React 全栈 Monorepo 应用，使用 pnpm workspaces 管理。
 
-A self-hosted proxy subscription management tool — aggregate multiple upstream proxy sources, filter and group nodes on demand, and generate ready-to-use Clash / Sing-box subscription URLs with one click.
+## 技术栈
 
-## ✨ Features
+| Layer | Tech |
+|-------|------|
+| **Backend** | Rust (Axum) · Sea-ORM · PostgreSQL 18 |
+| **Frontend** | React 19 · React Router v7 (SSR) · TailwindCSS 4 · TanStack Query v5 |
+| **WASM** | wasm-bindgen · wasm-pack |
+| **Types** | Zod v4 · TypeScript 5.9 · ts-rs |
+| **Build** | Turborepo · Vite 7 |
+| **Dev Tools** | Biome · Docker Compose · pnpm 10 |
+| **Miniapp** | Taro 4 · React 18 · WeChat |
 
-### 🔗 Proxy Subscription Management
-- **Multi-source aggregation**: Add multiple upstream subscription URLs with per-source prefix, cache TTL, and enable/disable controls
-- **Node filtering**: Keyword-based node filtering (built-in system defaults or custom JSONC rules)
-- **Group management**: Flexible proxy group configuration (e.g. `🔰 Foreign Traffic`, `🏳️‍🌈 Google`, `✈️ Telegram`, `🎬 Netflix`, `🤖 AI`, `🐙 GitHub`, etc.)
-- **Rule routing**: Per-service traffic routing rules
-- **Dual-format output**: Generate both **Clash** (YAML) and **Sing-box** (JSON) configs from the same source
-- **Public subscription URLs**: No-auth URLs that can be directly imported into proxy clients
-- **Debug mode**: Real-time streaming view of the processing pipeline (fetch → filter → merge → output) with per-node tracing
-- **Access statistics**: Download logs with type, IP, user-agent, and node count
-
-### 🌐 Network Data Service
-- **GeoIP China**: Aggregated China IPv4 CIDR list from APNIC, Loyalsoldier, and other sources
-- **GeoSite China**: China domain list for DNS split routing
-
-### 👥 Users & Permissions
-- **Role hierarchy**: Superadmin > Admin > User, three-tier access control
-- **User management**: Registration (with optional invitation codes), login, profile settings
-- **Session management**: Session-based authentication
-
-### 🏢 Workspaces
-- **Multi-tenant**: Create multiple workspaces, each with independent subscriptions and data
-- **Single-workspace mode**: Simplified URL structure for personal or small-team deployments
-- **Member management**: Workspace-level membership and role control
-
-### 🛡️ System Administration
-- **System settings**: Toggle registration, single-workspace mode, and other global configs
-- **Invitation codes**: Superadmin-issued, single-use, with optional expiration
-- **User CRUD**: Full user management in the admin panel
-
-### 🌍 Internationalization
-9 languages supported: Simplified Chinese, Traditional Chinese, English, Japanese, German, Cantonese, Wu Chinese, Hakka, and Classical Chinese.
-
-### 🎨 Themes
-Light / dark theme switching, with system-follow option.
-
-## 📸 Screenshots
-
-**Edit Subscription** — Manage multiple upstream sources with per-source prefix, cache TTL, and enable/disable
-
-![Edit Subscription](screenshots/subscription-edit.png)
-
-**Subscription Links** — One-click copy Clash / Clash Meta / Sing-box subscription URLs
-
-![Subscription Links](screenshots/subscription-links.png)
-
-**Node Preview** — Browse all proxy nodes with protocol, server, port, and transport details
-
-![Node Preview](screenshots/node-preview.png)
-
-**Subscription Debug** — Real-time streaming pipeline debug (config parsing → source fetching → filtering → merging → output)
-
-![Subscription Debug](screenshots/subscription-debug.png)
-
-**Node Trace** — Per-node lifecycle tracing (source → parse → filter → name enrichment → group assignment → format conversion → final output)
-
-![Node Trace](screenshots/node-trace.png)
-
-**Access Statistics** — Subscription download logs with type distribution, IP, user-agent, and node count
-
-![Access Statistics](screenshots/subscription-stats.png)
-
-## 📚 Tech Stack
-
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | React 19, Vite 7, TailwindCSS 4, Ant Design 6, TanStack Query, React Router v7, Framer Motion |
-| **Backend** | NestJS 11, tRPC v11 (end-to-end type safety), Drizzle ORM, Zod v4 |
-| **Database** | PostgreSQL 16 |
-| **Infrastructure** | Docker Compose, pnpm Monorepo, Biome (lint/format) |
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js >= 20.19 or >= 22.12
-- pnpm >= 10.15.1 (recommended: `corepack enable`)
-- Docker & Docker Compose
-
-### First-time Setup
+## 快速开始
 
 ```bash
-# One-command init (install deps, start DB, run migrations & seed)
+# 首次初始化（创建 .env、安装依赖、启动 DB、迁移）
 make init
 
-# Start the dev environment
+# 启动开发环境
 make dev
 ```
 
-> ⚠️ `make init` will wipe existing database data. Use with caution.
+开发服务器：
+- 前端: http://localhost:5173
+- 后端 API: http://localhost:5678
 
-### Core Commands
-
-```bash
-make init    # First-time init (clean + install + migrate + seed)
-make dev     # Start dev environment (DB + dev servers)
-make build   # Build for production
-make docker  # Build Docker images
-```
-
-### Dev Servers
-
-After running `make dev`:
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| Backend | http://localhost:3000 |
-| Database | localhost:5432 |
-
-### Demo Accounts
-
-| Email | Password | Role |
-|-------|----------|------|
-| admin@example.com | password | Superadmin |
-| user@example.com | password | User |
-
-## 🐳 Docker Deployment
+## 核心命令
 
 ```bash
-# Build images
-make docker
-
-# Start all services
-docker compose up -d
+make init     # 首次初始化（破坏性操作，会重建数据库）
+make dev      # 启动开发环境（DB + 开发服务器）
+make build    # 生产构建
+make docker   # Docker 构建
+make lint     # Biome lint + typecheck
+make gen:api  # 从 Rust 生成 TypeScript 类型
 ```
 
-Access the app at http://localhost:8080. The backend API is reverse-proxied via Nginx at `/trpc`.
-
-See [DEPLOY.md](DEPLOY.md) for the full deployment guide.
-
-## 📁 Project Structure
+## 项目结构
 
 ```
 packages/
-├── server/        # NestJS backend (tRPC API + Drizzle ORM)
-│   └── src/
-│       ├── db/        # Database schema & connection
-│       ├── modules/   # Business modules
-│       │   ├── admin/       # System admin (users, invitations, settings)
-│       │   ├── auth/        # Authentication (login, register, sessions)
-│       │   ├── proxy/       # Proxy subscription management (core feature)
-│       │   ├── network/     # GeoIP/GeoSite data service
-│       │   ├── workspace/   # Workspace management
-│       │   ├── user/        # User profiles
-│       │   └── todo/        # Workspace todos
-│       └── trpc/      # tRPC router config & auto-generated types
-├── web/           # React frontend (Vite + Ant Design)
-│   └── src/
-│       ├── components/  # UI components (proxy mgmt, account, dashboard)
-│       ├── pages/       # Page routes
-│       ├── hooks/       # Custom hooks (theme, auth, locale)
-│       └── lib/         # Utilities (tRPC client, i18n)
-├── types/         # Shared TypeScript types & Zod schemas
-├── components/    # Reusable UI component library
-└── i18n/          # i18n resources (9 languages)
+  server/       Rust (Axum + Sea-ORM) 后端
+  web/          React Router v7 SSR 前端
+  wasm/         WebAssembly 模块
+  types/        共享 Zod 模式 + TypeScript 类型
+  components/   通用 UI 组件（TailwindCSS，无业务逻辑）
+  i18n/         国际化资源（5种语言）
+  miniapp/      微信小程序（Taro 4）
 ```
 
-## 🔗 Public Endpoints
+## 特色功能
 
-The following endpoints require no authentication:
+- **端到端类型安全**: Rust DTO → ts-rs → TypeScript，全链路类型安全
+- **SSR 支持**: React Router v7 服务端渲染，SEO 友好
+- **多工作空间**: 支持多工作空间切换
+- **管理后台**: 超级管理员/管理员/用户三级角色
+- **对象存储**: OpenDAL 抽象（本地文件系统，可扩展 S3）
+- **国际化**: 5种语言（zh-CN / en-US / de-DE / ja-JP / zh-TW）
+- **主题系统**: 明暗主题 + CSS 变量 + 跟随系统
 
-| Path | Purpose |
-|------|---------|
-| `/public/:uuid/clash` | Generate Clash YAML subscription config |
-| `/public/:uuid/singbox` | Generate Sing-box JSON subscription config |
-| `/public/network/geoip/cn` | China IPv4 CIDR list |
-| `/public/network/geosite/cn` | China domain list |
+## 部署
 
-## 📄 License
+参见 [DEPLOY.md](DEPLOY.md) 了解生产部署流程。
 
-[BSD-3-Clause](LICENSE)
+Docker Compose 包含 2 个服务：PostgreSQL、Rust 后端（内嵌前端静态文件）。
+
+## 相关文档
+
+- [Axum](https://github.com/tokio-rs/axum) · [Sea-ORM](https://www.sea-ql.org/SeaORM/)
+- [React](https://react.dev/) · [React Router](https://reactrouter.com/) · [TailwindCSS](https://tailwindcss.com/)
+- [Biome](https://biomejs.dev/) · [OpenDAL](https://opendal.apache.org/)
+
+## License
+
+[MIT](LICENSE)

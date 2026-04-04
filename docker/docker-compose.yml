@@ -1,0 +1,46 @@
+name: rs-fullstack
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:18
+    container_name: rs-fullstack-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-rs_fullstack_db}
+    volumes:
+      - ./${DATA_LOCAL_PATH:-data}/postgres:/var/lib/postgresql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 后端服务（Rust 二进制 + 内嵌前端静态文件）
+  server:
+    image: rs-fullstack-server:latest
+    container_name: rs-fullstack-server
+    build:
+      context: ..
+      dockerfile: packages/server/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:5678"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-rs_fullstack_db}
+      RUST_LOG: ${RUST_LOG:-info}
+      DATA_LOCAL_PATH: ./${DATA_LOCAL_PATH:-data}
+    volumes:
+      - ./${DATA_LOCAL_PATH:-data}/server:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge

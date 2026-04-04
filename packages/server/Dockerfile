@@ -1,73 +1,52 @@
-# 构建阶段
-FROM node:20-alpine AS builder
+# ============================================================
+# Stage 1: Web 前端构建
+# ============================================================
+FROM node:20-alpine AS web-builder
 
-# 启用 corepack 以使用 pnpm
 RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
 
 WORKDIR /app
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY packages/web/package.json packages/web/
+COPY packages/components/package.json packages/components/
+COPY packages/types/package.json packages/types/
+COPY packages/i18n/package.json packages/i18n/
 
-# 复制 workspace 配置文件
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY tsconfig.base.json ./
-
-# 复制 types 包配置和源代码（server 依赖 types）
-COPY packages/types/package.json ./packages/types/
-COPY packages/types/tsconfig.json ./packages/types/
-COPY packages/types/src ./packages/types/src
-
-# 复制 i18n 包配置和源代码（server 依赖 i18n）
-COPY packages/i18n/package.json ./packages/i18n/
-COPY packages/i18n/tsconfig.json ./packages/i18n/
-COPY packages/i18n/src ./packages/i18n/src
-
-# 复制 server 包配置
-COPY packages/server/package.json ./packages/server/
-COPY packages/server/tsconfig.json ./packages/server/
-COPY packages/server/tsconfig.build.json ./packages/server/
-
-# 安装所有依赖（包括 devDependencies，构建时需要）
 RUN pnpm install --frozen-lockfile
 
-# 复制源代码和脚本
-COPY packages/server/src ./packages/server/src
-COPY packages/server/scripts ./packages/server/scripts
+COPY packages/i18n packages/i18n
+COPY packages/types packages/types
+COPY packages/components packages/components
+COPY packages/web packages/web
+COPY tsconfig.base.json biome.json turbo.json ./
 
-# 构建应用
-WORKDIR /app/packages/server
-RUN pnpm build
+RUN pnpm --filter @acme/i18n build && \
+    pnpm --filter @acme/types build && \
+    pnpm --filter @acme/components build && \
+    pnpm --filter @acme/web build
 
-# 生产阶段
-FROM node:20-alpine AS runner
+# ============================================================
+# Stage 2: 最终镜像
+# ============================================================
+FROM node:20-trixie-slim
 
-# 启用 corepack
-RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libssl3 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 复制必要的配置文件
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
-COPY packages/types/package.json ./packages/types/
-COPY packages/i18n/package.json ./packages/i18n/
-COPY packages/server/package.json ./packages/server/
+# Prisma schema (for db push migrations)
+COPY prisma ./prisma
+RUN npm install -g prisma@6
 
-# 从构建阶段复制构建产物（在安装依赖前，避免 prepare 脚本运行）
-COPY --from=builder /app/packages/types/dist ./packages/types/dist
-COPY --from=builder /app/packages/i18n/dist ./packages/i18n/dist
-COPY --from=builder /app/packages/server/dist ./packages/server/dist
+# Rust binary (pre-built release — cargo build --release runs before docker build)
+COPY packages/server/target/release/rs-fullstack-server /usr/local/bin/
 
-# 复制 drizzle 配置和源码（用于迁移）
-COPY packages/server/drizzle.config.ts ./packages/server/
-COPY packages/server/src/db ./packages/server/src/db
-COPY packages/server/src/seed.ts ./packages/server/src/
+# Frontend static files
+COPY --from=web-builder /app/packages/web/dist /app/web
 
-# 安装依赖（包含 devDependencies 用于迁移）
-RUN pnpm install --frozen-lockfile --ignore-scripts
+ENV STATIC_DIR=/app/web
+EXPOSE 5678
 
-# 设置工作目录
-WORKDIR /app/packages/server
-
-# 暴露端口
-EXPOSE 4000
-
-# 启动应用
-CMD ["node", "dist/main.js"]
+CMD ["rs-fullstack-server"]

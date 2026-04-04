@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# ohmywrt-toolbox 一键部署脚本
+# rs-fullstack 一键部署脚本
 # =============================================================================
 
 set -e
@@ -126,7 +126,6 @@ show_help() {
     echo "  -u, --upload-only    仅上传镜像（跳过构建）"
     echo "  -d, --deploy-only    仅在服务器部署（跳过构建和上传）"
     echo "  -m, --migrate        部署后执行数据库迁移"
-    echo "  -s, --seed           部署后执行种子数据"
     echo "  -e, --check-env      检查服务器 .env 配置是否需要更新"
     echo "  -r, --restart        仅重启服务"
     echo "  -l, --logs           查看服务日志"
@@ -135,10 +134,8 @@ show_help() {
     echo "示例:"
     echo "  $0                   完整部署（构建 + 上传 + 部署）"
     echo "  $0 -m                完整部署并执行数据库迁移"
-    echo "  $0 -m -s             完整部署并执行迁移和种子数据"
     echo "  $0 -b                仅本地构建"
     echo "  $0 -m                仅执行数据库迁移（服务已部署时）"
-    echo "  $0 -s                仅执行种子数据"
     echo "  $0 -e                检查服务器 .env 配置"
     echo "  $0 -r                重启服务"
 }
@@ -153,7 +150,7 @@ build_images() {
 # 导出镜像
 export_images() {
     log_info "导出镜像到 ${LOCAL_TMP}/${IMAGE_FILE}..."
-    docker save ohmywrt-toolbox-server:latest ohmywrt-toolbox-web:latest \
+    docker save rs-fullstack-server:latest apps-web:latest \
         -o "${LOCAL_TMP}/${IMAGE_FILE}"
 
     local size=$(du -h "${LOCAL_TMP}/${IMAGE_FILE}" | cut -f1)
@@ -174,17 +171,17 @@ upload_configs() {
     # 检查远程目录是否存在
     ssh "$SERVER" "mkdir -p ${REMOTE_DIR}"
 
-    # 检查 docker-compose.yml 是否存在，不存在则上传
-    if ! ssh "$SERVER" "test -f ${REMOTE_DIR}/docker-compose.yml"; then
-        log_info "上传 docker-compose.yml..."
-        scp docker-compose.yml "${SERVER}:${REMOTE_DIR}/"
+    # 检查 docker/docker-compose.yml 是否存在，不存在则上传
+    if ! ssh "$SERVER" "test -f ${REMOTE_DIR}/docker/docker-compose.yml"; then
+        log_info "上传 docker/docker-compose.yml..."
+        scp docker/docker-compose.yml "${SERVER}:${REMOTE_DIR}/"
     else
-        log_info "docker-compose.yml 已存在，跳过上传"
+        log_info "docker/docker-compose.yml 已存在，跳过上传"
     fi
 
-    # 上传 docker-compose.debug.yml（叠加文件，始终更新）
-    if [ -f "docker-compose.debug.yml" ]; then
-        scp docker-compose.debug.yml "${SERVER}:${REMOTE_DIR}/"
+    # 上传 docker/docker-compose.debug.yml（叠加文件，始终更新）
+    if [ -f "docker/docker-compose.debug.yml" ]; then
+        scp docker/docker-compose.debug.yml "${SERVER}:${REMOTE_DIR}/"
     fi
 
     # 检查 .env 是否存在，不存在则上传 .env.example
@@ -232,9 +229,17 @@ EOF
 
 # 执行数据库迁移
 run_migration() {
-    log_info "执行数据库迁移..."
-    ssh "$SERVER" "docker exec ohmywrt-toolbox-server npx drizzle-kit push"
-    log_success "数据库迁移完成"
+    log_info "执行数据库迁移（Prisma）..."
+
+    ssh "$SERVER" "cd ${REMOTE_DIR} && docker compose run --rm db-migrate"
+    local exit_code=$?
+
+    if [ $exit_code -ne 0 ]; then
+        log_error "数据库迁移失败（退出码: $exit_code）"
+        return 1
+    else
+        log_success "数据库迁移完成"
+    fi
 }
 
 # 检查服务器 .env 是否缺少新变量
@@ -274,13 +279,6 @@ check_server_env_updates() {
     else
         log_success "服务器 .env 配置已是最新"
     fi
-}
-
-# 执行种子数据
-run_seed() {
-    log_info "执行种子数据..."
-    ssh "$SERVER" "docker exec ohmywrt-toolbox-server npx tsx src/seed.ts"
-    log_success "种子数据执行完成"
 }
 
 # 重启服务
@@ -339,7 +337,6 @@ DO_BUILD=false
 DO_UPLOAD=false
 DO_DEPLOY=false
 DO_MIGRATE=false
-DO_SEED=false
 DO_CHECK_ENV=false
 DO_RESTART=false
 DO_LOGS=false
@@ -364,11 +361,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         -m|--migrate)
             DO_MIGRATE=true
-            DO_FULL=false
-            shift
-            ;;
-        -s|--seed)
-            DO_SEED=true
             DO_FULL=false
             shift
             ;;
@@ -438,13 +430,9 @@ else
     fi
 fi
 
-# 执行迁移和种子（如果指定）
+# 执行迁移（如果指定）
 if $DO_MIGRATE; then
     run_migration
-fi
-
-if $DO_SEED; then
-    run_seed
 fi
 
 # 检查服务器 env（如果指定或部署后自动检查）

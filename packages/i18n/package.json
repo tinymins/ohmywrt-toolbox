@@ -13,21 +13,34 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./locales/zh": {
-      "types": "./dist/locales/zh.d.ts",
-      "default": "./dist/locales/zh.js"
+    "./locales/zh-CN": {
+      "types": "./dist/locales/zh-CN/index.d.ts",
+      "default": "./dist/locales/zh-CN/index.js"
     },
-    "./locales/en": {
-      "types": "./dist/locales/en.d.ts",
-      "default": "./dist/locales/en.js"
+    "./locales/en-US": {
+      "types": "./dist/locales/en-US/index.d.ts",
+      "default": "./dist/locales/en-US/index.js"
+    },
+    "./locales/de-DE": {
+      "types": "./dist/locales/de-DE/index.d.ts",
+      "default": "./dist/locales/de-DE/index.js"
+    },
+    "./locales/ja-JP": {
+      "types": "./dist/locales/ja-JP/index.d.ts",
+      "default": "./dist/locales/ja-JP/index.js"
+    },
+    "./locales/zh-TW": {
+      "types": "./dist/locales/zh-TW/index.d.ts",
+      "default": "./dist/locales/zh-TW/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepare": "pnpm build"
   },
   "devDependencies": {
-    "typescript": "^5.6.2"
+    "typescript": "^5.9.3"
   }
 }

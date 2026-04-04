@@ -1,0 +1,12 @@
+{
+  "name": "@acme/wasm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "pkg/acme_wasm.js",
+  "types": "pkg/acme_wasm.d.ts",
+  "scripts": {
+    "build": "wasm-pack build --release --target bundler --out-dir pkg",
+    "build:dev": "wasm-pack build --dev --target bundler --out-dir pkg"
+  }
+}

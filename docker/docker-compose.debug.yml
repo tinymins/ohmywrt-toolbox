@@ -1,0 +1,13 @@
+# ======================================
+# 调试端口暴露叠加文件
+# ======================================
+# 将 PostgreSQL 端口暴露到宿主机，用于调试
+#
+# 启用方式：在 .env 中添加
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
+#   DB_PORT=5432
+
+services:
+  db:
+    ports:
+      - "${DB_PORT:-5432}:5432"

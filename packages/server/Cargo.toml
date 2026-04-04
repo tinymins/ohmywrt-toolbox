@@ -1,0 +1,47 @@
+[package]
+name = "rs-fullstack-server"
+version = "0.1.0"
+edition = "2024"
+description = "通用 Rust HTTP 服务器"
+
+[[bin]]
+name = "rs-fullstack-server"
+path = "src/main.rs"
+
+[lib]
+name = "rs_fullstack_server"
+path = "src/lib.rs"
+
+[workspace]
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"
+
+[dependencies]
+axum = { version = "0.8", features = ["json", "multipart", "ws"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "fs", "compression-gzip", "compression-br"] }
+sea-orm = { version = "1.1", features = ["sqlx-postgres", "runtime-tokio-rustls", "with-uuid", "with-json", "with-chrono"] }
+ts-rs = { version = "12", features = ["serde-json-impl"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-log = "0.2"
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+clap = { version = "4", features = ["derive"] }
+argon2 = "0.5"
+uuid = { version = "1", features = ["v4", "serde"] }
+rand = "0.8"
+hex = "0.4"
+reqwest = { version = "0.12", features = ["json"] }
+opendal = { version = "0.55", features = ["services-fs"] }
+async-trait = "0.1"
+bytes = "1"
+mime_guess = "2"
+
+[profile.release]
+opt-level = 2
+lto = "thin"
+strip = "symbols"

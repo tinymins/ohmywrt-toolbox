@@ -1,21 +1,49 @@
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { resolve } from "node:path";
+import { reactRouter } from "@react-router/dev/vite";
+import tailwindcss from "@tailwindcss/vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
-  plugins: [react(), tsconfigPaths()],
-  server: {
-    host: "0.0.0.0", // 监听所有网络接口，允许内网访问
-    port: 5173,
-    proxy: {
-      "/trpc": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, resolve(__dirname, "../.."), [
+    "SERVER_PORT",
+    "WEB_PORT",
+    "VITE_",
+    "RUST_",
+  ]);
+
+  const serverPort = Number(env.SERVER_PORT) || 4000;
+  const webPort = Number(env.WEB_PORT) || 5173;
+
+  return {
+    plugins: [reactRouter(), tailwindcss()],
+    envPrefix: ["VITE_", "RUST_"],
+    resolve: {
+      tsconfigPaths: true,
+      alias: {
+        "@/": `${resolve(__dirname, "src")}/`,
       },
       "/public": {
         target: "http://localhost:4000",
         changeOrigin: true,
       },
     },
-  },
+    server: {
+      host: "0.0.0.0",
+      port: webPort,
+      proxy: {
+        "/api": {
+          target: `http://localhost:${serverPort}`,
+          changeOrigin: true,
+        },
+        "/upload": {
+          target: `http://localhost:${serverPort}`,
+          changeOrigin: true,
+        },
+        "/storage": {
+          target: `http://localhost:${serverPort}`,
+          changeOrigin: true,
+        },
+      },
+    },
+  };
 });

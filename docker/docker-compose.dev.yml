@@ -1,0 +1,25 @@
+# ======================================
+# 本地开发环境 — 仅启动数据库
+# ======================================
+# 通过 --env-file 读取根目录 .env：
+#   docker compose -f docker/docker-compose.dev.yml --env-file .env up -d
+
+name: rs-fullstack
+
+services:
+  db:
+    image: postgres:18
+    container_name: rs-fullstack-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-rs_fullstack_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - ../${DATA_LOCAL_PATH:-.data}/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

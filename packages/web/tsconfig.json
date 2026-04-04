@@ -1,10 +1,20 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "types": ["vite/client"]
+    "rootDirs": [".", "./.react-router/types"],
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@acme/types": ["../types/src/index.ts"],
+      "@acme/i18n": ["../i18n/src/index.ts"],
+      "@acme/components": ["../components/src/index.ts"],
+      "@acme/server": ["../server/src/index.ts"],
+      "*": ["./*"],
+      "@/*": ["./src/*", "../server/src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", ".react-router/types/**/*"]
 }

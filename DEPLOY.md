@@ -1,12 +1,24 @@
 # 服务器部署指南
 
-本文档描述如何从零开始将 ohmywrt-toolbox 部署到服务器。
+本文档描述如何从零开始将应用部署到服务器。
+
+## 架构概览
+
+生产环境仅包含 **2 个容器**：
+
+| 容器 | 镜像 | 说明 |
+|------|------|------|
+| `rs-fullstack-postgres` | `postgres:18` | PostgreSQL 数据库 |
+| `rs-fullstack-server` | `rs-fullstack-server:latest` | Rust 后端 + 内嵌前端静态文件 |
+
+Server 二进制为 `rs-fullstack-server`，监听端口 **5678**，通过 Docker 映射到宿主机 `WEB_PORT`（默认 8080）。
 
 ## 前置要求
 
 ### 本地环境
 - Node.js >= 20.19 或 >= 22.12
 - pnpm >= 10.15.1
+- Rust toolchain（见 `rust-toolchain.toml`）
 - Docker
 
 ### 服务器环境
@@ -18,25 +30,23 @@
 ### 1. 本地构建 Docker 镜像
 
 ```bash
-cd /path/to/ohmywrt-toolbox
+cd /path/to/project
 
-# 构建 server 和 web 镜像
+# 构建 Rust 二进制 + Docker 镜像（含前端静态文件）
 make docker
 ```
 
-构建完成后会生成两个镜像：
-- `ohmywrt-toolbox-server:latest`
-- `ohmywrt-toolbox-web:latest`
+构建完成后生成一个镜像：
+- `rs-fullstack-server:latest` — Rust 后端（内嵌前端静态文件）
 
 ### 2. 导出并上传镜像
 
 ```bash
 # 导出镜像为 tar 文件
-docker save ohmywrt-toolbox-server:latest ohmywrt-toolbox-web:latest \
-  -o /tmp/ohmywrt-toolbox-docker-images.tar
+docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar
 
 # 上传到服务器
-scp /tmp/ohmywrt-toolbox-docker-images.tar <server>:/tmp/
+scp rs-fullstack-docker-images.tar <server>:/path/to/tmp/
 ```
 
 ### 3. 服务器端准备
@@ -48,10 +58,10 @@ SSH 登录服务器后执行：
 mkdir -p /mnt/docker/ohmywrt-toolbox
 
 # 加载 Docker 镜像
-docker load -i /tmp/ohmywrt-toolbox-docker-images.tar
+docker load -i /path/to/tmp/rs-fullstack-docker-images.tar
 
 # 清理临时文件
-rm /tmp/ohmywrt-toolbox-docker-images.tar
+rm /path/to/tmp/rs-fullstack-docker-images.tar
 ```
 
 ### 4. 上传配置文件
@@ -59,16 +69,17 @@ rm /tmp/ohmywrt-toolbox-docker-images.tar
 从本地上传配置文件：
 
 ```bash
-# 上传 docker-compose.yml
-scp docker-compose.yml <server>:/mnt/docker/ohmywrt-toolbox/
+# 上传 docker-compose.yml 和 debug 叠加文件
+scp docker/docker-compose.yml <server>:/mnt/docker/apps/
+scp docker/docker-compose.debug.yml <server>:/mnt/docker/apps/
 
-# 上传环境变量文件（使用 .env.example 作为模板）
-scp .env.example <server>:/mnt/docker/ohmywrt-toolbox/.env
+# 上传环境变量文件（使用 docker/.env.example 作为模板）
+scp docker/.env.example <server>:/mnt/docker/apps/.env
 ```
 
-### 5. 配置环境变量（可选）
+### 5. 配置环境变量
 
-如需自定义数据库配置，编辑服务器上的 `.env` 文件：
+编辑服务器上的 `.env` 文件：
 
 ```bash
 ssh <server> "vi /mnt/docker/ohmywrt-toolbox/.env"
@@ -78,15 +89,10 @@ ssh <server> "vi /mnt/docker/ohmywrt-toolbox/.env"
 ```env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=ohmywrt_toolbox_db
+POSTGRES_DB=rs_fullstack_db
 
-# 前端端口
+# 前端端口（宿主机映射到 server:5678）
 WEB_PORT=8080
-
-# 暴露后端/数据库端口到宿主机（可选，取消注释启用）
-# COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
-# SERVER_PORT=4000
-# DB_PORT=5432
 ```
 
 ### 6. 启动服务
@@ -96,20 +102,21 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose up -d"
 ```
 
 等待所有容器启动：
-- `ohmywrt-toolbox-postgres` - PostgreSQL 数据库
-- `ohmywrt-toolbox-server` - NestJS 后端
-- `ohmywrt-toolbox-web` - Nginx + React 前端
+- `rs-fullstack-postgres` — PostgreSQL 数据库
+- `rs-fullstack-server` — Rust 后端（内嵌前端）
 
-### 7. 初始化数据库
+### 7. 初始化数据库（首次部署）
 
-首次部署需要执行数据库迁移和种子数据：
+首次部署时需同步数据库 schema：
 
 ```bash
-# 执行数据库迁移（创建表结构）
-ssh <server> "docker exec ohmywrt-toolbox-server npx drizzle-kit push"
+ssh <server> "docker exec rs-fullstack-server npx prisma db push"
+```
 
-# 执行种子数据（创建默认用户和工作空间）
-ssh <server> "docker exec ohmywrt-toolbox-server npx tsx src/seed.ts"
+如需手动执行种子数据：
+
+```bash
+ssh <server> "docker exec rs-fullstack-server node dist/seed.js"
 ```
 
 ### 8. 验证部署
@@ -128,10 +135,8 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose logs --tail=50 se
 
 | 服务 | 默认端口 | 环境变量 | 说明 |
 |------|---------|---------|------|
-| 前端 | 8080 | `WEB_PORT` | React 应用 (通过 Nginx) |
-| 后端 | 不暴露 | `SERVER_PORT` | 需启用 debug 叠加文件（见下方说明） |
-| 数据库 | 不暴露 | `DB_PORT` | 需启用 debug 叠加文件（见下方说明） |
-| tRPC | ${WEB_PORT}/trpc | - | API 端点 (通过 Nginx 代理) |
+| 前端+后端 | 8080 | `WEB_PORT` | Rust 服务（内嵌前端） |
+| 数据库 | 不暴露 | `DB_PORT` | 需启用 debug 叠加文件 |
 
 > **注意**: 如端口被占用，修改 `.env` 文件中对应的端口变量即可。
 
@@ -153,18 +158,14 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose logs --tail=50 se
 make docker
 
 # 2. 导出并上传
-docker save ohmywrt-toolbox-server:latest ohmywrt-toolbox-web:latest \
-  -o /tmp/ohmywrt-toolbox-docker-images.tar
-scp /tmp/ohmywrt-toolbox-docker-images.tar <server>:/tmp/
+docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar
+scp rs-fullstack-docker-images.tar <server>:/path/to/tmp/
 
 # 3. 服务器加载新镜像并重启
-ssh <server> "docker load -i /tmp/ohmywrt-toolbox-docker-images.tar && \
-  rm /tmp/ohmywrt-toolbox-docker-images.tar && \
-  cd /mnt/docker/ohmywrt-toolbox && \
+ssh <server> "docker load -i /path/to/tmp/rs-fullstack-docker-images.tar && \
+  rm /path/to/tmp/rs-fullstack-docker-images.tar && \
+  cd /mnt/docker/apps && \
   docker compose up -d"
-
-# 4. 如有数据库变更，执行迁移
-ssh <server> "docker exec ohmywrt-toolbox-server npx drizzle-kit push"
 ```
 
 ## 重置数据库
@@ -174,38 +175,34 @@ ssh <server> "docker exec ohmywrt-toolbox-server npx drizzle-kit push"
 ```bash
 ssh <server> "cd /mnt/docker/ohmywrt-toolbox && \
   docker compose down && \
-  rm -rf .data && \
+  rm -rf data && \
   docker compose up -d && \
   sleep 10 && \
-  docker exec ohmywrt-toolbox-server npx drizzle-kit push && \
-  docker exec ohmywrt-toolbox-server npx tsx src/seed.ts"
+  docker exec rs-fullstack-server npx prisma db push && \
+  docker exec rs-fullstack-server node dist/seed.js"
 ```
 
 ## 常见问题
 
 ### 端口被占用
 
-如果前端默认端口被占用，修改 `.env` 文件中的端口变量：
+如果默认端口被占用，修改 `.env` 文件中的端口变量：
 
 ```env
-# 前端端口
+# 前端+后端端口
 WEB_PORT=8180
 ```
 
-### 暴露后端/数据库端口（可选）
+### 暴露数据库端口（可选）
 
-默认仅前端暴露端口到宿主机，后端和数据库通过 Docker 内网通信（更安全）。
-前端 Nginx 自动代理 `/trpc` 请求到后端，无需额外暴露。
+默认仅暴露前端+后端端口到宿主机，数据库通过 Docker 内网通信（更安全）。
 
-如需直接访问后端 API 或用数据库工具（DBeaver、pgAdmin）连接调试，在 `.env` 中添加：
+如需用数据库工具（DBeaver、pgAdmin）连接调试，在 `.env` 中添加：
 
 ```env
 COMPOSE_FILE=docker-compose.yml:docker-compose.debug.yml
-SERVER_PORT=4000
 DB_PORT=5432
 ```
-
-> 可以只暴露其中一个，不需要的端口变量不设置即可（叠加文件中有默认值）。
 
 ### 查看实时日志
 
@@ -217,8 +214,8 @@ ssh <server> "cd /mnt/docker/ohmywrt-toolbox && docker compose logs -f"
 
 ```bash
 # 进入 server 容器
-ssh <server> "docker exec -it ohmywrt-toolbox-server sh"
+ssh <server> "docker exec -it rs-fullstack-server sh"
 
 # 进入数据库容器
-ssh <server> "docker exec -it ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db"
+ssh <server> "docker exec -it rs-fullstack-postgres psql -U postgres -d rs_fullstack_db"
 ```
