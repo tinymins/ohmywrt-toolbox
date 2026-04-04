@@ -11,19 +11,19 @@ make docker
         ├── Stage 1: node:20-alpine
         │   └── pnpm build (i18n → types → components → web)
         └── Stage 2: node:20-trixie-slim
-            ├── COPY apps-server binary
+            ├── COPY rs-fullstack-server binary
             ├── COPY frontend dist/
             └── npm install -g prisma@6
 ```
 
-输出镜像：`apps-server:latest`
+输出镜像：`rs-fullstack-server:latest`
 
 ## 容器架构
 
 | 容器 | 镜像 | 端口 | 说明 |
 |------|------|------|------|
-| `apps-postgres` | `postgres:18` | 不暴露（Docker 内网） | PostgreSQL 数据库 |
-| `apps-server` | `apps-server:latest` | `WEB_PORT` → 5678 | Rust 后端 + 前端静态文件 |
+| `rs-fullstack-postgres` | `postgres:18` | 不暴露（Docker 内网） | PostgreSQL 数据库 |
+| `rs-fullstack-server` | `rs-fullstack-server:latest` | `WEB_PORT` → 5678 | Rust 后端 + 前端静态文件 |
 
 ### 网络
 
@@ -42,10 +42,10 @@ make docker
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/apps_db` | 数据库连接串 |
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/rs_fullstack_db` | 数据库连接串 |
 | `POSTGRES_USER` | `postgres` | 数据库用户名 |
 | `POSTGRES_PASSWORD` | `postgres` | 数据库密码 |
-| `POSTGRES_DB` | `apps_db` | 数据库名 |
+| `POSTGRES_DB` | `rs_fullstack_db` | 数据库名 |
 | `DB_PORT` | `5432` | 数据库端口（开发环境暴露） |
 | `DATA_LOCAL_PATH` | `.data` | 数据存储目录 |
 
@@ -55,7 +55,7 @@ make docker
 |------|--------|------|
 | `POSTGRES_USER` | `postgres` | 数据库用户名 |
 | `POSTGRES_PASSWORD` | — | 数据库密码（**必须修改**） |
-| `POSTGRES_DB` | `apps_db` | 数据库名 |
+| `POSTGRES_DB` | `rs_fullstack_db` | 数据库名 |
 | `WEB_PORT` | `8080` | 前端+后端对外端口 |
 | `DATA_LOCAL_PATH` | `data` | 数据存储目录 |
 
@@ -76,12 +76,12 @@ make docker
 ## 部署步骤摘要
 
 1. **本地构建**：`make docker`
-2. **导出镜像**：`docker save apps-server:latest -o apps-docker-images.tar`
-3. **上传到服务器**：`scp apps-docker-images.tar <server>:/path/`
-4. **加载镜像**：`docker load -i apps-docker-images.tar`
+2. **导出镜像**：`docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar`
+3. **上传到服务器**：`scp rs-fullstack-docker-images.tar <server>:/path/`
+4. **加载镜像**：`docker load -i rs-fullstack-docker-images.tar`
 5. **上传配置**：`docker-compose.yml` + `.env`
 6. **启动服务**：`docker compose up -d`
-7. **初始化数据库**（首次）：`docker exec apps-server npx prisma db push`
+7. **初始化数据库**（首次）：`docker exec rs-fullstack-server npx prisma db push`
 8. **验证**：`docker compose ps` + `docker compose logs`
 
 详细步骤见 [DEPLOY.md](../DEPLOY.md)。
@@ -110,17 +110,17 @@ docker compose ps
 ### 数据库连接测试
 
 ```bash
-docker exec apps-postgres pg_isready -U postgres
+docker exec rs-fullstack-postgres pg_isready -U postgres
 ```
 
 ### 进入容器调试
 
 ```bash
 # 后端容器
-docker exec -it apps-server sh
+docker exec -it rs-fullstack-server sh
 
 # 数据库容器
-docker exec -it apps-postgres psql -U postgres -d apps_db
+docker exec -it rs-fullstack-postgres psql -U postgres -d rs_fullstack_db
 ```
 
 ### 启动验证
@@ -134,11 +134,11 @@ docker exec -it apps-postgres psql -U postgres -d apps_db
 make docker
 
 # 2. 导出并上传
-docker save apps-server:latest -o apps-docker-images.tar
-scp apps-docker-images.tar <server>:/path/
+docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar
+scp rs-fullstack-docker-images.tar <server>:/path/
 
 # 3. 服务器端加载并重启
-ssh <server> "docker load -i /path/apps-docker-images.tar && \
+ssh <server> "docker load -i /path/rs-fullstack-docker-images.tar && \
   cd /mnt/docker/apps && \
   docker compose up -d"
 ```

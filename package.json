@@ -1,5 +1,5 @@
 {
-  "name": "apps",
+  "name": "rs-fullstack",
   "private": true,
   "packageManager": "pnpm@10.15.1",
   "scripts": {

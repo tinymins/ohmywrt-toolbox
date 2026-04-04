@@ -1,14 +1,14 @@
-name: apps
+name: rs-fullstack
 
 services:
   # PostgreSQL 数据库
   db:
     image: postgres:18
-    container_name: apps-postgres
+    container_name: rs-fullstack-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-apps_db}
+      POSTGRES_DB: ${POSTGRES_DB:-rs_fullstack_db}
     volumes:
       - ./${DATA_LOCAL_PATH:-data}/postgres:/var/lib/postgresql/data
     networks:
@@ -21,15 +21,15 @@ services:
 
   # 后端服务（Rust 二进制 + 内嵌前端静态文件）
   server:
-    image: apps-server:latest
-    container_name: apps-server
+    image: rs-fullstack-server:latest
+    container_name: rs-fullstack-server
     build:
       context: ..
       dockerfile: packages/rust-server/Dockerfile
     ports:
       - "${WEB_PORT:-8080}:5678"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-apps_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-rs_fullstack_db}
       RUST_LOG: ${RUST_LOG:-info}
       DATA_LOCAL_PATH: ./${DATA_LOCAL_PATH:-data}
     volumes:

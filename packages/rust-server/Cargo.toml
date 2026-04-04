@@ -1,15 +1,15 @@
 [package]
-name = "apps-server"
+name = "rs-fullstack-server"
 version = "0.1.0"
 edition = "2024"
 description = "通用 Rust HTTP 服务器"
 
 [[bin]]
-name = "apps-server"
+name = "rs-fullstack-server"
 path = "src/main.rs"
 
 [lib]
-name = "apps_server"
+name = "rs_fullstack_server"
 path = "src/lib.rs"
 
 [workspace]

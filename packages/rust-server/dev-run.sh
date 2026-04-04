@@ -41,4 +41,4 @@ cargo build 2>&1 || exit $?
   [ "$COUNT" -gt 0 ] && echo "[rust-dev] ts-rs types updated ($COUNT files)"
 ) &
 
-exec ./target/debug/apps-server --listen 0.0.0.0:5678
+exec ./target/debug/rs-fullstack-server --listen 0.0.0.0:5678

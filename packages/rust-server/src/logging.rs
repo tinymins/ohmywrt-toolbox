@@ -238,7 +238,7 @@ fn elapsed_secs_color(secs: f64) -> &'static str {
 /// 将编译期嵌入的文件路径转换为可读的短路径，并返回对应包的 ANSI 颜色。
 ///
 /// - workspace 内包：`packages/rust-hls/src/manager.rs` → `("manager.rs", cyan)`
-/// - apps-server 自身：`src/handlers/media/hls.rs` → `("handlers/media/hls.rs", blue)`
+/// - rs-fullstack-server 自身：`src/handlers/media/hls.rs` → `("handlers/media/hls.rs", blue)`
 /// - cargo registry：`/…/.cargo/registry/src/<hash>/reqwest-0.13.2/src/connect.rs` → `("connect.rs", dim)`
 fn file_location(file: &str) -> (&str, &'static str) {
     const WS_ROOT: &str = env!("APPS_WORKSPACE_ROOT");
@@ -266,9 +266,9 @@ fn file_location(file: &str) -> (&str, &'static str) {
         return (path, "\x1b[2m"); // dim — 外部库不重要
     }
 
-    // apps-server 自身（相对路径，src/ 开头）
+    // rs-fullstack-server 自身（相对路径，src/ 开头）
     let path = file.strip_prefix("src/").unwrap_or(file);
-    (path, pkg_color("apps-server"))
+    (path, pkg_color("rs-fullstack-server"))
 }
 
 /// 根据包名确定性地映射到一个 ANSI 前景色，同一包名始终同色。

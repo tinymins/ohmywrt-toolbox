@@ -8,10 +8,10 @@
 
 | 容器 | 镜像 | 说明 |
 |------|------|------|
-| `apps-postgres` | `postgres:18` | PostgreSQL 数据库 |
-| `apps-server` | `apps-server:latest` | Rust 后端 + 内嵌前端静态文件 |
+| `rs-fullstack-postgres` | `postgres:18` | PostgreSQL 数据库 |
+| `rs-fullstack-server` | `rs-fullstack-server:latest` | Rust 后端 + 内嵌前端静态文件 |
 
-Server 二进制为 `apps-server`，监听端口 **5678**，通过 Docker 映射到宿主机 `WEB_PORT`（默认 8080）。
+Server 二进制为 `rs-fullstack-server`，监听端口 **5678**，通过 Docker 映射到宿主机 `WEB_PORT`（默认 8080）。
 
 ## 前置要求
 
@@ -37,16 +37,16 @@ make docker
 ```
 
 构建完成后生成一个镜像：
-- `apps-server:latest` — Rust 后端（内嵌前端静态文件）
+- `rs-fullstack-server:latest` — Rust 后端（内嵌前端静态文件）
 
 ### 2. 导出并上传镜像
 
 ```bash
 # 导出镜像为 tar 文件
-docker save apps-server:latest -o apps-docker-images.tar
+docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar
 
 # 上传到服务器
-scp apps-docker-images.tar <server>:/path/to/tmp/
+scp rs-fullstack-docker-images.tar <server>:/path/to/tmp/
 ```
 
 ### 3. 服务器端准备
@@ -58,10 +58,10 @@ SSH 登录服务器后执行：
 mkdir -p /mnt/docker/apps
 
 # 加载 Docker 镜像
-docker load -i /path/to/tmp/apps-docker-images.tar
+docker load -i /path/to/tmp/rs-fullstack-docker-images.tar
 
 # 清理临时文件
-rm /path/to/tmp/apps-docker-images.tar
+rm /path/to/tmp/rs-fullstack-docker-images.tar
 ```
 
 ### 4. 上传配置文件
@@ -89,7 +89,7 @@ ssh <server> "vi /mnt/docker/apps/.env"
 ```env
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=apps_db
+POSTGRES_DB=rs_fullstack_db
 
 # 前端端口（宿主机映射到 server:5678）
 WEB_PORT=8080
@@ -102,21 +102,21 @@ ssh <server> "cd /mnt/docker/apps && docker compose up -d"
 ```
 
 等待所有容器启动：
-- `apps-postgres` — PostgreSQL 数据库
-- `apps-server` — Rust 后端（内嵌前端）
+- `rs-fullstack-postgres` — PostgreSQL 数据库
+- `rs-fullstack-server` — Rust 后端（内嵌前端）
 
 ### 7. 初始化数据库（首次部署）
 
 首次部署时需同步数据库 schema：
 
 ```bash
-ssh <server> "docker exec apps-server npx prisma db push"
+ssh <server> "docker exec rs-fullstack-server npx prisma db push"
 ```
 
 如需手动执行种子数据：
 
 ```bash
-ssh <server> "docker exec apps-server node dist/seed.js"
+ssh <server> "docker exec rs-fullstack-server node dist/seed.js"
 ```
 
 ### 8. 验证部署
@@ -158,12 +158,12 @@ ssh <server> "cd /mnt/docker/apps && docker compose logs --tail=50 server"
 make docker
 
 # 2. 导出并上传
-docker save apps-server:latest -o apps-docker-images.tar
-scp apps-docker-images.tar <server>:/path/to/tmp/
+docker save rs-fullstack-server:latest -o rs-fullstack-docker-images.tar
+scp rs-fullstack-docker-images.tar <server>:/path/to/tmp/
 
 # 3. 服务器加载新镜像并重启
-ssh <server> "docker load -i /path/to/tmp/apps-docker-images.tar && \
-  rm /path/to/tmp/apps-docker-images.tar && \
+ssh <server> "docker load -i /path/to/tmp/rs-fullstack-docker-images.tar && \
+  rm /path/to/tmp/rs-fullstack-docker-images.tar && \
   cd /mnt/docker/apps && \
   docker compose up -d"
 ```
@@ -178,8 +178,8 @@ ssh <server> "cd /mnt/docker/apps && \
   rm -rf data && \
   docker compose up -d && \
   sleep 10 && \
-  docker exec apps-server npx prisma db push && \
-  docker exec apps-server node dist/seed.js"
+  docker exec rs-fullstack-server npx prisma db push && \
+  docker exec rs-fullstack-server node dist/seed.js"
 ```
 
 ## 常见问题
@@ -214,8 +214,8 @@ ssh <server> "cd /mnt/docker/apps && docker compose logs -f"
 
 ```bash
 # 进入 server 容器
-ssh <server> "docker exec -it apps-server sh"
+ssh <server> "docker exec -it rs-fullstack-server sh"
 
 # 进入数据库容器
-ssh <server> "docker exec -it apps-postgres psql -U postgres -d apps_db"
+ssh <server> "docker exec -it rs-fullstack-postgres psql -U postgres -d rs_fullstack_db"
 ```

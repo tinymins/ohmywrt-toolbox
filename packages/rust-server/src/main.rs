@@ -1,4 +1,4 @@
-//! apps-server — 基于 Axum 的 HTTP 服务器骨架。
+//! rs-fullstack-server — 基于 Axum 的 HTTP 服务器骨架。
 
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
@@ -7,13 +7,13 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 use clap::Parser;
 use std::{env, sync::Arc};
 
-use apps_server::{build_app, build_info};
+use rs_fullstack_server::{build_app, build_info};
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Parser, Debug)]
-#[command(name = "apps-server")]
+#[command(name = "rs-fullstack-server")]
 #[command(about = "通用 Rust HTTP 服务器")]
 struct Args {
     /// HTTP 监听地址
@@ -26,7 +26,7 @@ fn main() {
         .thread_name_fn(|| {
             use std::sync::atomic::{AtomicUsize, Ordering};
             static ID: AtomicUsize = AtomicUsize::new(0);
-            format!("apps-w-{}", ID.fetch_add(1, Ordering::Relaxed))
+            format!("rs-fullstack-w-{}", ID.fetch_add(1, Ordering::Relaxed))
         })
         .thread_stack_size(16 * 1024 * 1024)
         .enable_all()
@@ -51,7 +51,7 @@ async fn async_main() {
     });
 
     let fmt_layer = tracing_subscriber::fmt::layer()
-        .event_format(apps_server::logging::PrettyFormatter)
+        .event_format(rs_fullstack_server::logging::PrettyFormatter)
         .with_ansi(true);
 
     tracing_subscriber::registry()
@@ -71,7 +71,7 @@ async fn async_main() {
 
     info!("database connected");
 
-    let state = Arc::new(apps_server::AppState { db });
+    let state = Arc::new(rs_fullstack_server::AppState { db });
 
     let app = build_app(state);
     let listener = tokio::net::TcpListener::bind(&args.listen)

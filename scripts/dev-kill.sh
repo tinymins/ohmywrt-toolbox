@@ -13,7 +13,7 @@ NC='\033[0m'
 PORTS=(5173 5174 5678)
 
 PROCESS_PATTERNS=(
-  "apps-server"
+  "rs-fullstack-server"
   "watchexec.*rust-server"
   "turbo dev"
   "vite"
