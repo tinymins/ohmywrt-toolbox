@@ -278,11 +278,6 @@ export default function AdminSettingsPage() {
 
   const usersTabContent = (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button size="small" onClick={() => setAddUserModal(true)}>
-          + {t("systemSettings.addUser")}
-        </Button>
-      </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -402,6 +397,11 @@ export default function AdminSettingsPage() {
             {t("common.loading")}
           </div>
         )}
+      </div>
+      <div className="flex justify-start">
+        <Button variant="primary" onClick={() => setAddUserModal(true)}>
+          + {t("systemSettings.addUser")}
+        </Button>
       </div>
     </div>
   );
