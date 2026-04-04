@@ -9,6 +9,7 @@ import login from "./login.js";
 import nav from "./nav.js";
 import systemSettings from "./systemSettings.js";
 import userMenu from "./userMenu.js";
+import userSettings from "./userSettings.js";
 import workspace from "./workspace.js";
 
 export const enUS: TranslationSchema = {
@@ -18,6 +19,7 @@ export const enUS: TranslationSchema = {
     errors,
     login,
     userMenu,
+    userSettings,
     dashboard,
     workspace,
     systemSettings,

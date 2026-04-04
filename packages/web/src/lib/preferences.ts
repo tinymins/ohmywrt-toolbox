@@ -1,9 +1,16 @@
-import type { Lang, LangMode, Theme, ThemeMode } from "@acme/types";
+import type {
+  AccentColor,
+  Lang,
+  LangMode,
+  Theme,
+  ThemeMode,
+} from "@acme/types";
 
-export type { Lang, LangMode, Theme, ThemeMode };
+export type { AccentColor, Lang, LangMode, Theme, ThemeMode };
 
 const THEME_MODE_COOKIE_KEY = "themeMode";
 const LANG_MODE_COOKIE_KEY = "langMode";
+const ACCENT_COLOR_COOKIE_KEY = "accentColor";
 
 export const getCookieValue = (name: string): string | null => {
   if (typeof document === "undefined") return null;
@@ -74,4 +81,23 @@ export const loadLangMode = (): LangMode => {
 
 export const saveLangMode = (mode: LangMode) => {
   setCookieValue(LANG_MODE_COOKIE_KEY, mode);
+};
+
+const VALID_ACCENTS = new Set([
+  "emerald",
+  "amber",
+  "rose",
+  "violet",
+  "blue",
+  "cyan",
+]);
+
+export const loadAccentColor = (): AccentColor => {
+  const saved = getCookieValue(ACCENT_COLOR_COOKIE_KEY);
+  if (saved && VALID_ACCENTS.has(saved)) return saved as AccentColor;
+  return "emerald";
+};
+
+export const saveAccentColor = (color: AccentColor) => {
+  setCookieValue(ACCENT_COLOR_COOKIE_KEY, color);
 };

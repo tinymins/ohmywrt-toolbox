@@ -40,6 +40,7 @@ export {
   UserUpdateInputSchema,
 } from "./api";
 export type {
+  AccentColor,
   Lang,
   LangMode,
   Theme,
@@ -49,6 +50,7 @@ export type {
   UserSettings,
 } from "./user";
 export {
+  ACCENT_COLORS,
   UserRoleSchema,
   UserSchema,
   UserSettingsPatchSchema,

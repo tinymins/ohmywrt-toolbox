@@ -1,13 +1,17 @@
+import type { AccentColor } from "@acme/types";
 import {
   createContext,
   type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
 import {
   detectSystemTheme,
+  loadAccentColor,
   loadThemeMode,
+  saveAccentColor,
   saveThemeMode,
   type Theme,
   type ThemeMode,
@@ -17,21 +21,25 @@ type ThemeContextValue = {
   theme: Theme;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
+  accent: AccentColor;
+  setAccent: (color: AccentColor) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
   themeMode: "dark",
   setThemeMode: () => {},
+  accent: "emerald",
+  setAccent: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // SSR-safe defaults: must match what the server renders.
   const [themeMode, setThemeModeState] = useState<ThemeMode>("dark");
   const [theme, setTheme] = useState<Theme>("dark");
+  const [accent, setAccentState] = useState<AccentColor>("emerald");
   const [mounted, setMounted] = useState(false);
 
-  // After hydration: read from cookie (default "dark" if unset).
+  // After hydration: read from cookies
   useEffect(() => {
     const savedMode = loadThemeMode();
     const resolvedTheme =
@@ -39,10 +47,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
     setThemeModeState(savedMode);
     setTheme(resolvedTheme);
+
+    const savedAccent = loadAccentColor();
+    setAccentState(savedAccent);
+    document.documentElement.setAttribute("data-accent", savedAccent);
+
     setMounted(true);
   }, []);
 
-  // Apply + persist on mode change.
+  // Apply + persist on mode change
   useEffect(() => {
     if (!mounted) return;
     saveThemeMode(themeMode);
@@ -52,7 +65,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
   }, [themeMode, mounted]);
 
-  // System theme listener (only relevant when mode is "auto").
+  // Apply + persist accent color
+  useEffect(() => {
+    if (!mounted) return;
+    saveAccentColor(accent);
+    document.documentElement.setAttribute("data-accent", accent);
+  }, [accent, mounted]);
+
+  // System theme listener (only relevant when mode is "auto")
   useEffect(() => {
     if (typeof window === "undefined" || themeMode !== "auto") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -64,9 +84,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => media.removeEventListener("change", handler);
   }, [themeMode]);
 
+  const setThemeMode = useCallback((mode: ThemeMode) => {
+    setThemeModeState(mode);
+  }, []);
+
+  const setAccent = useCallback((color: AccentColor) => {
+    setAccentState(color);
+  }, []);
+
   return (
     <ThemeContext.Provider
-      value={{ theme, themeMode, setThemeMode: setThemeModeState }}
+      value={{ theme, themeMode, setThemeMode, accent, setAccent }}
     >
       {children}
     </ThemeContext.Provider>

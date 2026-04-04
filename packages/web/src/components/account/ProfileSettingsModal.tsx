@@ -1,289 +1,41 @@
-import { Avatar, Button, Input, Modal, Select } from "@acme/components";
-import type { User } from "@acme/types";
-import { useEffect, useRef, useState } from "react";
+import type { UploadProps } from "@acme/components";
+import {
+  Avatar,
+  Button,
+  cn,
+  Form,
+  Input,
+  LockOutlined,
+  Modal,
+  Select,
+  Upload,
+  UserOutlined,
+} from "@acme/components";
+import type { AccentColor, User } from "@acme/types";
+import { ACCENT_COLORS } from "@acme/types";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { userApi } from "@/generated/rust-api";
-import { useAvatarUpload } from "@/hooks/useAvatarUpload";
+import { useTheme } from "@/hooks/useTheme";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import { message } from "@/lib/message";
+import { rustUrl } from "@/lib/rust-api-runtime";
 
-interface ProfileSettingsModalProps {
+type ProfileSettingsModalProps = {
   open: boolean;
   onClose: () => void;
   user: User;
   onUpdateUser: (user: User) => void;
-}
+};
 
-type TabKey = "profile" | "password";
-
-function ProfileTab({
-  user,
-  onClose,
-  onUpdateUser,
-}: {
-  user: User;
-  onClose: () => void;
-  onUpdateUser: (user: User) => void;
-}) {
-  const { t } = useTranslation();
-  const [name, setName] = useState(user.name ?? "");
-  const [email, setEmail] = useState(user.email ?? "");
-  const [langMode, setLangMode] = useState<
-    "auto" | "zh-CN" | "en-US" | "de-DE" | "ja-JP" | "zh-TW"
-  >(user.settings?.langMode ?? "auto");
-  const [themeMode, setThemeMode] = useState<"auto" | "light" | "dark">(
-    user.settings?.themeMode ?? "auto",
-  );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const avatar = useAvatarUpload(user, onUpdateUser);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: syncFromUser is stable (useCallback)
-  useEffect(() => {
-    setName(user.name ?? "");
-    setEmail(user.email ?? "");
-    setLangMode(user.settings?.langMode ?? "auto");
-    setThemeMode(user.settings?.themeMode ?? "auto");
-    avatar.syncFromUser(user);
-  }, [user]);
-
-  const updateMutation = userApi.updateProfile.useMutation({
-    onSuccess: (updated) => {
-      onUpdateUser(updated);
-      message.success(t("userMenu.saveSuccess"));
-      onClose();
-    },
-    onError: (err) => {
-      message.error(err.message || t("userMenu.saveFailed"));
-    },
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await updateMutation.mutateAsync({
-      name: name.trim() || undefined,
-      email: email.trim() || undefined,
-      settings: { langMode, themeMode },
-    });
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Avatar upload */}
-      <div className="flex items-center gap-4">
-        <Avatar
-          src={avatar.avatarUrl || undefined}
-          alt={name || user.name}
-          size="large"
-        >
-          {(name || user.name || "?").charAt(0).toUpperCase()}
-        </Avatar>
-        <div className="flex flex-col gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={avatar.handleFileChange}
-          />
-          <Button
-            type="button"
-            variant="default"
-            loading={avatar.uploading}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {t("common.uploadPhoto")}
-          </Button>
-          {avatar.avatarKey && (
-            <Button
-              type="button"
-              variant="text"
-              loading={avatar.deleteMutation.isPending}
-              onClick={() => avatar.deleteMutation.mutate()}
-            >
-              {t("common.removePhoto")}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("userMenu.name")}
-        </label>
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("userMenu.email")}
-        </label>
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("common.language")}
-        </label>
-        <Select
-          value={langMode}
-          onChange={(val) =>
-            setLangMode(
-              val as "auto" | "zh-CN" | "en-US" | "de-DE" | "ja-JP" | "zh-TW",
-            )
-          }
-          options={[
-            { value: "auto", label: t("common.followSystem") },
-            { value: "zh-CN", label: t("common.lang.zhCN") },
-            { value: "en-US", label: t("common.lang.enUS") },
-            { value: "de-DE", label: t("common.lang.deDE") },
-            { value: "ja-JP", label: t("common.lang.jaJP") },
-            { value: "zh-TW", label: t("common.lang.zhTW") },
-          ]}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("common.theme")}
-        </label>
-        <Select
-          value={themeMode}
-          onChange={(val) => setThemeMode(val as "auto" | "light" | "dark")}
-          options={[
-            { value: "auto", label: t("common.followSystem") },
-            { value: "light", label: t("common.light") },
-            { value: "dark", label: t("common.dark") },
-          ]}
-        />
-      </div>
-
-      <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="text" onClick={onClose}>
-          {t("common.cancel")}
-        </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          loading={updateMutation.isPending}
-        >
-          {t("common.save")}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function PasswordTab({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [validationError, setValidationError] = useState("");
-
-  const changePasswordMutation = userApi.changePassword.useMutation({
-    onSuccess: () => {
-      message.success(t("userMenu.passwordChanged"));
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setValidationError("");
-    },
-    onError: (err) => {
-      message.error(err.message || t("userMenu.saveFailed"));
-    },
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setValidationError("");
-    if (newPassword !== confirmPassword) {
-      setValidationError(t("userMenu.passwordMismatch"));
-      return;
-    }
-    await changePasswordMutation.mutateAsync({
-      currentPassword,
-      newPassword,
-    });
-  };
-
-  const displayError = validationError || changePasswordMutation.error?.message;
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("userMenu.currentPassword")}
-        </label>
-        <Input
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("userMenu.newPassword")}
-        </label>
-        <Input
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          minLength={8}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">
-          {t("userMenu.confirmPassword")}
-        </label>
-        <Input
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          minLength={8}
-        />
-      </div>
-
-      {displayError && (
-        <p
-          className="rounded-md border px-3 py-2 text-sm
-            text-[var(--accent-text)] bg-[var(--accent-subtle)]
-            border-[var(--accent-text)]"
-        >
-          {displayError}
-        </p>
-      )}
-
-      <div className="flex justify-end gap-2 pt-1">
-        <Button type="button" variant="text" onClick={onClose}>
-          {t("common.cancel")}
-        </Button>
-        <Button
-          type="submit"
-          variant="primary"
-          loading={changePasswordMutation.isPending}
-        >
-          {t("userMenu.changePassword")}
-        </Button>
-      </div>
-    </form>
-  );
-}
+const ACCENT_CONFIG: Record<AccentColor, { bg: string; label: string }> = {
+  emerald: { bg: "#10b981", label: "Emerald" },
+  amber: { bg: "#f59e0b", label: "Amber" },
+  rose: { bg: "#f43f5e", label: "Rose" },
+  violet: { bg: "#8b5cf6", label: "Violet" },
+  blue: { bg: "#3b82f6", label: "Blue" },
+  cyan: { bg: "#06b6d4", label: "Cyan" },
+};
 
 export default function ProfileSettingsModal({
   open,
@@ -292,45 +44,384 @@ export default function ProfileSettingsModal({
   onUpdateUser,
 }: ProfileSettingsModalProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabKey>("profile");
+  const { accent, setAccent, themeMode, setThemeMode } = useTheme();
+  const [form] = Form.useForm();
+  const [passwordForm] = Form.useForm();
+  const updateMutation = userApi.updateProfile.useMutation({
+    onError: (err) =>
+      message.error(err.message || t("userSettings.saveFailed")),
+  });
+  const changePasswordMutation = userApi.changePassword.useMutation({
+    onError: (err) =>
+      message.error(err.message || t("userSettings.saveFailed")),
+  });
+
+  const [avatarKey, setAvatarKey] = useState<string | null>(
+    user.settings?.avatarKey ?? null,
+  );
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(
+    resolveAvatarUrl(user.settings?.avatarKey) ?? null,
+  );
+  const [activeTab, setActiveTab] = useState("profile");
+  const [uploading, setUploading] = useState(false);
+
+  const avatarInitial = (user.name || user.email || "?")
+    .charAt(0)
+    .toUpperCase();
+
+  const hasOpenedRef = useRef(false);
 
   useEffect(() => {
-    if (open) setActiveTab("profile");
-  }, [open]);
+    if (!open) {
+      if (hasOpenedRef.current) {
+        setActiveTab("profile");
+        passwordForm.resetFields();
+      }
+      return;
+    }
+    hasOpenedRef.current = true;
+    const key = user.settings?.avatarKey ?? null;
+    setAvatarKey(key);
+    setAvatarPreview(resolveAvatarUrl(key) ?? null);
+    form.setFieldsValue({
+      name: user.name,
+      email: user.email,
+      langMode: user.settings?.langMode ?? "auto",
+      themeMode: user.settings?.themeMode ?? themeMode,
+    });
+  }, [open, user, form, passwordForm, themeMode]);
 
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: "profile", label: t("userMenu.profileTab") },
-    { key: "password", label: t("userMenu.passwordTab") },
-  ];
+  const uploadProps: UploadProps = useMemo(
+    () => ({
+      showUploadList: false,
+      beforeUpload: (file) => {
+        if (!file.type.startsWith("image/")) {
+          message.error(t("userSettings.pleaseUploadImage"));
+          return Upload.LIST_IGNORE;
+        }
+        const previewUrl = URL.createObjectURL(file);
+        setAvatarPreview(previewUrl);
+        setUploading(true);
+        const body = new FormData();
+        body.append("file", file);
+        fetch(rustUrl("/upload/avatar"), {
+          method: "POST",
+          body,
+          credentials: "include",
+        })
+          .then(async (res) => {
+            if (!res.ok) throw new Error("upload failed");
+            const data = (await res.json()) as { key: string; user: User };
+            setAvatarKey(data.key);
+            onUpdateUser(data.user);
+          })
+          .catch(() => {
+            message.error(t("userSettings.uploadFailed"));
+            setAvatarPreview(null);
+          })
+          .finally(() => setUploading(false));
+        return false;
+      },
+    }),
+    [t, onUpdateUser],
+  );
+
+  const deleteAvatarMutation = userApi.deleteAvatar.useMutation({
+    onSuccess: (updated) => {
+      setAvatarKey(null);
+      setAvatarPreview(null);
+      onUpdateUser(updated);
+      message.success(t("userSettings.avatarRemoved"));
+    },
+    onError: (err) =>
+      message.error(err.message || t("userSettings.uploadFailed")),
+  });
+
+  const handleSave = async () => {
+    const values = await form.validateFields();
+    const payload = {
+      name: values.name?.trim(),
+      email: values.email?.trim(),
+      settings: {
+        avatarKey,
+        langMode: values.langMode,
+        themeMode: values.themeMode,
+        accentColor: accent,
+      },
+    };
+
+    const updated = await updateMutation.mutateAsync(payload);
+    onUpdateUser(updated);
+
+    if (payload.settings.themeMode) {
+      setThemeMode(payload.settings.themeMode);
+    }
+
+    message.success(t("userSettings.settingsSaved"));
+    onClose();
+  };
+
+  const handleChangePassword = async () => {
+    const values = await passwordForm.validateFields();
+    try {
+      await changePasswordMutation.mutateAsync({
+        currentPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+      passwordForm.resetFields();
+      message.success(t("userSettings.passwordChanged"));
+    } catch {
+      // error handled by mutation onError
+    }
+  };
+
+  const profileContent = (
+    <>
+      <div className="flex items-center gap-4 mb-6">
+        <Avatar size={64} src={avatarPreview ?? undefined}>
+          {avatarInitial}
+        </Avatar>
+        <div className="flex flex-col gap-2">
+          <Upload {...uploadProps}>
+            <Button size="small" loading={uploading}>
+              {t("userSettings.uploadAvatar")}
+            </Button>
+          </Upload>
+          <Button
+            size="small"
+            variant="danger"
+            disabled={!avatarPreview}
+            onClick={() => deleteAvatarMutation.mutate()}
+          >
+            {t("userSettings.removeAvatar")}
+          </Button>
+        </div>
+      </div>
+
+      <Form form={form} layout="vertical" autoComplete="off">
+        <Form.Item
+          label={t("userSettings.userName")}
+          name="name"
+          rules={[
+            { required: true, message: t("userSettings.userNameRequired") },
+          ]}
+        >
+          <Input placeholder={t("userSettings.userNamePlaceholder")} />
+        </Form.Item>
+
+        <Form.Item
+          label={t("userSettings.email")}
+          name="email"
+          rules={[{ required: true, message: t("userSettings.emailRequired") }]}
+        >
+          <Input type="email" placeholder="name@example.com" />
+        </Form.Item>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Form.Item label={t("userSettings.language")} name="langMode">
+            <Select
+              options={[
+                { value: "auto", label: t("common.auto") },
+                { value: "zh-CN", label: "简体中文" },
+                { value: "zh-TW", label: "繁體中文" },
+                { value: "en-US", label: "English" },
+                { value: "ja-JP", label: "日本語" },
+                { value: "de-DE", label: "Deutsch" },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item label={t("userSettings.theme")} name="themeMode">
+            <Select
+              options={[
+                { value: "auto", label: t("common.auto") },
+                { value: "light", label: t("common.light") },
+                { value: "dark", label: t("common.dark") },
+              ]}
+            />
+          </Form.Item>
+        </div>
+
+        <Form.Item label={t("userSettings.accentColor")}>
+          <div className="flex gap-2 flex-wrap">
+            {ACCENT_COLORS.map((color) => (
+              <button
+                key={color}
+                type="button"
+                title={ACCENT_CONFIG[color].label}
+                className="w-7 h-7 rounded-full cursor-pointer transition-transform hover:scale-110 flex items-center justify-center"
+                style={{
+                  backgroundColor: ACCENT_CONFIG[color].bg,
+                  boxShadow:
+                    accent === color
+                      ? `0 0 0 2px var(--bg-base), 0 0 0 4px ${ACCENT_CONFIG[color].bg}`
+                      : "none",
+                }}
+                onClick={() => setAccent(color)}
+              >
+                {accent === color && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth={3}
+                    className="w-3.5 h-3.5"
+                  >
+                    <path d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </Form.Item>
+      </Form>
+    </>
+  );
+
+  const passwordContent = (
+    <Form form={passwordForm} layout="vertical" autoComplete="off">
+      <Form.Item
+        label={t("userSettings.currentPassword")}
+        name="oldPassword"
+        rules={[
+          {
+            required: true,
+            message: t("userSettings.currentPasswordRequired"),
+          },
+        ]}
+      >
+        <Input.Password
+          placeholder={t("userSettings.currentPasswordPlaceholder")}
+        />
+      </Form.Item>
+
+      <Form.Item
+        label={t("userSettings.newPassword")}
+        name="newPassword"
+        rules={[
+          { required: true, message: t("userSettings.newPasswordRequired") },
+          { min: 6, message: t("userSettings.newPasswordMin") },
+        ]}
+      >
+        <Input.Password
+          placeholder={t("userSettings.newPasswordPlaceholder")}
+        />
+      </Form.Item>
+
+      <Form.Item
+        label={t("userSettings.confirmPassword")}
+        name="confirmPassword"
+        dependencies={["newPassword"]}
+        rules={[
+          {
+            required: true,
+            message: t("userSettings.confirmPasswordRequired"),
+          },
+          ({ getFieldValue }) => ({
+            validator(_, value) {
+              if (!value || getFieldValue("newPassword") === value) {
+                return Promise.resolve();
+              }
+              return Promise.reject(
+                new Error(t("userSettings.passwordMismatch")),
+              );
+            },
+          }),
+        ]}
+      >
+        <Input.Password
+          placeholder={t("userSettings.confirmPasswordPlaceholder")}
+        />
+      </Form.Item>
+    </Form>
+  );
 
   return (
     <Modal
       open={open}
+      title={t("userSettings.title")}
       onCancel={onClose}
-      title={t("userMenu.profileSettings")}
       footer={null}
+      destroyOnHidden
+      width={660}
+      styles={{ body: { padding: 0 } }}
     >
-      <div className="flex gap-4 border-b border-[var(--border-default)] mb-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`cursor-pointer pb-2 text-sm font-medium transition-colors border-b-2 ${
-              activeTab === tab.key
-                ? "border-[var(--accent-text)] text-[var(--text-primary)]"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <div
+        className="grid"
+        style={{ gridTemplateColumns: "168px 1fr", height: 520 }}
+      >
+        {/* Left sidebar nav */}
+        <div className="border-r border-[var(--border-base)] bg-[var(--fill-tertiary)] overflow-y-auto rounded-bl-lg pt-4">
+          <div className="px-2">
+            {(
+              [
+                {
+                  key: "profile",
+                  icon: <UserOutlined />,
+                  label: t("userSettings.profileTab"),
+                },
+                {
+                  key: "password",
+                  icon: <LockOutlined />,
+                  label: t("userSettings.passwordTab"),
+                },
+              ] as const
+            ).map(({ key, icon, label }) => {
+              const isActive = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActiveTab(key)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg mb-0.5 text-left transition-colors cursor-pointer text-sm",
+                    isActive
+                      ? "bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold"
+                      : "text-[var(--text-secondary)] hover:bg-[var(--accent-subtle)]",
+                  )}
+                >
+                  <span className="shrink-0">{icon}</span>
+                  <span className="leading-tight">{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-      {activeTab === "profile" && (
-        <ProfileTab user={user} onClose={onClose} onUpdateUser={onUpdateUser} />
-      )}
-      {activeTab === "password" && <PasswordTab onClose={onClose} />}
+        {/* Right: content + footer */}
+        <div className="flex flex-col min-h-0">
+          <div
+            className="flex-1 overflow-y-auto px-6 py-5"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            {activeTab === "profile" && profileContent}
+            {activeTab === "password" && passwordContent}
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-2 px-6 py-4 border-t border-[var(--border-base)] shrink-0">
+            <Button onClick={onClose}>{t("common.cancel")}</Button>
+            {activeTab === "profile" && (
+              <Button
+                variant="primary"
+                loading={updateMutation.isPending}
+                onClick={handleSave}
+              >
+                {t("common.save")}
+              </Button>
+            )}
+            {activeTab === "password" && (
+              <Button
+                variant="primary"
+                loading={changePasswordMutation.isPending}
+                onClick={handleChangePassword}
+              >
+                {t("userSettings.changePassword")}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 }
