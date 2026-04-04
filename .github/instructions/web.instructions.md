@@ -178,9 +178,9 @@ export function useAvatarUpload(user: User, onUpdateUser: (u: User) => void) {
 
 ## Storage / File URL
 
-- Backend returns `key` (e.g. `userId/1234.jpg`), never a full URL
+- Backend returns `key` (e.g. `avatars/1234.jpg`), never a full URL
 - Use `resolveAvatarUrl(key)` from `@/lib/avatar` to get the full URL for display
-- Base URL comes from `VITE_STORAGE_PUBLIC_URL` env var
+- URLs resolve to `/storage/{key}` (proxied to Rust backend in dev)
 
 ```typescript
 import { resolveAvatarUrl } from "@/lib/avatar";

@@ -1,15 +1,14 @@
 /**
- * Resolve a storage key (e.g. "userId/1234.jpg") to a full public URL.
- * The base URL is read from VITE_STORAGE_PUBLIC_URL at build time.
+ * Resolve a storage key (e.g. "avatars/1234.jpg") to a full URL.
+ * Uses the Rust server's /storage/{key} endpoint.
  * Returns undefined if key is empty/nullish.
  */
+
+import { storageUrl } from "@/lib/storage-url";
+
 export const resolveAvatarUrl = (
   key: string | null | undefined,
 ): string | undefined => {
   if (!key) return undefined;
-  const base = (
-    import.meta.env.VITE_STORAGE_PUBLIC_URL as string | undefined
-  )?.replace(/\/$/, "");
-  if (!base) return undefined;
-  return `${base}/${key}`;
+  return storageUrl(key);
 };

@@ -71,7 +71,11 @@ async fn async_main() {
 
     info!("database connected");
 
-    let state = Arc::new(rs_fullstack_server::AppState { db });
+    let data_local_path = env::var("DATA_LOCAL_PATH").unwrap_or_else(|_| ".data".to_string());
+    let storage =
+        rs_fullstack_server::services::storage::create_storage_from_env(&data_local_path).await;
+
+    let state = Arc::new(rs_fullstack_server::AppState { db, storage });
 
     let app = build_app(state);
     let listener = tokio::net::TcpListener::bind(&args.listen)

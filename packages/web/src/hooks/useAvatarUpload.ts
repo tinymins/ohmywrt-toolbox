@@ -4,14 +4,14 @@ import { useTranslation } from "react-i18next";
 import { userApi } from "@/generated/rust-api";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { message } from "@/lib/message";
+import { rustUrl } from "@/lib/rust-api-runtime";
 
 /**
  * Encapsulates avatar upload / delete state and handlers.
  * Used by ProfileSettingsModal to keep that component focused on the form.
  *
- * Internally tracks `avatarKey` (the storage key, e.g. "userId/1234.jpg").
- * Consumers get `avatarUrl` — the fully resolved public URL derived from
- * VITE_STORAGE_PUBLIC_URL — for display purposes.
+ * Internally tracks `avatarKey` (the storage key, e.g. "avatars/1234.jpg").
+ * Consumers get `avatarUrl` — the fully resolved URL via /storage/{key} endpoint.
  */
 export function useAvatarUpload(
   user: User,
@@ -40,7 +40,7 @@ export function useAvatarUpload(
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/upload/avatar", {
+      const res = await fetch(rustUrl("/upload/avatar"), {
         method: "POST",
         body,
         credentials: "include",

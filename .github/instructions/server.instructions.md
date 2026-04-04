@@ -187,7 +187,7 @@ pnpm --filter @acme/server db:generate  # regenerate Prisma client
 pnpm --filter @acme/server db:migrate   # create migration files + apply (production)
 ```
 
-DB is PostgreSQL 18 running in Docker. Start it with `docker compose up -d db minio`.
+DB is PostgreSQL 18 running in Docker. Start it with `docker compose -f docker/docker-compose.dev.yml --env-file .env up -d`.
 
 ## Logger
 
@@ -218,8 +218,9 @@ Session resolution happens in `@/utils/request-auth.ts` via `resolveRequestAuth(
 
 ## Storage
 
-- `StorageProvider` interface: only `uploadFile(key, body, contentType): Promise<void>` and `deleteFile(key): Promise<void>`
-- `uploadFile` returns **`void`** — no URL returned from storage layer
-- Backend stores **file keys** (e.g. `userId/1234.jpg`) in DB, never full URLs
-- Upload route responds with `{ key, user }` — frontend resolves URL via `VITE_STORAGE_PUBLIC_URL`
-- When replacing a file, pass the old key directly to `storage.deleteFile(oldKey)`
+- `StorageProvider` trait: `upload`, `download`, `delete`, `exists`, `list` — async, pluggable
+- Uses **OpenDAL** with local filesystem backend (no MinIO/S3 container needed)
+- Storage path: `{DATA_LOCAL_PATH}/storage/`
+- Backend stores **file keys** (e.g. `avatars/1234.jpg`) in DB, never full URLs
+- Upload route responds with `{ success: true, data: { key } }`
+- Frontend resolves URL via `/storage/{key}` endpoint
