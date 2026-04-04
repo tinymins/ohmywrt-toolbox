@@ -41,7 +41,7 @@ COPY prisma ./prisma
 RUN npm install -g prisma@6
 
 # Rust binary (pre-built release — cargo build --release runs before docker build)
-COPY packages/server/target/release/rs-fullstack-server /usr/local/bin/
+COPY packages/server/target/release/ohmywrt-toolbox-server /usr/local/bin/
 
 # Frontend static files
 COPY --from=web-builder /app/packages/web/dist /app/web
@@ -49,4 +49,4 @@ COPY --from=web-builder /app/packages/web/dist /app/web
 ENV STATIC_DIR=/app/web
 EXPOSE 5678
 
-CMD ["rs-fullstack-server"]
+CMD ["ohmywrt-toolbox-server"]

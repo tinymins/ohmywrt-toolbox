@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := help
 
 # 镜像名称
-SERVER_IMAGE := rs-fullstack-server
+SERVER_IMAGE := ohmywrt-toolbox-server
 COMPOSE_DEV := docker compose -f docker/docker-compose.dev.yml --env-file .env
 
 # 数据目录（从 .env 读取，默认 .data）

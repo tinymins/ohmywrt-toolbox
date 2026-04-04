@@ -1,4 +1,4 @@
-# rs-fullstack — Full-Stack Web Application
+# OhMyWRT Toolbox
 
 Rust + React 全栈 Monorepo 应用，使用 pnpm workspaces 管理。
 

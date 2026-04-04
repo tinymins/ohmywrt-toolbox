@@ -105,10 +105,10 @@ make db:sync
 npx prisma db push --schema prisma/schema.prisma
 
 # 查询数据库
-docker exec rs-fullstack-postgres psql -U postgres -d rs_fullstack_db -c "SELECT * FROM users LIMIT 10;"
+docker exec ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db -c "SELECT * FROM users LIMIT 10;"
 
 # 进入数据库 shell
-docker exec -it rs-fullstack-postgres psql -U postgres -d rs_fullstack_db
+docker exec -it ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db
 ```
 
 ### WASM
@@ -150,7 +150,7 @@ cd packages/server && TS_RS_EXPORT_DIR="../web/src/generated/rust-types" cargo t
 
 - **直接查询**：
   ```bash
-  docker exec rs-fullstack-postgres psql -U postgres -d rs_fullstack_db -c "SQL"
+  docker exec ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db -c "SQL"
   ```
 - **Prisma Studio**（可选）：
   ```bash

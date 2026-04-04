@@ -13,7 +13,7 @@ NC='\033[0m'
 PORTS=(5173 5174 5678)
 
 PROCESS_PATTERNS=(
-  "rs-fullstack-server"
+  "ohmywrt-toolbox-server"
   "watchexec.*server"
   "turbo dev"
   "vite"

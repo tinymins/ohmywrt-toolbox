@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# rs-fullstack 一键部署脚本
+# ohmywrt-toolbox 一键部署脚本
 # =============================================================================
 
 set -e
@@ -150,7 +150,7 @@ build_images() {
 # 导出镜像
 export_images() {
     log_info "导出镜像到 ${LOCAL_TMP}/${IMAGE_FILE}..."
-    docker save rs-fullstack-server:latest apps-web:latest \
+    docker save ohmywrt-toolbox-server:latest apps-web:latest \
         -o "${LOCAL_TMP}/${IMAGE_FILE}"
 
     local size=$(du -h "${LOCAL_TMP}/${IMAGE_FILE}" | cut -f1)

@@ -261,7 +261,7 @@ cd packages/server
 2. 解析 `DATA_LOCAL_PATH` 为绝对路径
 3. `cargo build`（debug 模式）
 4. 后台运行 ts-rs 类型导出
-5. 启动 `rs-fullstack-server --listen 0.0.0.0:5678`
+5. 启动 `ohmywrt-toolbox-server --listen 0.0.0.0:5678`
 
 **`dev-watch.sh`** 文件监听：
 - 优先使用 `watchexec`（推荐）
@@ -276,7 +276,7 @@ cd packages/server
 cd packages/server
 cargo build --release
 
-# 输出：target/release/rs-fullstack-server
+# 输出：target/release/ohmywrt-toolbox-server
 ```
 
 ### Docker 构建
@@ -297,7 +297,7 @@ make docker
 | **最终镜像** | node:20-trixie-slim | 复制 Rust 二进制 + 前端静态文件 + Prisma schema |
 
 最终镜像包含：
-- `/usr/local/bin/rs-fullstack-server` — Rust 二进制
+- `/usr/local/bin/ohmywrt-toolbox-server` — Rust 二进制
 - `/app/web` — 前端静态文件（`STATIC_DIR` 环境变量指向）
 - Prisma CLI（用于 `npx prisma db push`）
 

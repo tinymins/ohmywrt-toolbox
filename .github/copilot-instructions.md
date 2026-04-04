@@ -40,7 +40,7 @@ make docker      # 构建 Docker 镜像
 ```sh
 make db:sync                                    # 同步 schema 到 DB（prisma db push）
 npx prisma db push --schema prisma/schema.prisma  # 手动推送 schema
-docker exec rs-fullstack-postgres psql -U postgres -d rs_fullstack_db -c "SQL"  # 查询数据库
+docker exec ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db -c "SQL"  # 查询数据库
 ```
 
 ## 环境变量配置
@@ -172,8 +172,8 @@ User preference stored in cookies (`themeMode`, `langMode`).
 ### Docker 架构
 
 2 容器部署：
-- `rs-fullstack-postgres` — PostgreSQL 数据库
-- `rs-fullstack-server` — Rust 二进制（内嵌前端静态文件 + Prisma migration）
+- `ohmywrt-toolbox-postgres` — PostgreSQL 数据库
+- `ohmywrt-toolbox-server` — Rust 二进制（内嵌前端静态文件 + Prisma migration）
 
 ### 版本与构建时间
 
@@ -191,7 +191,7 @@ User preference stored in cookies (`themeMode`, `langMode`).
 
 - **禁止直接执行** `make init`、数据库 reset、`DROP`、`rm -rf .data/`、`docker-compose down -v` 等任何会销毁数据库数据的命令
 - **验证代码改动时只读代码，不要跑破坏性命令来"测试"**
-- 如果确实必须运行涉及数据库的操作，**必须先备份**：`docker exec rs-fullstack-postgres pg_dump -U postgres -d rs_fullstack_db > .data/backup_pre_test.sql`
+- 如果确实必须运行涉及数据库的操作，**必须先备份**：`docker exec ohmywrt-toolbox-postgres pg_dump -U postgres -d ohmywrt_toolbox_db > .data/backup_pre_test.sql`
 - **绝对禁止**停止、重启或修改其他项目的 Docker 容器
 - Makefile 中每个 `@` 行是独立 shell，`exit 0` 不会停止后续行执行，取消逻辑必须用 `exit 1`
 
