@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Select } from "@acme/components";
+import { Button, Input, Modal, Select, Tabs } from "@acme/components";
 import type { AdminUser, InvitationCode, User, UserRole } from "@acme/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -271,12 +271,312 @@ export default function SystemSettingsModal({
     message.success(t("systemSettings.invitationDeleted"));
   };
 
-  const tabs = [
-    { key: "general", label: t("systemSettings.generalTab") },
+  const generalTabContent = (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-[var(--text-primary)]">
+            {t("systemSettings.allowRegistration")}
+          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            {t("systemSettings.allowRegistrationDesc")}
+          </p>
+        </div>
+        <Toggle
+          checked={effectiveAllowRegistration}
+          onChange={setLocalAllowRegistration}
+        />
+      </div>
+      {isSuperAdmin && !settingsQuery.data?.singleWorkspaceModeOverridden && (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)]">
+              {t("systemSettings.singleWorkspaceMode")}
+            </p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              {t("systemSettings.singleWorkspaceModeDesc")}
+            </p>
+          </div>
+          <Toggle
+            checked={effectiveSingleWorkspaceMode}
+            onChange={setLocalSingleWorkspaceMode}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  const usersTabContent = (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button size="small" onClick={() => setAddUserModal(true)}>
+          + {t("systemSettings.addUser")}
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--border-base)]">
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.userNameColumn")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.emailColumn")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.userRole")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.lastLoginAt")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.userActions")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {(usersQuery.data ?? []).map((record: AdminUser) => {
+              const isCurrentUser = record.id === user.id;
+              const isSuperAdminUser = record.role === "superadmin";
+              return (
+                <tr
+                  key={record.id}
+                  className="border-b border-[var(--border-base)] last:border-0"
+                >
+                  <td className="py-2 px-3">{record.name}</td>
+                  <td className="py-2 px-3 text-[var(--text-muted)]">
+                    {record.email}
+                  </td>
+                  <td className="py-2 px-3">
+                    <RoleBadge role={record.role} />
+                  </td>
+                  <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
+                    {record.lastLoginAt
+                      ? new Date(record.lastLoginAt).toLocaleString()
+                      : t("systemSettings.neverLogin")}
+                  </td>
+                  <td className="py-2 px-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Select
+                        value={record.role}
+                        disabled={isCurrentUser || isSuperAdminUser}
+                        onChange={(role) =>
+                          handleChangeRole(record.id, role as UserRole)
+                        }
+                        options={[
+                          {
+                            value: "user",
+                            label: t("systemSettings.roleUser"),
+                          },
+                          {
+                            value: "admin",
+                            label: t("systemSettings.roleAdmin"),
+                          },
+                          {
+                            value: "superadmin",
+                            label: t("systemSettings.roleSuperAdmin"),
+                          },
+                        ]}
+                        className="w-28"
+                      />
+                      <Button
+                        size="small"
+                        variant="text"
+                        disabled={isCurrentUser}
+                        onClick={() =>
+                          setResetPasswordModal({
+                            open: true,
+                            userId: record.id,
+                            userName: record.name,
+                          })
+                        }
+                      >
+                        {t("systemSettings.resetPassword")}
+                      </Button>
+                      {confirmDeleteUser === record.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="small"
+                            variant="danger"
+                            onClick={() => handleDeleteUser(record.id)}
+                          >
+                            {t("common.confirm")}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setConfirmDeleteUser(null)}
+                          >
+                            {t("common.cancel")}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="danger"
+                          disabled={isCurrentUser || isSuperAdminUser}
+                          onClick={() => setConfirmDeleteUser(record.id)}
+                        >
+                          {t("systemSettings.deleteUser")}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {usersQuery.isLoading && (
+          <div className="py-8 text-center text-[var(--text-muted)]">
+            {t("common.loading")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const invitationsTabContent = (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            placeholder={t("systemSettings.expiresInHours")}
+            value={invitationExpiresHours}
+            onChange={(e) => setInvitationExpiresHours(e.target.value)}
+            className="w-32"
+          />
+          <span className="text-sm text-[var(--text-muted)]">
+            {t("systemSettings.hoursUnit")}
+          </span>
+        </div>
+        <span className="text-xs text-[var(--text-muted)]">
+          {invitationExpiresHours ? "" : t("systemSettings.noExpiration")}
+        </span>
+        <Button
+          size="small"
+          onClick={handleGenerateInvitation}
+          disabled={generateInvitationMutation.isPending}
+        >
+          🔗 {t("systemSettings.generateInvitation")}
+        </Button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[var(--border-base)]">
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.invitationCode")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.invitationStatus")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.invitationExpiresAt")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.invitationCreatedAt")}
+              </th>
+              <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
+                {t("systemSettings.userActions")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {(invitationsQuery.data ?? []).map((record: InvitationCode) => {
+              const isUsed = !!record.usedBy;
+              return (
+                <tr
+                  key={record.id}
+                  className="border-b border-[var(--border-base)] last:border-0"
+                >
+                  <td className="py-2 px-3">
+                    <code className="text-xs cursor-help" title={record.code}>
+                      {record.code.slice(0, 8)}...
+                    </code>
+                  </td>
+                  <td className="py-2 px-3">
+                    <InvitationStatusBadge invitation={record} />
+                  </td>
+                  <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
+                    {record.expiresAt
+                      ? new Date(record.expiresAt).toLocaleString()
+                      : t("systemSettings.invitationNeverExpire")}
+                  </td>
+                  <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
+                    {new Date(record.createdAt).toLocaleString()}
+                  </td>
+                  <td className="py-2 px-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="small"
+                        variant="text"
+                        disabled={isUsed}
+                        onClick={() => handleCopyInvitationLink(record.code)}
+                      >
+                        📋 {t("systemSettings.copyInvitationLink")}
+                      </Button>
+                      {confirmDeleteInvitation === record.id ? (
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="small"
+                            variant="danger"
+                            onClick={() => handleDeleteInvitation(record.id)}
+                          >
+                            {t("common.confirm")}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="text"
+                            onClick={() => setConfirmDeleteInvitation(null)}
+                          >
+                            {t("common.cancel")}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="danger"
+                          onClick={() => setConfirmDeleteInvitation(record.id)}
+                        >
+                          {t("systemSettings.deleteInvitation")}
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {invitationsQuery.isLoading && (
+          <div className="py-8 text-center text-[var(--text-muted)]">
+            {t("common.loading")}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const tabItems = [
+    {
+      key: "general",
+      label: t("systemSettings.generalTab"),
+      children: generalTabContent,
+    },
     ...(isSuperAdmin
       ? [
-          { key: "users", label: t("systemSettings.usersTab") },
-          { key: "invitations", label: t("systemSettings.invitationTab") },
+          {
+            key: "users",
+            label: t("systemSettings.usersTab"),
+            children: usersTabContent,
+          },
+          {
+            key: "invitations",
+            label: t("systemSettings.invitationTab"),
+            children: invitationsTabContent,
+          },
         ]
       : []),
   ];
@@ -296,330 +596,12 @@ export default function SystemSettingsModal({
         title={t("systemSettings.title")}
         width={isSuperAdmin ? 800 : 520}
       >
-        {/* Tabs */}
-        <div className="border-b border-[var(--border-base)] mb-4">
-          <nav className="-mb-px flex gap-4">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setActiveTab(tab.key)}
-                className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* General Tab */}
-        {activeTab === "general" && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-[var(--text-primary)]">
-                  {t("systemSettings.allowRegistration")}
-                </p>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  {t("systemSettings.allowRegistrationDesc")}
-                </p>
-              </div>
-              <Toggle
-                checked={effectiveAllowRegistration}
-                onChange={setLocalAllowRegistration}
-              />
-            </div>
-            {isSuperAdmin &&
-              !settingsQuery.data?.singleWorkspaceModeOverridden && (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-[var(--text-primary)]">
-                      {t("systemSettings.singleWorkspaceMode")}
-                    </p>
-                    <p className="text-xs text-[var(--text-muted)] mt-1">
-                      {t("systemSettings.singleWorkspaceModeDesc")}
-                    </p>
-                  </div>
-                  <Toggle
-                    checked={effectiveSingleWorkspaceMode}
-                    onChange={setLocalSingleWorkspaceMode}
-                  />
-                </div>
-              )}
-          </div>
-        )}
-
-        {/* Users Tab */}
-        {activeTab === "users" && isSuperAdmin && (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <Button size="small" onClick={() => setAddUserModal(true)}>
-                + {t("systemSettings.addUser")}
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border-base)]">
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.userNameColumn")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.emailColumn")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.userRole")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.lastLoginAt")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.userActions")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(usersQuery.data ?? []).map((record: AdminUser) => {
-                    const isCurrentUser = record.id === user.id;
-                    const isSuperAdminUser = record.role === "superadmin";
-                    return (
-                      <tr
-                        key={record.id}
-                        className="border-b border-[var(--border-base)] last:border-0"
-                      >
-                        <td className="py-2 px-3">{record.name}</td>
-                        <td className="py-2 px-3 text-[var(--text-muted)]">
-                          {record.email}
-                        </td>
-                        <td className="py-2 px-3">
-                          <RoleBadge role={record.role} />
-                        </td>
-                        <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
-                          {record.lastLoginAt
-                            ? new Date(record.lastLoginAt).toLocaleString()
-                            : t("systemSettings.neverLogin")}
-                        </td>
-                        <td className="py-2 px-3">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Select
-                              value={record.role}
-                              disabled={isCurrentUser || isSuperAdminUser}
-                              onChange={(role) =>
-                                handleChangeRole(record.id, role as UserRole)
-                              }
-                              options={[
-                                {
-                                  value: "user",
-                                  label: t("systemSettings.roleUser"),
-                                },
-                                {
-                                  value: "admin",
-                                  label: t("systemSettings.roleAdmin"),
-                                },
-                                {
-                                  value: "superadmin",
-                                  label: t("systemSettings.roleSuperAdmin"),
-                                },
-                              ]}
-                              className="w-28"
-                            />
-                            <Button
-                              size="small"
-                              variant="text"
-                              disabled={isCurrentUser}
-                              onClick={() =>
-                                setResetPasswordModal({
-                                  open: true,
-                                  userId: record.id,
-                                  userName: record.name,
-                                })
-                              }
-                            >
-                              {t("systemSettings.resetPassword")}
-                            </Button>
-                            {confirmDeleteUser === record.id ? (
-                              <div className="flex items-center gap-1">
-                                <Button
-                                  size="small"
-                                  variant="danger"
-                                  onClick={() => handleDeleteUser(record.id)}
-                                >
-                                  {t("common.confirm")}
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="text"
-                                  onClick={() => setConfirmDeleteUser(null)}
-                                >
-                                  {t("common.cancel")}
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="small"
-                                variant="danger"
-                                disabled={isCurrentUser || isSuperAdminUser}
-                                onClick={() => setConfirmDeleteUser(record.id)}
-                              >
-                                {t("systemSettings.deleteUser")}
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {usersQuery.isLoading && (
-                <div className="py-8 text-center text-[var(--text-muted)]">
-                  {t("common.loading")}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Invitations Tab */}
-        {activeTab === "invitations" && isSuperAdmin && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder={t("systemSettings.expiresInHours")}
-                  value={invitationExpiresHours}
-                  onChange={(e) => setInvitationExpiresHours(e.target.value)}
-                  className="w-32"
-                />
-                <span className="text-sm text-[var(--text-muted)]">
-                  {t("systemSettings.hoursUnit")}
-                </span>
-              </div>
-              <span className="text-xs text-[var(--text-muted)]">
-                {invitationExpiresHours ? "" : t("systemSettings.noExpiration")}
-              </span>
-              <Button
-                size="small"
-                onClick={handleGenerateInvitation}
-                disabled={generateInvitationMutation.isPending}
-              >
-                🔗 {t("systemSettings.generateInvitation")}
-              </Button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border-base)]">
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.invitationCode")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.invitationStatus")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.invitationExpiresAt")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.invitationCreatedAt")}
-                    </th>
-                    <th className="py-2 px-3 text-left font-medium text-[var(--text-muted)]">
-                      {t("systemSettings.userActions")}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(invitationsQuery.data ?? []).map(
-                    (record: InvitationCode) => {
-                      const isUsed = !!record.usedBy;
-                      return (
-                        <tr
-                          key={record.id}
-                          className="border-b border-[var(--border-base)] last:border-0"
-                        >
-                          <td className="py-2 px-3">
-                            <code
-                              className="text-xs cursor-help"
-                              title={record.code}
-                            >
-                              {record.code.slice(0, 8)}...
-                            </code>
-                          </td>
-                          <td className="py-2 px-3">
-                            <InvitationStatusBadge invitation={record} />
-                          </td>
-                          <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
-                            {record.expiresAt
-                              ? new Date(record.expiresAt).toLocaleString()
-                              : t("systemSettings.invitationNeverExpire")}
-                          </td>
-                          <td className="py-2 px-3 text-xs text-[var(--text-muted)]">
-                            {new Date(record.createdAt).toLocaleString()}
-                          </td>
-                          <td className="py-2 px-3">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="small"
-                                variant="text"
-                                disabled={isUsed}
-                                onClick={() =>
-                                  handleCopyInvitationLink(record.code)
-                                }
-                              >
-                                📋 {t("systemSettings.copyInvitationLink")}
-                              </Button>
-                              {confirmDeleteInvitation === record.id ? (
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    size="small"
-                                    variant="danger"
-                                    onClick={() =>
-                                      handleDeleteInvitation(record.id)
-                                    }
-                                  >
-                                    {t("common.confirm")}
-                                  </Button>
-                                  <Button
-                                    size="small"
-                                    variant="text"
-                                    onClick={() =>
-                                      setConfirmDeleteInvitation(null)
-                                    }
-                                  >
-                                    {t("common.cancel")}
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button
-                                  size="small"
-                                  variant="danger"
-                                  onClick={() =>
-                                    setConfirmDeleteInvitation(record.id)
-                                  }
-                                >
-                                  {t("systemSettings.deleteInvitation")}
-                                </Button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
-              {invitationsQuery.isLoading && (
-                <div className="py-8 text-center text-[var(--text-muted)]">
-                  {t("common.loading")}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <Tabs
+          className="[&_[role=tabpanel]]:mt-4"
+          items={tabItems}
+          activeKey={activeTab}
+          onChange={setActiveTab}
+        />
       </Modal>
 
       {/* Reset Password Modal */}
