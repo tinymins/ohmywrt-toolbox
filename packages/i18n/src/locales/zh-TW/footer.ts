@@ -1,5 +1,5 @@
 const footer = {
-  copyright: "© 2024 AI Stack. All rights reserved.",
+  copyright: "© 2024 OhMyWRT Toolbox. All rights reserved.",
 };
 
 export default footer;

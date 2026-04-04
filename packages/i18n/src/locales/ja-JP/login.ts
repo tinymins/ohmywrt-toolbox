@@ -1,7 +1,7 @@
 const login = {
   login: "ログイン",
   register: "登録",
-  title: "AI Stack にサインイン",
+  title: "OhMyWRT Toolbox にサインイン",
   submit: "サインイン",
   email: "メールアドレス",
   emailPlaceholder: "メールアドレスを入力",

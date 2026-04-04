@@ -15,8 +15,8 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
   {
     title:
       data?.lang === "en"
-        ? "Page Not Found — AI Stack"
-        : "页面不存在 — AI Stack",
+        ? "Page Not Found — OhMyWRT Toolbox"
+        : "页面不存在 — OhMyWRT Toolbox",
   },
   { name: "robots", content: "noindex, nofollow" },
 ];

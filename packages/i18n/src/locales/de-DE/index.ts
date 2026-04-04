@@ -15,7 +15,7 @@ import workspace from "./workspace.js";
 
 export const deDE: TranslationSchema = {
   translation: {
-    brand: "AI Stack",
+    brand: "OhMyWRT Toolbox",
     common,
     errors,
     login,

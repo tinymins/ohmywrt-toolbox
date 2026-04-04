@@ -16,7 +16,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   {
-    title: data?.lang === "en" ? "Dashboard — AI Stack" : "控制台 — AI Stack",
+    title: data?.lang === "en" ? "Dashboard — OhMyWRT Toolbox" : "控制台 — OhMyWRT Toolbox",
   },
   { name: "robots", content: "noindex, nofollow" },
 ];

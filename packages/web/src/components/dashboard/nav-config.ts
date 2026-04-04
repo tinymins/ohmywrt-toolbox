@@ -31,6 +31,38 @@ export const menuConfig: MenuItemConfig[] = [
     icon: "dashboard",
   },
   {
+    key: "toolsGroup",
+    labelKey: "toolsGroup",
+    routeSuffix: null,
+    icon: "wrench",
+    children: [
+      {
+        key: "proxy",
+        labelKey: "toolsGroup.proxy",
+        routeSuffix: "/proxy",
+        icon: "globe",
+      },
+      {
+        key: "todo",
+        labelKey: "toolsGroup.todo",
+        routeSuffix: "/todo",
+        icon: "checkSquare",
+      },
+      {
+        key: "testRequirement",
+        labelKey: "toolsGroup.testRequirement",
+        routeSuffix: "/test-requirement",
+        icon: "clipboardList",
+      },
+      {
+        key: "network",
+        labelKey: "toolsGroup.network",
+        routeSuffix: "/network",
+        icon: "network",
+      },
+    ],
+  },
+  {
     key: "contentGroup",
     labelKey: "contentGroup",
     routeSuffix: null,

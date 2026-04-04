@@ -1,6 +1,10 @@
 pub mod invitation_codes;
+pub mod proxy_access_logs;
+pub mod proxy_subscribes;
 pub mod sessions;
 pub mod system_settings;
+pub mod test_requirements;
+pub mod todos;
 pub mod users;
 pub mod workspace_members;
 pub mod workspaces;

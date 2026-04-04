@@ -3,6 +3,13 @@ const dashboard = {
   unknownPage: "Unbekannte Seite",
   menu: {
     overview: "Übersicht",
+    toolsGroup: {
+      _: "Werkzeuge",
+      proxy: "Proxy-Abonnements",
+      todo: "Aufgaben",
+      testRequirement: "Testanforderungen",
+      network: "Netzwerk",
+    },
     contentGroup: {
       _: "Inhalte",
       articles: "Artikel",

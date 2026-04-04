@@ -1,7 +1,7 @@
 const login = {
   login: "登录",
   register: "注册",
-  title: "登录 AI Stack",
+  title: "登录 OhMyWRT Toolbox",
   submit: "登录",
   email: "邮箱",
   emailPlaceholder: "请输入邮箱",

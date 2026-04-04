@@ -15,7 +15,7 @@ import workspace from "./workspace.js";
 
 export const zhTW: TranslationSchema = {
   translation: {
-    brand: "AI Stack",
+    brand: "OhMyWRT Toolbox",
     common,
     errors,
     login,

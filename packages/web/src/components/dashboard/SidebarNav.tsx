@@ -1,9 +1,14 @@
 import type { MenuProps } from "@acme/components";
 import {
+  ApiOutlined,
   ControlOutlined,
   DashboardOutlined,
   FolderOpenOutlined,
+  GlobalOutlined,
+  ListTodoOutlined,
   Menu,
+  ShieldOutlined,
+  ThunderboltOutlined,
 } from "@acme/components";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -23,6 +28,11 @@ const iconMap: Record<string, ReactNode> = {
   dashboard: <DashboardOutlined />,
   folderOpen: <FolderOpenOutlined />,
   settings: <ControlOutlined />,
+  wrench: <ThunderboltOutlined />,
+  globe: <GlobalOutlined />,
+  checkSquare: <ListTodoOutlined />,
+  clipboardList: <ShieldOutlined />,
+  network: <ApiOutlined />,
 };
 
 export default function SidebarNav() {

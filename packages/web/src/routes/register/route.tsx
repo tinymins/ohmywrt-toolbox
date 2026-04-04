@@ -13,19 +13,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) =>
   data?.lang === "en"
     ? [
-        { title: "Register — AI Stack" },
+        { title: "Register — OhMyWRT Toolbox" },
         {
           name: "description",
           content:
-            "Create a AI Stack account and start building production-grade apps with AI Coding.",
+            "Create a OhMyWRT Toolbox account and manage your OpenWrt network tools.",
         },
         { name: "robots", content: "noindex, nofollow" },
       ]
     : [
-        { title: "注册 — AI Stack" },
+        { title: "注册 — OhMyWRT Toolbox" },
         {
           name: "description",
-          content: "创建 AI Stack 账号，开始用 AI Coding 构建生产级应用。",
+          content: "创建 OhMyWRT Toolbox 账号，管理您的 OpenWrt 网络工具。",
         },
         { name: "robots", content: "noindex, nofollow" },
       ];

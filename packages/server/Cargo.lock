@@ -1745,6 +1745,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohmywrt-toolbox-server"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "clap",
+ "dotenvy",
+ "hex",
+ "mime_guess",
+ "once_cell",
+ "opendal",
+ "rand 0.8.5",
+ "reqwest",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "tikv-jemallocator",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-log",
+ "tracing-subscriber",
+ "ts-rs",
+ "uuid",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2368,35 +2398,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "rs-fullstack-server"
-version = "0.1.0"
-dependencies = [
- "argon2",
- "async-trait",
- "axum",
- "bytes",
- "chrono",
- "clap",
- "dotenvy",
- "hex",
- "mime_guess",
- "opendal",
- "rand 0.8.5",
- "reqwest",
- "sea-orm",
- "serde",
- "serde_json",
- "tikv-jemallocator",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-log",
- "tracing-subscriber",
- "ts-rs",
- "uuid",
 ]
 
 [[package]]

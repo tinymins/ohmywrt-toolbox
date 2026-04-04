@@ -15,18 +15,18 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 const META = {
   "zh-CN": {
-    title: "AI Stack — AI 全栈应用模板",
+    title: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
     description:
       "基于 TypeScript 的全栈应用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
-    ogTitle: "AI Stack — AI 全栈应用模板",
+    ogTitle: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
     ogLocale: "zh_CN",
     ogLocaleAlt: "en_US",
   },
   en: {
-    title: "AI Stack — AI Full-Stack Application Template",
+    title: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
     description:
       "A full-stack application template built with TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
-    ogTitle: "AI Stack — AI Full-Stack Template",
+    ogTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
     ogLocale: "en_US",
     ogLocaleAlt: "zh_CN",
   },
@@ -45,7 +45,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     // Open Graph
     { property: "og:type", content: "website" },
     { property: "og:url", content: SITE_URL },
-    { property: "og:site_name", content: "AI Stack" },
+    { property: "og:site_name", content: "OhMyWRT Toolbox" },
     { property: "og:title", content: m.ogTitle },
     { property: "og:description", content: m.description },
     { property: "og:locale", content: m.ogLocale },

@@ -12,19 +12,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) =>
   data?.lang === "en"
     ? [
-        { title: "Sign In — AI Stack" },
+        { title: "Sign In — OhMyWRT Toolbox" },
         {
           name: "description",
           content:
-            "Sign in to AI Stack and start building with the AI full-stack template.",
+            "Sign in to OhMyWRT Toolbox and start building with the OhMyWRT Toolbox.",
         },
         { name: "robots", content: "noindex, nofollow" },
       ]
     : [
-        { title: "登录 — AI Stack" },
+        { title: "登录 — OhMyWRT Toolbox" },
         {
           name: "description",
-          content: "登录到 AI Stack，开始使用 AI 全栈规范模板。",
+          content: "登录到 OhMyWRT Toolbox，开始使用 OhMyWRT 工具箱。",
         },
         { name: "robots", content: "noindex, nofollow" },
       ];

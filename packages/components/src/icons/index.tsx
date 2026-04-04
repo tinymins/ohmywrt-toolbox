@@ -16,8 +16,10 @@ import {
   ArrowLeft,
   ArrowLeftRight,
   ArrowUp,
+  ArrowUpRight,
   BarChart3,
   Bell,
+  Bug,
   Calendar,
   Check,
   CheckCircle,
@@ -27,6 +29,7 @@ import {
   CloudDownload,
   CloudUpload,
   Copy,
+  Crosshair,
   Database,
   Download,
   ExternalLink,
@@ -249,6 +252,9 @@ export const ThunderboltOutlined = withDefaultSize(Zap, "ThunderboltOutlined");
 export const UploadOutlined = withDefaultSize(Upload, "UploadOutlined");
 export const UserOutlined = withDefaultSize(User, "UserOutlined");
 export const UserAddOutlined = withDefaultSize(UserPlus, "UserAddOutlined");
+export const BugOutlined = withDefaultSize(Bug, "BugOutlined");
+export const ExportOutlined = withDefaultSize(ArrowUpRight, "ExportOutlined");
+export const AimOutlined = withDefaultSize(Crosshair, "AimOutlined");
 
 /* ─── Special icons (custom wrappers) ─── */
 

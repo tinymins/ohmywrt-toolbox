@@ -1,7 +1,7 @@
 const login = {
   login: "Anmelden",
   register: "Registrieren",
-  title: "Anmelden bei AI Stack",
+  title: "Anmelden bei OhMyWRT Toolbox",
   submit: "Anmelden",
   email: "E-Mail",
   emailPlaceholder: "E-Mail eingeben",
