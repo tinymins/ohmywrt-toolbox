@@ -9,7 +9,7 @@ ACME Stack 是一个全栈 Web 应用脚手架，采用 pnpm monorepo 管理，R
 │         Browser (React)          │
 │  ┌──────────┐ ┌──────────────┐  │
 │  │ REST API │ │ WASM Module  │  │
-│  │  hooks   │ │ (acme-wasm)  │  │
+│  │  hooks   │ │    (wasm)    │  │
 │  └────┬─────┘ └──────────────┘  │
 │       │ fetch(/api/*)            │
 ├───────┼─────────────────────────┤
@@ -35,7 +35,7 @@ ACME Stack 是一个全栈 Web 应用脚手架，采用 pnpm monorepo 管理，R
 react-nestjs-ai-boilerplate/
 ├── packages/
 │   ├── rust-server/     # Rust 后端（Axum + Sea-ORM）
-│   ├── acme-wasm/       # WebAssembly 模块
+│   ├── wasm/            # WebAssembly 模块
 │   ├── web/             # React 前端（Vite）
 │   ├── components/      # 通用 UI 组件库
 │   ├── i18n/            # 国际化资源（5 种语言）
@@ -133,7 +133,7 @@ react-nestjs-ai-boilerplate/
 
 ## WASM 模块
 
-`packages/acme-wasm/` 提供浏览器端 WebAssembly 计算能力。
+`packages/wasm/` 提供浏览器端 WebAssembly 计算能力。
 
 当前导出：
 - `wasmVersion()` — 包版本号

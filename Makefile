@@ -109,11 +109,11 @@ init: ## 首次初始化项目（清理+安装+迁移）
 	@printf "$(GREEN)✓ 依赖安装完成$(NC)\n"
 	@printf "\n"
 	@printf "$(YELLOW)🦀 [6/9] 构建 WASM 模块...$(NC)\n"
-	@if [ -d packages/acme-wasm ]; then \
-		cd packages/acme-wasm && wasm-pack build --target web; \
+	@if [ -d packages/wasm ]; then \
+		cd packages/wasm && wasm-pack build --target web; \
 		printf "$(GREEN)✓ WASM 构建完成$(NC)\n"; \
 	else \
-		printf "$(YELLOW)⚠ packages/acme-wasm 不存在，跳过$(NC)\n"; \
+		printf "$(YELLOW)⚠ packages/wasm 不存在，跳过$(NC)\n"; \
 	fi
 	@printf "\n"
 	@printf "$(YELLOW)🐳 [7/9] 启动数据库容器...$(NC)\n"

@@ -11,7 +11,7 @@
 | 层 | 包 | 说明 |
 |---|---|---|
 | 后端 | `packages/rust-server/` | Axum + Sea-ORM + PostgreSQL |
-| WASM | `packages/acme-wasm/` | WebAssembly 模块（浏览器端计算） |
+| WASM | `packages/wasm/` | WebAssembly 模块（浏览器端计算） |
 | 前端 | `@acme/web` · `packages/web/` | React 19 + Vite + TanStack Query v5 |
 | UI 组件 | `@acme/components` · `packages/components/` | Tailwind + Lucide，无第三方 UI 框架 |
 | 国际化 | `@acme/i18n` · `packages/i18n/` | 5 种语言（zh-CN / en-US / de-DE / ja-JP / zh-TW） |
@@ -77,7 +77,7 @@ packages/
     dev-run.sh         # 开发启动脚本（cargo build + ts-rs 导出）
     dev-watch.sh       # 文件监听自动重编译（watchexec / cargo-watch）
 
-  acme-wasm/           # WASM 模块（浏览器端计算）
+  wasm/                # WASM 模块（浏览器端计算）
     src/lib.rs         # wasmVersion / wasmGitCommit / wasmBuildTime
     Cargo.toml         # wasm-bindgen, cdylib
     package.json       # wasm-pack build scripts
@@ -231,5 +231,5 @@ const fiber = el[fiberKey];
 ### 注意事项
 
 - **不要直接启动 dev server**，前后端由用户持续运行
-- WASM 修改后必须手动 rebuild：`cd packages/acme-wasm && wasm-pack build --release --target bundler --out-dir pkg`
+- WASM 修改后必须手动 rebuild：`cd packages/wasm && wasm-pack build --release --target bundler --out-dir pkg`
 - 检查 dev server 是否加载最新代码：查看终端输出或浏览器 console

@@ -34,7 +34,7 @@ make init
 3. **清理数据目录** — 删除 `${DATA_DIR}/postgres`
 4. **创建数据目录** — `mkdir -p ${DATA_DIR}/postgres ${DATA_DIR}/storage`
 5. **安装依赖** — `pnpm install`
-6. **构建 WASM** — `cd packages/acme-wasm && wasm-pack build --target web`
+6. **构建 WASM** — `cd packages/wasm && wasm-pack build --target web`
 7. **启动数据库** — `docker compose -f docker/docker-compose.dev.yml up -d`
 8. **等待数据库就绪** — `pg_isready` 检查
 9. **同步 Schema** — `npx prisma db push --schema prisma/schema.prisma`
@@ -115,10 +115,10 @@ docker exec -it rs-fullstack-postgres psql -U postgres -d rs_fullstack_db
 
 ```bash
 # 构建 WASM 模块
-cd packages/acme-wasm && wasm-pack build --target web
+cd packages/wasm && wasm-pack build --target web
 
 # Release 构建
-cd packages/acme-wasm && wasm-pack build --release --target bundler --out-dir pkg
+cd packages/wasm && wasm-pack build --release --target bundler --out-dir pkg
 ```
 
 ### 类型生成
