@@ -149,7 +149,7 @@ export const proxyApi = {
     { id: string; format: string },
     { nodes: unknown[]; rawText?: string }
   >({
-    path: "/api/proxy/subscribes",
+    path: "/api/proxy/preview-nodes",
     pathFn: (input) =>
       `/api/proxy/subscribes/${encodeURIComponent(input.id)}/preview-nodes`,
     paramsFn: (input) => ({ format: input.format }),
@@ -158,7 +158,7 @@ export const proxyApi = {
     { id: string; format: string; nodeName: string },
     { steps: unknown[] }
   >({
-    path: "/api/proxy/subscribes",
+    path: "/api/proxy/trace-node",
     pathFn: (input) =>
       `/api/proxy/subscribes/${encodeURIComponent(input.id)}/trace-node`,
     paramsFn: (input) => ({

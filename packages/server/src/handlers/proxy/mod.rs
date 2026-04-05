@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod converter;
+pub mod debug;
 pub mod engine;
 pub mod icons;
 pub mod parser;
@@ -675,31 +676,52 @@ pub async fn preview_nodes(
 }
 
 pub async fn trace_node(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     _auth_user: AuthUser,
-    Path(_id): Path<String>,
+    Path(id): Path<String>,
+    Query(params): Query<TraceNodeParams>,
 ) -> Response {
-    // TODO: Port from old proxy.debug.service.ts traceNode
+    let sub = match ProxySubscribeRepo::find_by_id(&state.db, &id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return AppError::NotFound("Subscription not found".into()).into_response(),
+        Err(e) => return e.into_response(),
+    };
+
+    let result = debug::trace_node_logic(&sub, &params.format, &params.node_name).await;
+
     Json(ApiResponse {
         success: true,
-        data: Some(serde_json::json!([])),
+        data: Some(result),
         error: None,
     })
     .into_response()
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TraceNodeParams {
+    format: String,
+    node_name: String,
+}
+
 pub async fn debug_proxy(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     _auth_user: AuthUser,
-    Json(_body): Json<serde_json::Value>,
+    Json(body): Json<DebugProxyInput>,
 ) -> Response {
-    // TODO: Port from old proxy.debug.service.ts
-    Json(ApiResponse {
-        success: true,
-        data: Some(serde_json::json!({ "message": "debug endpoint placeholder" })),
-        error: None,
-    })
-    .into_response()
+    let sub = match ProxySubscribeRepo::find_by_id(&state.db, &body.id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return AppError::NotFound("Subscription not found".into()).into_response(),
+        Err(e) => return e.into_response(),
+    };
+
+    debug::debug_proxy_stream(sub, body.format).into_response()
+}
+
+#[derive(Deserialize)]
+pub struct DebugProxyInput {
+    id: String,
+    format: String,
 }
 
 // ─── Public handlers (no auth) ───
@@ -885,7 +907,7 @@ fn get_public_server_url(headers: &HeaderMap) -> String {
 
 // ─── Default config constants (ported from old lib-config.ts) ───
 
-const DEFAULT_RULE_PROVIDERS_JSON: &str = r#"{
+pub(super) const DEFAULT_RULE_PROVIDERS_JSON: &str = r#"{
   "🍎 苹果APNs": [{"name":"AppleApns","url":"https://raw.githubusercontent.com/ohmywrt/clash-rule/refs/heads/master/AppleAPNs.yaml"}],
   "🍎 苹果服务": [{"name":"Apple","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Apple.yaml"},{"name":"AppleTV","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Media/Apple%20TV.yaml"},{"name":"AppleMusic","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Media/Apple%20Music.yaml"}],
   "🪟 Microsoft": [{"name":"Microsoft","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Microsoft.yaml"}],
@@ -909,7 +931,7 @@ const DEFAULT_RULE_PROVIDERS_JSON: &str = r#"{
   "💊 广告合集": [{"name":"AD","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/AdBlock.yaml"}]
 }"#;
 
-const DEFAULT_GROUPS_JSON: &str = r#"[
+pub(super) const DEFAULT_GROUPS_JSON: &str = r#"[
   {"name":"🔰 国外流量","type":"select","proxies":["🚀 直接连接"]},
   {"name":"🏳️‍🌈 Google","type":"select","proxies":["🔰 国外流量","🚀 直接连接"]},
   {"name":"✈️ Telegram","type":"select","proxies":["🔰 国外流量","🚀 直接连接"]},
@@ -936,11 +958,11 @@ const DEFAULT_GROUPS_JSON: &str = r#"[
   {"name":"⚓️ 其他流量","type":"select","proxies":["🔰 国外流量","🚀 直接连接"],"readonly":true}
 ]"#;
 
-const DEFAULT_FILTER_JSON: &str = r#"["官网","客服","qq群"]"#;
+pub(super) const DEFAULT_FILTER_JSON: &str = r#"["官网","客服","qq群"]"#;
 
-const DEFAULT_CUSTOM_CONFIG_JSON: &str = "[]";
+pub(super) const DEFAULT_CUSTOM_CONFIG_JSON: &str = "[]";
 
-const DEFAULT_DNS_CONFIG_JSON: &str = r#"{
+pub(super) const DEFAULT_DNS_CONFIG_JSON: &str = r#"{
   "shared": {
     "localDns": "127.0.0.1",
     "localDnsPort": 53,

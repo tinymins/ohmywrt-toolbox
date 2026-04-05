@@ -1768,6 +1768,7 @@ dependencies = [
  "serde_yaml",
  "tikv-jemallocator",
  "tokio",
+ "tokio-stream",
  "tower-http",
  "tracing",
  "tracing-log",

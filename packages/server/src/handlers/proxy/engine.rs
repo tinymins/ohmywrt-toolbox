@@ -72,12 +72,12 @@ fn strip_json_comments(input: &str) -> String {
 }
 
 /// Parse JSONC string, returning default on failure.
-fn parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: &str, default: T) -> T {
+pub(super) fn parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: &str, default: T) -> T {
     let cleaned = strip_json_comments(jsonc);
     serde_json::from_str(&cleaned).unwrap_or(default)
 }
 
-fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: Option<&str>, default: T) -> T {
+pub(super) fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: Option<&str>, default: T) -> T {
     match jsonc {
         Some(s) if !s.is_empty() => parse_jsonc(s, default),
         _ => default,
@@ -87,20 +87,20 @@ fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: Option<&str>, default
 // ─── DNS config resolution ───
 
 #[derive(Debug)]
-struct DnsShared {
-    local_dns: String,
-    local_dns_port: u64,
-    fakeip_ipv4_range: String,
-    fakeip_ipv6_range: String,
-    fakeip_enabled: bool,
-    fakeip_ttl: u64,
-    dns_listen_port: u64,
-    tproxy_port: u64,
-    reject_https: bool,
-    cn_domain_local_dns: bool,
-    clash_api_port: u64,
-    clash_api_secret: String,
-    clash_api_ui_path: String,
+pub(super) struct DnsShared {
+    pub(super) local_dns: String,
+    pub(super) local_dns_port: u64,
+    pub(super) fakeip_ipv4_range: String,
+    pub(super) fakeip_ipv6_range: String,
+    pub(super) fakeip_enabled: bool,
+    pub(super) fakeip_ttl: u64,
+    pub(super) dns_listen_port: u64,
+    pub(super) tproxy_port: u64,
+    pub(super) reject_https: bool,
+    pub(super) cn_domain_local_dns: bool,
+    pub(super) clash_api_port: u64,
+    pub(super) clash_api_secret: String,
+    pub(super) clash_api_ui_path: String,
 }
 
 impl Default for DnsShared {
@@ -146,12 +146,12 @@ fn dns_shared_from_value(v: &Value) -> DnsShared {
     }
 }
 
-struct ResolvedDns {
-    shared: DnsShared,
-    overrides: Map<String, Value>,
+pub(super) struct ResolvedDns {
+    pub(super) shared: DnsShared,
+    pub(super) overrides: Map<String, Value>,
 }
 
-fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str>) -> ResolvedDns {
+pub(super) fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str>) -> ResolvedDns {
     let defaults = ResolvedDns {
         shared: DnsShared::default(),
         overrides: Map::new(),
