@@ -582,17 +582,8 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                             <pre className="m-0 text-xs font-mono whitespace-pre-wrap break-all">
                               {formatValue(f.value)}
                             </pre>
-                          ) : f.sensitive &&
-                            typeof f.value === "string" &&
-                            f.value.length > 20 ? (
-                            <span
-                              className="font-mono"
-                              title={formatValue(f.value)}
-                            >
-                              {`${f.value.slice(0, 8)}...${f.value.slice(-8)}`}
-                            </span>
                           ) : (
-                            <span className="font-mono">
+                            <span className="font-mono break-all">
                               {formatValue(f.value)}
                             </span>
                           ),
