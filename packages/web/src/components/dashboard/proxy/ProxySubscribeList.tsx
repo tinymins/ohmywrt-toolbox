@@ -14,7 +14,7 @@ import {
 } from "@acme/components";
 import dayjs from "dayjs";
 import { Share2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
 import { message } from "@/lib/message";
@@ -29,13 +29,15 @@ import ProxySubscribeModal, {
 
 // 检测是否为移动设备
 const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768,
+  );
 
-  useState(() => {
+  useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  });
+  }, []);
 
   return isMobile;
 };
@@ -123,87 +125,108 @@ export default function ProxySubscribeList() {
       <Spin spinning={isLoading}>
         {/* Mobile Card View */}
         {isMobile ? (
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-3">
             {(list ?? []).map((record) => (
               <div
                 key={record.id}
-                className="border-b border-gray-100 dark:border-gray-800 py-3"
+                className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden"
               >
-                <div className="space-y-2.5">
-                  {/* Header: Creator & Remark */}
+                {/* Card body */}
+                <div className="px-3 py-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="font-semibold text-base">
-                        {record.remark || t("proxy.preview.unnamed")}
-                      </span>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {(record as any).user?.name ?? "-"} ·{" "}
-                        {dayjs(record.updatedAt).format("MM-DD HH:mm")}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Tag color="blue">
+                    <span className="font-semibold text-base truncate">
+                      {record.remark || t("proxy.preview.unnamed")}
+                    </span>
+                    <div className="flex gap-1.5 shrink-0">
+                      <Tag color="blue" className="!text-xs">
                         {t("proxy.columns.nodeCount")}: {record.cachedNodeCount}
                       </Tag>
-                      <Tag color="green">
+                      <Tag color="green" className="!text-xs">
                         {t("proxy.columns.accessCount")}:{" "}
-                        {(record as any).totalAccessCount ?? "-"}
+                        {(record as ProxySubscribeWithUser).totalAccessCount ??
+                          "-"}
                       </Tag>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
-                    <Button
-                      variant="link"
-                      size="small"
-                      icon={<LinkOutlined />}
-                      onClick={() =>
-                        linksModalRef.current?.open(
-                          record.url,
-                          record.remark,
-                          record.id,
-                        )
-                      }
-                    />
-                    <Button
-                      variant="link"
-                      size="small"
-                      icon={<BarChartOutlined />}
-                      onClick={() =>
-                        statsModalRef.current?.open(record.id, record.remark)
-                      }
-                    />
-                    <Button
-                      variant="link"
-                      size="small"
-                      icon={<EyeOutlined />}
-                      onClick={() =>
-                        previewModalRef.current?.open(record.id, record.remark)
-                      }
-                    />
-                    <Button
-                      variant="link"
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => modalRef.current?.open(record.id)}
-                    />
-                    <Popconfirm
-                      title={t("proxy.confirmDelete")}
-                      description={t("proxy.confirmDeleteDesc")}
-                      onConfirm={() => deleteMutation.mutate({ id: record.id })}
-                      okText={t("proxy.common.confirm")}
-                      cancelText={t("proxy.common.cancel")}
-                    >
-                      <Button
-                        variant="link"
-                        danger
-                        size="small"
-                        icon={<DeleteOutlined />}
-                        loading={deleteMutation.isPending}
-                      />
-                    </Popconfirm>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {(record as ProxySubscribeWithUser).user?.name ?? "-"} ·{" "}
+                    {dayjs(record.updatedAt).format("MM-DD HH:mm")}
                   </div>
+                </div>
+
+                {/* Action bar — 5 equal sections divided by borders */}
+                <div className="flex border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    type="button"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    onClick={() =>
+                      linksModalRef.current?.open(
+                        record.url,
+                        record.remark,
+                        record.id,
+                      )
+                    }
+                  >
+                    <LinkOutlined className="w-4 h-4" />
+                    <span className="text-[10px] leading-tight">
+                      {t("proxy.links.title")}
+                    </span>
+                  </button>
+                  <div className="w-px bg-gray-200 dark:bg-gray-700" />
+                  <button
+                    type="button"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    onClick={() =>
+                      statsModalRef.current?.open(record.id, record.remark)
+                    }
+                  >
+                    <BarChartOutlined className="w-4 h-4" />
+                    <span className="text-[10px] leading-tight">
+                      {t("proxy.actions.stats")}
+                    </span>
+                  </button>
+                  <div className="w-px bg-gray-200 dark:bg-gray-700" />
+                  <button
+                    type="button"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    onClick={() =>
+                      previewModalRef.current?.open(record.id, record.remark)
+                    }
+                  >
+                    <EyeOutlined className="w-4 h-4" />
+                    <span className="text-[10px] leading-tight">
+                      {t("proxy.actions.preview")}
+                    </span>
+                  </button>
+                  <div className="w-px bg-gray-200 dark:bg-gray-700" />
+                  <button
+                    type="button"
+                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    onClick={() => modalRef.current?.open(record.id)}
+                  >
+                    <EditOutlined className="w-4 h-4" />
+                    <span className="text-[10px] leading-tight">
+                      {t("proxy.actions.edit")}
+                    </span>
+                  </button>
+                  <div className="w-px bg-gray-200 dark:bg-gray-700" />
+                  <Popconfirm
+                    title={t("proxy.confirmDelete")}
+                    description={t("proxy.confirmDeleteDesc")}
+                    onConfirm={() => deleteMutation.mutate({ id: record.id })}
+                    okText={t("proxy.common.confirm")}
+                    cancelText={t("proxy.common.cancel")}
+                  >
+                    <button
+                      type="button"
+                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors cursor-pointer"
+                    >
+                      <DeleteOutlined className="w-4 h-4" />
+                      <span className="text-[10px] leading-tight">
+                        {t("proxy.actions.delete")}
+                      </span>
+                    </button>
+                  </Popconfirm>
                 </div>
               </div>
             ))}

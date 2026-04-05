@@ -15,7 +15,7 @@ import type {
 import Editor, { loader } from "@monaco-editor/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { adminApi, proxyApi, userApi } from "@/generated/rust-api";
 import { message } from "@/lib/message";
@@ -188,9 +188,19 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     const [id, setId] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState("basic");
-    const [isOwner, setIsOwner] = useState(true); // 是否是创建者
+    const [isOwner, setIsOwner] = useState(true);
     const [form] = Form.useForm();
     const queryClient = useQueryClient();
+
+    // 移动端检测
+    const [isMobile, setIsMobile] = useState(
+      typeof window !== "undefined" && window.innerWidth < 768,
+    );
+    useEffect(() => {
+      const handleResize = () => setIsMobile(window.innerWidth < 768);
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     // 获取 tabs 的本地化标签
     const localizedTabs = TABS.map((tab) => ({
@@ -455,7 +465,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         onCancel={() => setOpen(false)}
         onOk={handleSubmit}
         confirmLoading={isPending}
-        size="almost-full"
+        size={isMobile ? "full" : "almost-full"}
       >
         <Spin spinning={loading || isLoadingData} className="flex-1 min-h-0">
           <div className="mb-4 shrink-0">
