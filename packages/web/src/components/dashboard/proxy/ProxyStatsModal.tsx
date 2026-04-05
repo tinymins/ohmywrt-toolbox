@@ -1,16 +1,15 @@
 import {
   BarChartOutlined,
   ClockCircleOutlined,
-  GlobalOutlined,
-} from "@acme/components";
-import {
   Empty,
+  GlobalOutlined,
   Modal,
   Spin,
   Statistic,
   Table,
   Tag,
 } from "@acme/components";
+import { keepPreviousData } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import {
@@ -21,7 +20,6 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { keepPreviousData } from "@tanstack/react-query";
 import "dayjs/locale/zh-cn";
 import { proxyApi } from "@/generated/rust-api";
 
@@ -67,7 +65,8 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
 
   const todayAccess = useMemo(() => {
     const todayStart = dayjs().startOf("day");
-    return recentAccesses.filter((a) => dayjs(a.createdAt).isAfter(todayStart)).length;
+    return recentAccesses.filter((a) => dayjs(a.createdAt).isAfter(todayStart))
+      .length;
   }, [recentAccesses]);
 
   const lastAccessAt = useMemo(() => {
@@ -244,11 +243,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
               <div className="text-center h-full rounded-lg border border-gray-200 dark:border-gray-700 p-3">
                 <Statistic
                   title={lang === "zh" ? "最后访问" : "Last"}
-                  value={
-                    lastAccessAt
-                      ? dayjs(lastAccessAt).fromNow()
-                      : "-"
-                  }
+                  value={lastAccessAt ? dayjs(lastAccessAt).fromNow() : "-"}
                   valueStyle={{ fontSize: isMobile ? 14 : 16 }}
                 />
               </div>
@@ -288,9 +283,7 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
                     showSizeChanger: true,
                     pageSizeOptions: ["10", "20", "50", "100"],
                     showTotal: (total) =>
-                      lang === "zh"
-                        ? `共 ${total} 条`
-                        : `${total} records`,
+                      lang === "zh" ? `共 ${total} 条` : `${total} records`,
                     size: "small",
                   }}
                   dataSource={recentAccesses}

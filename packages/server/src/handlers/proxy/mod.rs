@@ -726,6 +726,18 @@ pub struct DebugProxyInput {
 
 // ─── Public handlers (no auth) ───
 
+pub async fn clear_cache(_auth_user: AuthUser) -> Response {
+    cache::clear_all();
+    Json(ApiResponse {
+        success: true,
+        data: Some(serde_json::json!({ "cleared": true })),
+        error: None,
+    })
+    .into_response()
+}
+
+// ─── Public proxy handlers (no auth) ───
+
 fn extract_client_ip(headers: &HeaderMap) -> Option<String> {
     headers
         .get("x-forwarded-for")

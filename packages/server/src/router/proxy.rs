@@ -33,6 +33,7 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
         .route("/api/proxy/defaults", get(proxy::get_defaults))
         .route("/api/proxy/user-stats", get(proxy::get_user_stats))
         .route("/api/proxy/debug", post(proxy::debug_proxy))
+        .route("/api/proxy/clear-cache", post(proxy::clear_cache))
         // Public endpoints (no auth)
         .route(
             "/api/public/proxy/{uuid}/clash",

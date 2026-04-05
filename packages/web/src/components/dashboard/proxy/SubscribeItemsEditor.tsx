@@ -1,4 +1,3 @@
-import type { SubscribeItem } from "@acme/types";
 import {
   Button,
   Checkbox,
@@ -9,17 +8,18 @@ import {
   PlusOutlined,
   Tooltip,
 } from "@acme/components";
+import type { SubscribeItem } from "@acme/types";
 import {
+  closestCenter,
   DndContext,
   type DragEndEvent,
   PointerSensor,
-  closestCenter,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
 import {
-  SortableContext,
   arrayMove,
+  SortableContext,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -147,7 +147,9 @@ const SortableCard = ({
               max={1440}
               placeholder={t("proxy.form.subscribeItemCacheTtlPlaceholder")}
               value={item.cacheTtlMinutes}
-              onChange={(val) => onUpdate({ cacheTtlMinutes: val ?? undefined })}
+              onChange={(val) =>
+                onUpdate({ cacheTtlMinutes: val ?? undefined })
+              }
               addonAfter={t("proxy.form.cacheTtlUnit")}
               style={{ width: 130 }}
             />

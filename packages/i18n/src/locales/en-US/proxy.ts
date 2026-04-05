@@ -98,6 +98,8 @@ export default {
     copy: "Copy",
     open: "Open",
     debug: "Debug",
+    clearCache: "Clear Cache",
+    cacheClearedSuccess: "Subscription cache cleared",
   },
   preview: {
     title: "Node Preview",

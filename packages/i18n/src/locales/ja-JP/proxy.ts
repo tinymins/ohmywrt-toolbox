@@ -98,6 +98,8 @@ export default {
     copy: "Copy",
     open: "Open",
     debug: "Debug",
+    clearCache: "キャッシュをクリア",
+    cacheClearedSuccess: "サブスクリプションキャッシュをクリアしました",
   },
   preview: {
     title: "Node Preview",

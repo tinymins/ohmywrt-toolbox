@@ -44,6 +44,20 @@ pub fn set(url: &str, text: String, status: u16) {
     }
 }
 
+/// Remove a single URL from cache.
+pub fn remove(url: &str) {
+    if let Ok(mut lock) = CACHE.lock() {
+        lock.remove(url);
+    }
+}
+
+/// Clear all cached entries.
+pub fn clear_all() {
+    if let Ok(mut lock) = CACHE.lock() {
+        lock.clear();
+    }
+}
+
 /// Remove expired entries from cache (optional cleanup).
 #[allow(dead_code)]
 pub fn cleanup(max_age_minutes: i32) {

@@ -172,4 +172,8 @@ export const proxyApi = {
   >({
     path: "/api/proxy/debug",
   }),
+  clearCache: createMutation<void, { cleared: boolean }>({
+    method: "POST",
+    path: "/api/proxy/clear-cache",
+  }),
 };

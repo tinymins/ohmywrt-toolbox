@@ -1,17 +1,19 @@
-import type { ProxyDebugFormat } from "@acme/types";
 import {
   ApiOutlined,
   BugOutlined,
   Button,
   CopyOutlined,
+  DeleteOutlined,
   ExportOutlined,
   GlobalOutlined,
   LinkOutlined,
   Modal,
   Tag,
 } from "@acme/components";
+import type { ProxyDebugFormat } from "@acme/types";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { proxyApi } from "@/generated/rust-api";
 import { message } from "@/lib/message";
 import ProxyDebugModal, { type ProxyDebugModalRef } from "./ProxyDebugModal";
 
@@ -34,6 +36,9 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const [remark, setRemark] = useState<string | null>(null);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const debugModalRef = useRef<ProxyDebugModalRef>(null);
+  const clearCacheMutation = proxyApi.clearCache.useMutation({
+    onSuccess: () => message.success(t("proxy.links.cacheClearedSuccess")),
+  });
 
   useImperativeHandle(ref, () => ({
     open: (uuid: string, remark?: string | null, subscribeId?: string) => {
@@ -103,7 +108,19 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
         }
         open={visible}
         onCancel={() => setVisible(false)}
-        footer={null}
+        footer={
+          <div className="flex justify-end pt-2">
+            <Button
+              variant="text"
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => clearCacheMutation.mutate(undefined)}
+              loading={clearCacheMutation.isPending}
+            >
+              {t("proxy.links.clearCache")}
+            </Button>
+          </div>
+        }
         width={560}
         destroyOnClose
       >

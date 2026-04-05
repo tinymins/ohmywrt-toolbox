@@ -40,10 +40,7 @@ type ApiResult<T> = ApiOk<T> | ApiErr;
 
 class RustApiError extends Error {
   status: number;
-  constructor(
-    message: string,
-    status: number,
-  ) {
+  constructor(message: string, status: number) {
     super(message);
     this.name = "RustApiError";
     this.status = status;

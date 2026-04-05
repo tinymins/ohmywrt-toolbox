@@ -301,13 +301,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
     );
 
   // 移动端卡片视图（带展开详情）
-  const MobileNodeCard = ({
-    node,
-    index,
-  }: {
-    node: ProxyNode;
-    index: number;
-  }) => {
+  const MobileNodeCard = ({ node }: { node: ProxyNode }) => {
     const [expanded, setExpanded] = useState(false);
     const fields = protocolFields[node.type] || [];
     const raw = node.raw || {};
@@ -522,11 +516,10 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                 className="flex flex-col gap-2 overflow-y-auto"
                 style={{ maxHeight: "calc(100vh - 160px)" }}
               >
-                {nodes.map((node, index) => (
+                {nodes.map((node) => (
                   <MobileNodeCard
-                    key={`${node.sourceIndex}-${node.server}-${node.port}-${index}`}
+                    key={`${node.sourceIndex}-${node.name}-${node.server}-${node.port}`}
                     node={node}
-                    index={index}
                   />
                 ))}
               </div>

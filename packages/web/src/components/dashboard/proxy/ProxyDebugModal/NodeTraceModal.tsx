@@ -563,7 +563,9 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         }));
     }, [allNodeNames, searchValue, t]);
 
-    const filterStep = data?.steps?.find((s: any) => s.type === "filter") as Extract<ProxyNodeTraceStep, { type: "filter" }> | undefined;
+    const filterStep = data?.steps?.find((s: any) => s.type === "filter") as
+      | Extract<ProxyNodeTraceStep, { type: "filter" }>
+      | undefined;
     const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
     return (
@@ -643,7 +645,10 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         )}
 
         {tracingNodeName && data && data.steps.length > 0 && (
-          <TraceStepsContent data={data as { nodeName: string; steps: ProxyNodeTraceStep[] }} format={format} />
+          <TraceStepsContent
+            data={data as { nodeName: string; steps: ProxyNodeTraceStep[] }}
+            format={format}
+          />
         )}
       </Modal>
     );

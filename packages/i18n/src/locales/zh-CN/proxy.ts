@@ -97,6 +97,8 @@ export default {
     copy: "复制",
     open: "打开",
     debug: "调试",
+    clearCache: "清除缓存",
+    cacheClearedSuccess: "订阅缓存已清除",
   },
   preview: {
     title: "节点预览",

@@ -445,7 +445,9 @@ const NodeTracePanel = ({
   const existingStepTypes = new Set(data.steps.map((s: any) => s.type));
 
   // 检查节点是否被过滤
-  const filterStep = data.steps.find((s: any) => s.type === "filter") as Extract<ProxyNodeTraceStep, { type: "filter" }> | undefined;
+  const filterStep = data.steps.find((s: any) => s.type === "filter") as
+    | Extract<ProxyNodeTraceStep, { type: "filter" }>
+    | undefined;
   const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
 
   // 构建显示步骤列表：包含已执行的和被跳过的步骤

@@ -122,6 +122,7 @@ fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> V
 
 fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
+        .user_agent(engine::DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default()

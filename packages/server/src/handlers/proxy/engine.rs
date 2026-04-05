@@ -13,6 +13,10 @@ use super::{
     DEFAULT_GROUPS_JSON, DEFAULT_RULE_PROVIDERS_JSON,
 };
 
+/// Default User-Agent for fetching subscription URLs.
+/// Many providers block requests without a recognized proxy client UA.
+pub(super) const DEFAULT_FETCH_UA: &str = "ClashforWindows/0.20.39";
+
 // ─── JSONC helpers ───
 
 /// Strip `//` line comments and `/* ... */` block comments from JSONC text.
@@ -304,6 +308,7 @@ pub async fn fetch_proxies_preview(
 
     // 4. Fetch each enabled item
     let client = reqwest::Client::builder()
+        .user_agent(DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default();
@@ -426,6 +431,7 @@ pub async fn fetch_proxies(
 
     // 4. Fetch each enabled item
     let client = reqwest::Client::builder()
+        .user_agent(DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default();

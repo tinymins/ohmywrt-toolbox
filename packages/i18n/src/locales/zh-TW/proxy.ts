@@ -93,10 +93,12 @@ export default {
     dnsOverrideHint: "覆盖默认 DNS 配置",
   },
   links: {
-    title: "订阅链接",
-    copy: "复制",
-    open: "打开",
-    debug: "调试",
+    title: "訂閱連結",
+    copy: "複製",
+    open: "開啟",
+    debug: "除錯",
+    clearCache: "清除快取",
+    cacheClearedSuccess: "訂閱快取已清除",
   },
   preview: {
     title: "节点预览",

@@ -1,9 +1,9 @@
+import { Input, InputNumber, Switch, Tabs } from "@acme/components";
 import type { DnsConfig, DnsSharedConfig } from "@acme/types";
 import Editor, { loader } from "@monaco-editor/react";
-import { Input, InputNumber, Switch, Tabs } from "@acme/components";
 import { parse as parseJsonc } from "jsonc-parser";
-import { useCallback, useMemo, useState } from "react";
 import type React from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 loader.config({
@@ -54,7 +54,8 @@ const serializeDnsConfig = (config: DnsConfig): string => {
   if (config.shared) {
     const diff: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(config.shared)) {
-      const defaultVal = CLIENT_DEFAULT_SHARED[key as keyof Required<DnsSharedConfig>];
+      const defaultVal =
+        CLIENT_DEFAULT_SHARED[key as keyof Required<DnsSharedConfig>];
       if (JSON.stringify(val) !== JSON.stringify(defaultVal)) {
         diff[key] = val;
       }
@@ -67,16 +68,28 @@ const serializeDnsConfig = (config: DnsConfig): string => {
   // overrides: 仅保留非空的
   if (config.overrides) {
     const overrides: DnsConfig["overrides"] = {};
-    if (config.overrides.singbox && Object.keys(config.overrides.singbox).length > 0) {
+    if (
+      config.overrides.singbox &&
+      Object.keys(config.overrides.singbox).length > 0
+    ) {
       overrides.singbox = config.overrides.singbox;
     }
-    if (config.overrides.singboxV12 && Object.keys(config.overrides.singboxV12).length > 0) {
+    if (
+      config.overrides.singboxV12 &&
+      Object.keys(config.overrides.singboxV12).length > 0
+    ) {
       overrides.singboxV12 = config.overrides.singboxV12;
     }
-    if (config.overrides.clash && Object.keys(config.overrides.clash).length > 0) {
+    if (
+      config.overrides.clash &&
+      Object.keys(config.overrides.clash).length > 0
+    ) {
       overrides.clash = config.overrides.clash;
     }
-    if (config.overrides.clashMeta && Object.keys(config.overrides.clashMeta).length > 0) {
+    if (
+      config.overrides.clashMeta &&
+      Object.keys(config.overrides.clashMeta).length > 0
+    ) {
       overrides.clashMeta = config.overrides.clashMeta;
     }
     if (Object.keys(overrides).length > 0) {
@@ -107,7 +120,11 @@ const DnsConfigEditor = ({
     (field: keyof DnsSharedConfig, val: unknown) => {
       if (readOnly) return;
       const current = parseDnsConfig(value);
-      const updatedShared = { ...CLIENT_DEFAULT_SHARED, ...(current.shared ?? {}), [field]: val };
+      const updatedShared = {
+        ...CLIENT_DEFAULT_SHARED,
+        ...(current.shared ?? {}),
+        [field]: val,
+      };
       onChange?.(serializeDnsConfig({ ...current, shared: updatedShared }));
     },
     [value, onChange, readOnly],
@@ -115,7 +132,10 @@ const DnsConfigEditor = ({
 
   // override JSONC 变化
   const handleOverrideChange = useCallback(
-    (key: "singbox" | "singboxV12" | "clash" | "clashMeta", jsonStr: string) => {
+    (
+      key: "singbox" | "singboxV12" | "clash" | "clashMeta",
+      jsonStr: string,
+    ) => {
       if (readOnly) return;
       const current = parseDnsConfig(value);
       let parsed: Record<string, unknown> | undefined;

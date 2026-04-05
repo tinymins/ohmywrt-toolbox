@@ -38,11 +38,20 @@ pub fn is_base64_subscription(text: &str) -> bool {
 
 /// Parse subscription text (auto-detect Base64 or YAML).
 pub fn parse_subscription(text: &str) -> Vec<ClashProxy> {
-    if is_base64_subscription(text) {
+    let nodes = if is_base64_subscription(text) {
         parse_base64_subscription(text)
     } else {
         parse_yaml_subscription(text)
-    }
+    };
+    nodes.into_iter().filter(|p| !is_placeholder_node(p)).collect()
+}
+
+/// Detect placeholder/error nodes returned by providers when a subscription is
+/// expired, blocked, or the UA is not recognized. These fake nodes typically use
+/// loopback addresses with port 0 or 1.
+fn is_placeholder_node(p: &ClashProxy) -> bool {
+    let loopback = p.server == "127.0.0.1" || p.server == "::1" || p.server == "localhost";
+    loopback && p.port <= 1
 }
 
 fn parse_base64_subscription(text: &str) -> Vec<ClashProxy> {

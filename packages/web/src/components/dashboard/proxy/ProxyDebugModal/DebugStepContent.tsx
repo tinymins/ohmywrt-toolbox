@@ -361,7 +361,9 @@ export const SourceResultStepContent = ({
                       size="small"
                       pagination={false}
                       dataSource={data.filteredNodes}
-                      rowKey={(record: any) => String(data.filteredNodes.indexOf(record))}
+                      rowKey={(record: any) =>
+                        String(data.filteredNodes.indexOf(record))
+                      }
                       columns={[
                         {
                           title: t("proxy.preview.nodeName"),
@@ -417,7 +419,9 @@ export const SourceResultStepContent = ({
                 pagination={false}
                 scroll={{ y: 300 }}
                 dataSource={data.nodesAfterFilter}
-                rowKey={(record: any) => String(data.nodesAfterFilter.indexOf(record))}
+                rowKey={(record: any) =>
+                  String(data.nodesAfterFilter.indexOf(record))
+                }
                 columns={[
                   {
                     title: t("proxy.preview.nodeName"),
