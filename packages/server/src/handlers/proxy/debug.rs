@@ -94,6 +94,27 @@ fn detect_format(text: &str) -> &'static str {
     }
 }
 
+/// 规范化前缀：如果非空且结尾不是分隔符或闭合括号，自动追加"丨"
+fn normalize_prefix(raw: &str) -> String {
+    if raw.is_empty() {
+        return String::new();
+    }
+    
+    let separators = ["-", " ", "丨", "|", "｜", "/", "_", "·"];
+    let closing_brackets = [")", "）", "]", "】", "}", "》", ">", "」"];
+    
+    // 检查是否已以分隔符或闭合括号结尾
+    if separators.iter().any(|&s| raw.ends_with(s)) {
+        return raw.to_string();
+    }
+    if closing_brackets.iter().any(|&s| raw.ends_with(s)) {
+        return raw.to_string();
+    }
+    
+    // 否则在结尾添加"丨"
+    format!("{}丨", raw)
+}
+
 fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> Value {
     json!({
         "name": p.name,
@@ -512,9 +533,10 @@ async fn run_debug_stream(
             parse_subscription(&text)
         };
 
-        if !item.prefix.is_empty() {
+        let normalized_prefix = normalize_prefix(&item.prefix);
+        if !normalized_prefix.is_empty() {
             for p in &mut parsed {
-                p.name = format!("{}{}", item.prefix, p.name);
+                p.name = format!("{}{}", normalized_prefix, p.name);
             }
         }
 
