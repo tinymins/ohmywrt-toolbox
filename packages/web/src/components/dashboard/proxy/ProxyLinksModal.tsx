@@ -11,7 +11,13 @@ import {
   Tag,
 } from "@acme/components";
 import type { ProxyDebugFormat } from "@acme/types";
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
 import { message } from "@/lib/message";
@@ -36,6 +42,17 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const [remark, setRemark] = useState<string | null>(null);
   const [subscribeId, setSubscribeId] = useState<string>("");
   const debugModalRef = useRef<ProxyDebugModalRef>(null);
+
+  // 移动端检测
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768,
+  );
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const clearCacheMutation = proxyApi.clearCache.useMutation({
     onSuccess: () => message.success(t("proxy.links.cacheClearedSuccess")),
   });
@@ -109,7 +126,8 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
         open={visible}
         onCancel={() => setVisible(false)}
         footer={null}
-        width={560}
+        width={isMobile ? undefined : 560}
+        size={isMobile ? "full" : undefined}
         destroyOnClose
       >
         {remark && (
