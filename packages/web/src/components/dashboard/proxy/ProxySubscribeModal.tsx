@@ -1,15 +1,23 @@
+import {
+  Checkbox,
+  Form,
+  Modal,
+  Select,
+  Spin,
+  Tabs,
+  TextArea,
+} from "@acme/components";
 import type {
   CreateProxySubscribeInput,
   SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
-import { Checkbox, Form, Modal, Select, Spin, Tabs, TextArea } from "@acme/components";
 import Editor, { loader } from "@monaco-editor/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { proxyApi, adminApi, userApi } from "@/generated/rust-api";
+import { adminApi, proxyApi, userApi } from "@/generated/rust-api";
 import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
@@ -37,7 +45,7 @@ const JsoncEditor = ({ value, onChange, readOnly }: JsoncEditorProps) => {
       }`}
     >
       <Editor
-        height={300}
+        height="calc(100vh - 280px)"
         language="json"
         value={value || ""}
         theme="vs-dark"
@@ -145,20 +153,12 @@ const DnsConfigEditorField = ({
 
   if (useSystem) {
     return (
-      <DnsConfigEditor
-        key="system-default"
-        value={defaultValue}
-        readOnly
-      />
+      <DnsConfigEditor key="system-default" value={defaultValue} readOnly />
     );
   }
 
   return (
-    <DnsConfigEditor
-      key="user-custom"
-      value={value}
-      onChange={onChange}
-    />
+    <DnsConfigEditor key="user-custom" value={value} onChange={onChange} />
   );
 };
 
@@ -280,10 +280,12 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         existingData.subscribeItems.length > 0
       ) {
         // 如果 item 没有自己的 cacheTtlMinutes，用全局值回填
-        items = (existingData.subscribeItems as SubscribeItem[]).map((item: SubscribeItem) => ({
-          ...item,
-          cacheTtlMinutes: item.cacheTtlMinutes ?? globalCacheTtl,
-        }));
+        items = (existingData.subscribeItems as SubscribeItem[]).map(
+          (item: SubscribeItem) => ({
+            ...item,
+            cacheTtlMinutes: item.cacheTtlMinutes ?? globalCacheTtl,
+          }),
+        );
       } else if (existingData.subscribeUrl) {
         try {
           const parsed = parseJsonc(existingData.subscribeUrl);
@@ -447,90 +449,87 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     ];
 
     return (
-        <Modal
-            title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
-            open={open}
-            onCancel={() => setOpen(false)}
-            onOk={handleSubmit}
-            confirmLoading={isPending}
-            size="almost-full"
-          >
-          <Spin spinning={loading || isLoadingData}>
-              <div className="mb-4">
-                <Tabs
-                  type="segment"
-                  activeKey={activeTab}
-                  onChange={(key) => setActiveTab(key)}
-                  items={localizedTabs.map(tab => ({ key: tab.value, label: tab.label }))}
+      <Modal
+        title={id ? t("proxy.editSubscribe") : t("proxy.newSubscribe")}
+        open={open}
+        onCancel={() => setOpen(false)}
+        onOk={handleSubmit}
+        confirmLoading={isPending}
+        size="almost-full"
+      >
+        <Spin spinning={loading || isLoadingData} className="flex-1 min-h-0">
+          <div className="mb-4 shrink-0">
+            <Tabs
+              type="segment"
+              activeKey={activeTab}
+              onChange={(key) => setActiveTab(key)}
+              items={localizedTabs.map((tab) => ({
+                key: tab.value,
+                label: tab.label,
+              }))}
+            />
+          </div>
+
+          <Form form={form} layout="vertical">
+            {/* 基础信息 */}
+            <div style={{ display: activeTab === "basic" ? "block" : "none" }}>
+              <Form.Item label={t("proxy.form.remark")} name="remark">
+                <TextArea
+                  rows={3}
+                  placeholder={t("proxy.form.remarkPlaceholder")}
                 />
-              </div>
-
-              <Form form={form} layout="vertical">
-              {/* 基础信息 */}
-              <div
-                style={{ display: activeTab === "basic" ? "block" : "none" }}
+              </Form.Item>
+              <Form.Item
+                label={t("proxy.form.authorizedUsers")}
+                name="authorizedUserIds"
+                tooltip={
+                  !isOwner
+                    ? t("proxy.form.authorizedUsersOwnerOnly")
+                    : undefined
+                }
               >
-                <Form.Item label={t("proxy.form.remark")} name="remark">
-                  <TextArea
-                    rows={3}
-                    placeholder={t("proxy.form.remarkPlaceholder")}
-                  />
-                </Form.Item>
-                <Form.Item
-                  label={t("proxy.form.authorizedUsers")}
-                  name="authorizedUserIds"
-                  tooltip={
-                    !isOwner
-                      ? t("proxy.form.authorizedUsersOwnerOnly")
-                      : undefined
+                <Select
+                  mode="multiple"
+                  placeholder={t("proxy.form.authorizedUsersPlaceholder")}
+                  options={
+                    userList?.map((u) => ({
+                      label: `${u.name} (${u.email})`,
+                      value: u.id,
+                    })) ?? []
                   }
-                >
-                  <Select
-                    mode="multiple"
-                    placeholder={t("proxy.form.authorizedUsersPlaceholder")}
-                    options={
-                      userList?.map((u) => ({
-                        label: `${u.name} (${u.email})`,
-                        value: u.id,
-                      })) ?? []
-                    }
-                    optionFilterProp="label"
-                    showSearch
-                    disabled={!isOwner}
-                  />
-                </Form.Item>
-              </div>
+                  optionFilterProp="label"
+                  showSearch
+                  disabled={!isOwner}
+                />
+              </Form.Item>
+            </div>
 
-              {/* 订阅源 */}
-              <div
-                style={{
-                  display: activeTab === "subscribeUrl" ? "block" : "none",
-                }}
+            {/* 订阅源 */}
+            <div
+              style={{
+                display: activeTab === "subscribeUrl" ? "block" : "none",
+              }}
+            >
+              <Form.Item
+                label={t("proxy.form.subscribeUrlLabel")}
+                name="subscribeItems"
               >
-                <Form.Item
-                  label={t("proxy.form.subscribeUrlLabel")}
-                  name="subscribeItems"
-                >
-                  <SubscribeItemsEditor />
-                </Form.Item>
-              </div>
+                <SubscribeItemsEditor />
+              </Form.Item>
+            </div>
 
-              {/* 规则列表 / 分组 / 过滤器 / 自定义配置 */}
-              {CONFIG_FIELDS.map(({ field, useSystemField, tab, labelKey, placeholderKey }) => (
-                <div
-                  key={tab}
-                  style={{ display: activeTab === tab ? "block" : "none" }}
-                >
-                  <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
+            {/* 规则列表 / 分组 / 过滤器 / 自定义配置 */}
+            {CONFIG_FIELDS.map(
+              ({ field, useSystemField, tab, labelKey, placeholderKey }) => (
+                <div key={tab} className={activeTab === tab ? "" : "hidden"}>
+                  <div className="flex items-center justify-between mb-2">
                     <span>{t(labelKey)}</span>
                     <Form.Item
                       name={useSystemField}
                       valuePropName="checked"
                       noStyle
                     >
-                      <Checkbox>
-                        {t("proxy.form.useSystemConfig")}
-                      </Checkbox>
+                      <Checkbox>{t("proxy.form.useSystemConfig")}</Checkbox>
                     </Form.Item>
                   </div>
                   <Form.Item
@@ -538,7 +537,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                     dependencies={[useSystemField]}
                     noStyle
                   >
-                    {/* 使用函数渲染以动态获取 useSystem 值 */}
                     <ConfigFieldEditor
                       form={form}
                       useSystemField={useSystemField}
@@ -547,49 +545,42 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                     />
                   </Form.Item>
                 </div>
-              ))}
+              ),
+            )}
 
-              {/* DNS 配置 */}
-              <div
-                style={{ display: activeTab === "dnsConfig" ? "block" : "none" }}
-              >
-                <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-                  <span>{t("proxy.form.dnsConfigLabel")}</span>
-                  <Form.Item
-                    name="useSystemDnsConfig"
-                    valuePropName="checked"
-                    noStyle
-                  >
-                    <Checkbox>
-                      {t("proxy.form.useSystemConfig")}
-                    </Checkbox>
-                  </Form.Item>
-                </div>
+            {/* DNS 配置 */}
+            <div className={activeTab === "dnsConfig" ? "" : "hidden"}>
+              <div className="flex items-center justify-between mb-2">
+                <span>{t("proxy.form.dnsConfigLabel")}</span>
                 <Form.Item
-                  name="dnsConfig"
-                  dependencies={["useSystemDnsConfig"]}
+                  name="useSystemDnsConfig"
+                  valuePropName="checked"
                   noStyle
                 >
-                  <DnsConfigEditorField
-                    form={form}
-                    defaultValue={defaults?.dnsConfig ?? ""}
-                  />
+                  <Checkbox>{t("proxy.form.useSystemConfig")}</Checkbox>
                 </Form.Item>
               </div>
-
-              {/* 额外服务器 */}
-              <div
-                style={{ display: activeTab === "servers" ? "block" : "none" }}
+              <Form.Item
+                name="dnsConfig"
+                dependencies={["useSystemDnsConfig"]}
+                noStyle
               >
-                <Form.Item label={t("proxy.form.serversLabel")} name="servers">
-                  <JsoncEditor
-                    placeholder={t("proxy.form.serversPlaceholder")}
-                  />
-                </Form.Item>
-              </div>
-            </Form>
-          </Spin>
-        </Modal>
+                <DnsConfigEditorField
+                  form={form}
+                  defaultValue={defaults?.dnsConfig ?? ""}
+                />
+              </Form.Item>
+            </div>
+
+            {/* 额外服务器 */}
+            <div className={activeTab === "servers" ? "" : "hidden"}>
+              <Form.Item label={t("proxy.form.serversLabel")} name="servers">
+                <JsoncEditor placeholder={t("proxy.form.serversPlaceholder")} />
+              </Form.Item>
+            </div>
+          </Form>
+        </Spin>
+      </Modal>
     );
   },
 );
