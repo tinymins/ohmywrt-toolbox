@@ -1,6 +1,7 @@
-import type { TableColumnsType } from "@acme/components";
+import type { DescriptionsItem, TableColumnsType } from "@acme/components";
 import {
   Card,
+  Descriptions,
   Empty,
   EyeOutlined,
   Modal,
@@ -532,8 +533,8 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             ) : (
               /* PC端表格 */
               <Table<ProxyNode>
-                rowKey={(record) =>
-                  `${record.sourceIndex}-${record.server}-${record.port}`
+                rowKey={(record, idx) =>
+                  `${record.sourceIndex}-${record.server}-${record.port}-${idx}`
                 }
                 size="small"
                 bordered
@@ -572,38 +573,39 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                         </span>
                       );
                     }
-                    return (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-xs">
-                        {allFields.map((f) => (
-                          <div key={f.key} className="flex gap-2">
-                            <span className="text-gray-500 dark:text-gray-400 shrink-0">
-                              {f.label}
+                    const descItems: DescriptionsItem[] = allFields.map(
+                      (f) => ({
+                        key: f.key,
+                        label: f.label,
+                        children:
+                          typeof f.value === "object" ? (
+                            <pre className="m-0 text-xs font-mono whitespace-pre-wrap break-all">
+                              {formatValue(f.value)}
+                            </pre>
+                          ) : f.sensitive &&
+                            typeof f.value === "string" &&
+                            f.value.length > 20 ? (
+                            <span
+                              className="font-mono"
+                              title={formatValue(f.value)}
+                            >
+                              {`${f.value.slice(0, 8)}...${f.value.slice(-8)}`}
                             </span>
-                            {f.sensitive ? (
-                              <span
-                                className="font-mono truncate"
-                                title={formatValue(f.value)}
-                              >
-                                {typeof f.value === "string" &&
-                                f.value.length > 20
-                                  ? `${f.value.slice(0, 8)}...${f.value.slice(-8)}`
-                                  : formatValue(f.value)}
-                              </span>
-                            ) : typeof f.value === "object" ? (
-                              <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded overflow-x-auto max-w-xs">
-                                {formatValue(f.value)}
-                              </pre>
-                            ) : (
-                              <span
-                                className="font-mono truncate"
-                                title={formatValue(f.value)}
-                              >
-                                {formatValue(f.value)}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                          ) : (
+                            <span className="font-mono">
+                              {formatValue(f.value)}
+                            </span>
+                          ),
+                        span: typeof f.value === "object" ? 3 : undefined,
+                      }),
+                    );
+                    return (
+                      <Descriptions
+                        bordered
+                        size="small"
+                        column={3}
+                        items={descItems}
+                      />
                     );
                   },
                 }}

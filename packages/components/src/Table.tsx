@@ -50,7 +50,7 @@ export interface TableProps<T = Record<string, unknown>> {
   /** Data source */
   dataSource?: T[];
   /** Row key */
-  rowKey?: string | ((record: T) => string);
+  rowKey?: string | ((record: T, index: number) => string);
   /** Loading state */
   loading?: boolean;
   /** Bordered */
@@ -130,10 +130,10 @@ function getNestedValue(obj: Record<string, unknown>, path?: string): unknown {
 
 function getKey<T>(
   record: T,
-  rowKey: string | ((r: T) => string),
+  rowKey: string | ((r: T, index: number) => string),
   idx: number,
 ): string {
-  if (typeof rowKey === "function") return rowKey(record);
+  if (typeof rowKey === "function") return rowKey(record, idx);
   const val = (record as Record<string, unknown>)[rowKey];
   return val != null ? String(val) : String(idx);
 }
@@ -142,7 +142,7 @@ function getKey<T>(
 function renderRows<T>(
   dataSource: T[],
   columns: TableColumn<T>[],
-  rowKey: string | ((r: T) => string),
+  rowKey: string | ((r: T, index: number) => string),
   expandable: TableProps<T>["expandable"],
   expandedKeys: Set<string>,
   toggleExpand: (key: string, record: T, expanded: boolean) => void,
@@ -281,9 +281,16 @@ function renderRows<T>(
       rows.push(
         <tr
           key={`${key}-expand`}
-          className="bg-black/[0.01] dark:bg-white/[0.02]"
+          className="bg-black/[0.015] dark:bg-white/[0.015]"
         >
-          <td colSpan={columns.length + 1} className="px-4 py-3">
+          <td
+            colSpan={columns.length + 1}
+            className={cn(
+              "px-4 py-2",
+              bordered &&
+                "border-b border-black/[0.06] dark:border-white/[0.08]",
+            )}
+          >
             {expandable.expandedRowRender?.(record, idx, expanded)}
           </td>
         </tr>,
