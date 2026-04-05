@@ -30,6 +30,21 @@ const common = {
   notFoundDesc: "Die angeforderte Seite existiert nicht oder wurde entfernt",
   unauthorizedTitle: "Zugriff verweigert",
   unauthorizedDesc: "Sie haben keine Berechtigung, auf diese Seite zuzugreifen",
+  meta: {
+    dashboardTitle: "Dashboard — OhMyWRT Toolbox",
+    loginTitle: "Anmelden — OhMyWRT Toolbox",
+    loginDescription:
+      "Melden Sie sich bei OhMyWRT Toolbox an und beginnen Sie mit dem OhMyWRT Toolbox.",
+    registerTitle: "Registrieren — OhMyWRT Toolbox",
+    registerDescription:
+      "Erstellen Sie ein OhMyWRT Toolbox-Konto und verwalten Sie Ihre OpenWrt-Netzwerktools.",
+    unauthorizedTitle: "Zugriff verweigert — OhMyWRT Toolbox",
+    notFoundTitle: "Seite nicht gefunden — OhMyWRT Toolbox",
+    homeTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack-Toolbox",
+    homeDescription:
+      "Eine Full-Stack-Anwendungsvorlage basierend auf TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack-Toolbox",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

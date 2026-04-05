@@ -4,25 +4,19 @@ import { Outlet, useNavigate } from "react-router";
 import { WorkspaceRedirectSkeleton } from "@/components/skeleton";
 import { workspaceApi } from "@/generated/rust-api";
 import { useAuth, WorkspaceListContext } from "@/hooks";
-
-function parseLang(cookieHeader: string): "zh-CN" | "en" {
-  const m = cookieHeader.match(/(?:^|;\s*)i18next=([^;]*)/);
-  return m?.[1] === "en" ? "en" : "zh-CN";
-}
+import { parseLangFromCookie, serverT } from "@/lib/server-i18n";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return { lang: parseLang(request.headers.get("Cookie") ?? "") };
+  return { lang: parseLangFromCookie(request.headers.get("Cookie") ?? "") };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  {
-    title:
-      data?.lang === "en"
-        ? "Dashboard — OhMyWRT Toolbox"
-        : "控制台 — OhMyWRT Toolbox",
-  },
-  { name: "robots", content: "noindex, nofollow" },
-];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const lang = data?.lang ?? "zh-CN";
+  return [
+    { title: serverT(lang, "common.meta.dashboardTitle") },
+    { name: "robots", content: "noindex, nofollow" },
+  ];
+};
 
 export default function DashboardRoot() {
   const { user, isLoading } = useAuth();

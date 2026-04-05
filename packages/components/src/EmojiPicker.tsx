@@ -60,10 +60,10 @@ export function EmojiPicker({
   className,
   placement = "bottom-start",
   theme = "auto",
-  locale = "zh",
-  title = "点击选择图标",
+  locale,
+  title,
   stopPropagation = false,
-  clearLabel = "清除",
+  clearLabel,
   variant = "default",
   triggerAs = "button",
 }: EmojiPickerProps) {

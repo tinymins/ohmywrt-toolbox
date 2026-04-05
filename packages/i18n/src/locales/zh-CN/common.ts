@@ -30,6 +30,20 @@ const common = {
   notFoundDesc: "抱歉，您访问的页面不存在或已被移除",
   unauthorizedTitle: "访问受限",
   unauthorizedDesc: "抱歉，您没有权限访问此页面",
+  meta: {
+    dashboardTitle: "控制台 — OhMyWRT Toolbox",
+    loginTitle: "登录 — OhMyWRT Toolbox",
+    loginDescription: "登录到 OhMyWRT Toolbox，开始使用 OhMyWRT 工具箱。",
+    registerTitle: "注册 — OhMyWRT Toolbox",
+    registerDescription:
+      "创建 OhMyWRT Toolbox 账号，管理您的 OpenWrt 网络工具。",
+    unauthorizedTitle: "无权访问 — OhMyWRT Toolbox",
+    notFoundTitle: "页面不存在 — OhMyWRT Toolbox",
+    homeTitle: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
+    homeDescription:
+      "基于 TypeScript 的全栈应用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

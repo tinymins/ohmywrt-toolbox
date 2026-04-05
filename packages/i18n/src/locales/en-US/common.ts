@@ -31,6 +31,21 @@ const common = {
     "Sorry, the page you visited does not exist or has been removed",
   unauthorizedTitle: "Access denied",
   unauthorizedDesc: "Sorry, you do not have permission to access this page",
+  meta: {
+    dashboardTitle: "Dashboard — OhMyWRT Toolbox",
+    loginTitle: "Sign In — OhMyWRT Toolbox",
+    loginDescription:
+      "Sign in to OhMyWRT Toolbox and start using the OhMyWRT Toolbox.",
+    registerTitle: "Register — OhMyWRT Toolbox",
+    registerDescription:
+      "Create an OhMyWRT Toolbox account and manage your OpenWrt network tools.",
+    unauthorizedTitle: "Unauthorized — OhMyWRT Toolbox",
+    notFoundTitle: "Page Not Found — OhMyWRT Toolbox",
+    homeTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
+    homeDescription:
+      "A full-stack application template built with TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

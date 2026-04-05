@@ -1,25 +1,19 @@
 import { useTranslation } from "react-i18next";
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
 import ErrorPage from "@/components/error/ErrorPage";
-
-function parseLang(cookieHeader: string): "zh-CN" | "en" {
-  const m = cookieHeader.match(/(?:^|;\s*)i18next=([^;]*)/);
-  return m?.[1] === "en" ? "en" : "zh-CN";
-}
+import { parseLangFromCookie, serverT } from "@/lib/server-i18n";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  return { lang: parseLang(request.headers.get("Cookie") ?? "") };
+  return { lang: parseLangFromCookie(request.headers.get("Cookie") ?? "") };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  {
-    title:
-      data?.lang === "en"
-        ? "Unauthorized — OhMyWRT Toolbox"
-        : "无权访问 — OhMyWRT Toolbox",
-  },
-  { name: "robots", content: "noindex, nofollow" },
-];
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const lang = data?.lang ?? "zh-CN";
+  return [
+    { title: serverT(lang, "common.meta.unauthorizedTitle") },
+    { name: "robots", content: "noindex, nofollow" },
+  ];
+};
 
 export default function UnauthorizedRoute() {
   const { t } = useTranslation();

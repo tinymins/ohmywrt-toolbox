@@ -33,6 +33,21 @@ const common = {
   unauthorizedTitle: "アクセス制限",
   unauthorizedDesc:
     "申し訳ございません。このページへのアクセス権限がありません",
+  meta: {
+    dashboardTitle: "ダッシュボード — OhMyWRT Toolbox",
+    loginTitle: "ログイン — OhMyWRT Toolbox",
+    loginDescription:
+      "OhMyWRT Toolbox にログインして、OhMyWRT Toolbox を使い始めましょう。",
+    registerTitle: "登録 — OhMyWRT Toolbox",
+    registerDescription:
+      "OhMyWRT Toolbox アカウントを作成して、OpenWrt ネットワークツールを管理しましょう。",
+    unauthorizedTitle: "アクセス制限 — OhMyWRT Toolbox",
+    notFoundTitle: "ページが見つかりません — OhMyWRT Toolbox",
+    homeTitle: "OhMyWRT Toolbox — OpenWrt フルスタックツールボックス",
+    homeDescription:
+      "TypeScript ベースのフルスタックアプリケーションテンプレート。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "OhMyWRT Toolbox — OpenWrt フルスタックツールボックス",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",
