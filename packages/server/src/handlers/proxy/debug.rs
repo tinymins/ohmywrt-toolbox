@@ -40,16 +40,9 @@ fn parse_subscribe_items(sub: &proxy_subscribes::Model) -> Vec<SubItem> {
     if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
-        if url.is_empty() {
-            Vec::new()
-        } else {
-            vec![SubItem {
-                url: url.clone(),
-                prefix: String::new(),
-                enabled: Some(true),
-                cache_ttl_minutes: None,
-            }]
-        }
+        engine::parse_subscribe_url(url).into_iter().map(|u| SubItem {
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+        }).collect()
     } else {
         Vec::new()
     }

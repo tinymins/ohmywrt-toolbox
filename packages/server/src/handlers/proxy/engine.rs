@@ -84,6 +84,22 @@ pub(super) fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: Option<&st
     }
 }
 
+/// Parse subscribe_url which may be a plain URL string or a JSON array of URLs.
+pub(super) fn parse_subscribe_url(url: &str) -> Vec<String> {
+    let trimmed = url.trim();
+    if trimmed.is_empty() {
+        return Vec::new();
+    }
+    // Try as JSON array first (legacy format: ["url1", "url2"])
+    if trimmed.starts_with('[') {
+        if let Ok(urls) = serde_json::from_str::<Vec<String>>(trimmed) {
+            return urls.into_iter().filter(|u| !u.is_empty()).collect();
+        }
+    }
+    // Plain URL string
+    vec![trimmed.to_string()]
+}
+
 // ─── DNS config resolution ───
 
 #[derive(Debug)]
@@ -271,9 +287,9 @@ pub async fn fetch_proxies_preview(
     let items: Vec<SubItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
-        if url.is_empty() { Vec::new() } else {
-            vec![SubItem { url: url.clone(), prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None }]
-        }
+        parse_subscribe_url(url).into_iter().map(|u| SubItem {
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+        }).collect()
     } else {
         Vec::new()
     };
@@ -386,16 +402,9 @@ pub async fn fetch_proxies(
     let items: Vec<SubscribeItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
-        if url.is_empty() {
-            Vec::new()
-        } else {
-            vec![SubscribeItem {
-                url: url.clone(),
-                prefix: String::new(),
-                enabled: Some(true),
-                cache_ttl_minutes: None,
-            }]
-        }
+        parse_subscribe_url(url).into_iter().map(|u| SubscribeItem {
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+        }).collect()
     } else {
         Vec::new()
     };
