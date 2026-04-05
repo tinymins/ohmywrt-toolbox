@@ -33,6 +33,21 @@ const common = {
   unauthorizedTitle: "アクセス制限",
   unauthorizedDesc:
     "申し訳ございません。このページへのアクセス権限がありません",
+  meta: {
+    dashboardTitle: "ダッシュボード — AI Stack",
+    loginTitle: "ログイン — AI Stack",
+    loginDescription:
+      "AI Stack にログインして、AI フルスタックテンプレートで開発を始めましょう。",
+    registerTitle: "登録 — AI Stack",
+    registerDescription:
+      "AI Stack アカウントを作成して、AI Coding で本格的なアプリを構築しましょう。",
+    unauthorizedTitle: "アクセス制限 — AI Stack",
+    notFoundTitle: "ページが見つかりません — AI Stack",
+    homeTitle: "AI Stack — AI フルスタックアプリケーションテンプレート",
+    homeDescription:
+      "TypeScript ベースのフルスタックアプリケーションテンプレート。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "AI Stack — AI フルスタックテンプレート",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

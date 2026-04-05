@@ -17,7 +17,7 @@ export interface InlineEmojiPickerProps {
 export function InlineEmojiPicker({
   onSelect,
   theme = "auto",
-  locale = "zh",
+  locale,
 }: InlineEmojiPickerProps) {
   return (
     <Picker

@@ -30,6 +30,21 @@ const common = {
   notFoundDesc: "Die angeforderte Seite existiert nicht oder wurde entfernt",
   unauthorizedTitle: "Zugriff verweigert",
   unauthorizedDesc: "Sie haben keine Berechtigung, auf diese Seite zuzugreifen",
+  meta: {
+    dashboardTitle: "Dashboard — AI Stack",
+    loginTitle: "Anmelden — AI Stack",
+    loginDescription:
+      "Melden Sie sich bei AI Stack an und beginnen Sie mit der AI-Full-Stack-Vorlage.",
+    registerTitle: "Registrieren — AI Stack",
+    registerDescription:
+      "Erstellen Sie ein AI Stack-Konto und entwickeln Sie produktionsreife Apps mit AI Coding.",
+    unauthorizedTitle: "Zugriff verweigert — AI Stack",
+    notFoundTitle: "Seite nicht gefunden — AI Stack",
+    homeTitle: "AI Stack — AI Full-Stack-Anwendungsvorlage",
+    homeDescription:
+      "Eine Full-Stack-Anwendungsvorlage basierend auf TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "AI Stack — AI Full-Stack-Vorlage",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

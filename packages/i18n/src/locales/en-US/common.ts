@@ -31,6 +31,21 @@ const common = {
     "Sorry, the page you visited does not exist or has been removed",
   unauthorizedTitle: "Access denied",
   unauthorizedDesc: "Sorry, you do not have permission to access this page",
+  meta: {
+    dashboardTitle: "Dashboard — AI Stack",
+    loginTitle: "Sign In — AI Stack",
+    loginDescription:
+      "Sign in to AI Stack and start building with the AI full-stack template.",
+    registerTitle: "Register — AI Stack",
+    registerDescription:
+      "Create an AI Stack account and start building production-grade apps with AI Coding.",
+    unauthorizedTitle: "Unauthorized — AI Stack",
+    notFoundTitle: "Page Not Found — AI Stack",
+    homeTitle: "AI Stack — AI Full-Stack Application Template",
+    homeDescription:
+      "A full-stack application template built with TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "AI Stack — AI Full-Stack Template",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

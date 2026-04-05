@@ -1,42 +1,26 @@
 import type { LoaderFunctionArgs, MetaFunction } from "react-router";
 import LandingPage from "@/components/site/landing/LandingPage";
+import {
+  langToOgLocale,
+  parseLangFromCookie,
+  serverT,
+} from "@/lib/server-i18n";
 
 const SITE_URL = import.meta.env.VITE_SITE_URL ?? "https://localhost:5173";
 
-function parseLang(cookieHeader: string): "zh-CN" | "en" {
-  const match = cookieHeader.match(/(?:^|;\s*)i18next=([^;]+)/);
-  return match?.[1] === "en" ? "en" : "zh-CN";
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
-  const lang = parseLang(request.headers.get("Cookie") ?? "");
-  return { lang };
+  return { lang: parseLangFromCookie(request.headers.get("Cookie") ?? "") };
 }
-
-const META = {
-  "zh-CN": {
-    title: "AI Stack — AI 全栈应用模板",
-    description:
-      "基于 TypeScript 的全栈应用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
-    ogTitle: "AI Stack — AI 全栈应用模板",
-    ogLocale: "zh_CN",
-    ogLocaleAlt: "en_US",
-  },
-  en: {
-    title: "AI Stack — AI Full-Stack Application Template",
-    description:
-      "A full-stack application template built with TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
-    ogTitle: "AI Stack — AI Full-Stack Template",
-    ogLocale: "en_US",
-    ogLocaleAlt: "zh_CN",
-  },
-} as const;
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const m = META[data?.lang ?? "zh-CN"];
+  const lang = data?.lang ?? "zh-CN";
+  const title = serverT(lang, "common.meta.homeTitle");
+  const description = serverT(lang, "common.meta.homeDescription");
+  const ogTitle = serverT(lang, "common.meta.homeOgTitle");
+  const ogLocale = langToOgLocale(lang);
   return [
-    { title: m.title },
-    { name: "description", content: m.description },
+    { title },
+    { name: "description", content: description },
     {
       name: "keywords",
       content:
@@ -46,14 +30,13 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     { property: "og:type", content: "website" },
     { property: "og:url", content: SITE_URL },
     { property: "og:site_name", content: "AI Stack" },
-    { property: "og:title", content: m.ogTitle },
-    { property: "og:description", content: m.description },
-    { property: "og:locale", content: m.ogLocale },
-    { property: "og:locale:alternate", content: m.ogLocaleAlt },
+    { property: "og:title", content: ogTitle },
+    { property: "og:description", content: description },
+    { property: "og:locale", content: ogLocale },
     // Twitter Card
     { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: m.ogTitle },
-    { name: "twitter:description", content: m.description },
+    { name: "twitter:title", content: ogTitle },
+    { name: "twitter:description", content: description },
     // Canonical
     { tagName: "link", rel: "canonical", href: SITE_URL },
   ];

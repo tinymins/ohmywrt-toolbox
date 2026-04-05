@@ -30,6 +30,20 @@ const common = {
   notFoundDesc: "抱歉，您访问的页面不存在或已被移除",
   unauthorizedTitle: "访问受限",
   unauthorizedDesc: "抱歉，您没有权限访问此页面",
+  meta: {
+    dashboardTitle: "控制台 — AI Stack",
+    loginTitle: "登录 — AI Stack",
+    loginDescription: "登录到 AI Stack，开始使用 AI 全栈规范模板。",
+    registerTitle: "注册 — AI Stack",
+    registerDescription:
+      "创建 AI Stack 账号，开始用 AI Coding 构建生产级应用。",
+    unauthorizedTitle: "无权访问 — AI Stack",
+    notFoundTitle: "页面不存在 — AI Stack",
+    homeTitle: "AI Stack — AI 全栈应用模板",
+    homeDescription:
+      "基于 TypeScript 的全栈应用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "AI Stack — AI 全栈应用模板",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",

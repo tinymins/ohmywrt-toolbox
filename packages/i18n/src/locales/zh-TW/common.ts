@@ -30,6 +30,20 @@ const common = {
   notFoundDesc: "抱歉，您訪問的頁面不存在或已被移除",
   unauthorizedTitle: "存取受限",
   unauthorizedDesc: "抱歉，您沒有權限存取此頁面",
+  meta: {
+    dashboardTitle: "控制台 — AI Stack",
+    loginTitle: "登入 — AI Stack",
+    loginDescription: "登入 AI Stack，開始使用 AI 全棧規範模板。",
+    registerTitle: "註冊 — AI Stack",
+    registerDescription:
+      "創建 AI Stack 帳號，開始用 AI Coding 構建生產級應用。",
+    unauthorizedTitle: "無權存取 — AI Stack",
+    notFoundTitle: "頁面不存在 — AI Stack",
+    homeTitle: "AI Stack — AI 全棧應用模板",
+    homeDescription:
+      "基於 TypeScript 的全棧應用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+    homeOgTitle: "AI Stack — AI 全棧應用模板",
+  },
   lang: {
     zhCN: "简体中文",
     enUS: "English",
