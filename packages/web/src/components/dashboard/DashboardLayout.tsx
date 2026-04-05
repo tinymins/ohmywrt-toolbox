@@ -9,9 +9,10 @@ import {
   MenuOutlined,
   UserOutlined,
 } from "@acme/components";
-import { useState } from "react";
+import { SYSTEM_SHARED_SLUG } from "@acme/types";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet, useNavigate, useParams } from "react-router";
+import { Outlet, useLocation, useNavigate, useParams } from "react-router";
 import ProfileSettingsModal from "@/components/account/ProfileSettingsModal";
 import { WorkspaceRedirectSkeleton } from "@/components/skeleton";
 import {
@@ -22,6 +23,8 @@ import {
 } from "@/hooks";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import CreateWorkspaceModal from "./CreateWorkspaceModal";
+import { PAGE_NAMES } from "./nav-config";
+import PageContent from "./PageContent";
 import SidebarNav from "./SidebarNav";
 import WorkspaceSwitcher from "./WorkspaceSwitcher";
 
@@ -42,10 +45,19 @@ function WorkspaceNotFound({ slug }: { slug: string }) {
   );
 }
 
-export default function DashboardLayout() {
+/**
+ * @param overridePage - When rendered from _index in single workspace mode,
+ *   this tells the layout which page to show (undefined = overview)
+ */
+export default function DashboardLayout({
+  overridePage,
+}: {
+  overridePage?: string;
+} = {}) {
   const { user, updateUser, logout } = useAuth();
-  const { workspace: currentSlug } = useParams<{ workspace: string }>();
+  const { workspace: workspaceParam } = useParams<{ workspace: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -53,15 +65,61 @@ export default function DashboardLayout() {
   const { workspaces, isLoading } = useWorkspaceList();
   const { singleWorkspaceMode } = useSystemSettings();
 
+  // Canonicalize URLs when switching workspace modes.
+  useEffect(() => {
+    if (isLoading || !workspaces.length) return;
+    const segments = location.pathname.replace(/\/$/, "").split("/");
+
+    if (singleWorkspaceMode) {
+      // Multi→Single: /dashboard/tinymins/admin → /dashboard/admin
+      if (segments.length > 3) {
+        navigate(`/dashboard/${segments[segments.length - 1]}`, {
+          replace: true,
+        });
+      }
+    } else if (workspaceParam) {
+      // Single→Multi: /dashboard/admin → /dashboard/tinymins/admin
+      // If the "workspace" param is actually a known page route, redirect
+      const isKnownPage = workspaceParam in PAGE_NAMES;
+      const matchesWorkspace = workspaces.some(
+        (ws) => ws.slug === workspaceParam,
+      );
+      if (isKnownPage && !matchesWorkspace && workspaces.length > 0) {
+        navigate(`/dashboard/${workspaces[0].slug}/${workspaceParam}`, {
+          replace: true,
+        });
+      }
+    }
+  }, [
+    singleWorkspaceMode,
+    location.pathname,
+    navigate,
+    isLoading,
+    workspaces,
+    workspaceParam,
+  ]);
+
   if (isLoading) {
     return <WorkspaceRedirectSkeleton />;
   }
 
-  const currentWorkspace = currentSlug
-    ? (workspaces.find((ws) => ws.slug === currentSlug) ?? null)
-    : null;
+  // In single workspace mode:
+  // - URL param `:workspace` is actually a page name (e.g., "admin")
+  // - Resolve the shared workspace by SYSTEM_SHARED_SLUG, fallback to first
+  // - overridePage is used when rendered from _index (undefined = overview)
+  const isSingle = singleWorkspaceMode;
+  const singlePage = overridePage ?? workspaceParam;
 
-  const workspaceNotFound = currentSlug && currentWorkspace === null;
+  const currentWorkspace = isSingle
+    ? (workspaces.find((ws) => ws.slug === SYSTEM_SHARED_SLUG) ??
+      workspaces[0] ??
+      null)
+    : workspaceParam
+      ? (workspaces.find((ws) => ws.slug === workspaceParam) ?? null)
+      : null;
+
+  const workspaceNotFound =
+    !isSingle && workspaceParam && currentWorkspace === null;
 
   const displayName = user ? user.name || user.email : "";
   const avatarInitial = user
@@ -119,7 +177,7 @@ export default function DashboardLayout() {
     <div className="border-b border-[var(--border-base)] p-2">
       <WorkspaceSwitcher
         workspaces={workspaces}
-        currentSlug={currentSlug}
+        currentSlug={workspaceParam}
         onCreateNew={() => setCreateOpen(true)}
       />
     </div>
@@ -190,10 +248,10 @@ export default function DashboardLayout() {
           {/* Page Content */}
           <div className="flex-1 overflow-y-auto px-3 py-3 lg:px-6 lg:py-6">
             {workspaceNotFound ? (
-              <WorkspaceNotFound slug={currentSlug} />
+              <WorkspaceNotFound slug={workspaceParam ?? ""} />
             ) : (
               <WorkspaceContext.Provider value={currentWorkspace}>
-                <Outlet />
+                {isSingle ? <PageContent page={singlePage} /> : <Outlet />}
               </WorkspaceContext.Provider>
             )}
           </div>

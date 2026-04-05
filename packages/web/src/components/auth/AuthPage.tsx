@@ -94,7 +94,7 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
     login(user);
     didNavigate.current = true;
     if (singleWorkspaceMode) {
-      navigate(redirect || "/dashboard/shared");
+      navigate(redirect || "/dashboard");
     } else {
       navigate(redirect || `/dashboard/${defaultWorkspaceSlug ?? ""}`);
     }

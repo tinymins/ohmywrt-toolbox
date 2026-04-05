@@ -27,7 +27,7 @@ export const menuConfig: MenuItemConfig[] = [
   {
     key: "overview",
     labelKey: "overview",
-    routeSuffix: "/overview",
+    routeSuffix: "",
     icon: "dashboard",
   },
   {

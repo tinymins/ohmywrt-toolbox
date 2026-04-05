@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { WorkspaceRedirectSkeleton } from "@/components/skeleton";
 import { useSystemSettings, useWorkspaceList } from "@/hooks";
 
@@ -12,16 +13,16 @@ export default function DashboardIndexRoute() {
 
   useEffect(() => {
     if (isLoading) return;
-
-    if (singleWorkspaceMode) {
-      // In single workspace mode, always go to the shared workspace
-      navigate("/dashboard/shared", { replace: true });
-      return;
-    }
+    if (singleWorkspaceMode) return;
 
     if (!workspaces || workspaces.length === 0) return;
     navigate(`/dashboard/${workspaces[0].slug}`, { replace: true });
   }, [navigate, workspaces, isLoading, singleWorkspaceMode]);
+
+  // Single workspace mode: render the full dashboard layout at /dashboard
+  if (singleWorkspaceMode) {
+    return <DashboardLayout />;
+  }
 
   if (isLoading) {
     return <WorkspaceRedirectSkeleton />;

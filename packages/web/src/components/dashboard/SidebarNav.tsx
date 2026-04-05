@@ -14,7 +14,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useParams } from "react-router";
-import { useAuth } from "@/hooks";
+import { useAuth, useSystemSettings } from "@/hooks";
 import {
   filterMenuByRole,
   findMenuKeysByPath,
@@ -41,8 +41,11 @@ export default function SidebarNav() {
   const location = useLocation();
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { singleWorkspaceMode } = useSystemSettings();
 
-  const basePath = `/dashboard/${workspace}`;
+  const basePath = singleWorkspaceMode
+    ? "/dashboard"
+    : `/dashboard/${workspace}`;
 
   const stripEmoji = (text: string) =>
     text.replace(
