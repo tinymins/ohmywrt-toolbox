@@ -1,14 +1,14 @@
-import { EyeOutlined } from "@acme/components";
+import type { TableColumnsType } from "@acme/components";
 import {
   Card,
   Empty,
+  EyeOutlined,
   Modal,
   Spin,
   Table,
   Tag,
   Tooltip,
 } from "@acme/components";
-import type { TableColumnsType } from "@acme/components";
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
@@ -204,9 +204,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
         >
           <span
             className={
-              record.filtered
-                ? "line-through text-slate-500"
-                : undefined
+              record.filtered ? "line-through text-slate-500" : undefined
             }
           >
             {name}
@@ -542,6 +540,73 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
                 columns={columns}
                 dataSource={nodes}
                 rowClassName={(record) => (record.filtered ? "opacity-60" : "")}
+                expandable={{
+                  expandedRowRender: (node) => {
+                    const fields = protocolFields[node.type] || [];
+                    const raw = node.raw || {};
+                    const definedKeys = fields.map((f) => f.key);
+                    const basicKeys = ["name", "type", "server", "port"];
+                    const extraKeys = Object.keys(raw).filter(
+                      (k) => !definedKeys.includes(k) && !basicKeys.includes(k),
+                    );
+                    const allFields = [
+                      ...fields
+                        .filter((f) => raw[f.key] !== undefined)
+                        .map((f) => ({
+                          key: f.key,
+                          label: f.label,
+                          value: raw[f.key],
+                          sensitive: f.sensitive,
+                        })),
+                      ...extraKeys.map((k) => ({
+                        key: k,
+                        label: k,
+                        value: raw[k],
+                        sensitive: false,
+                      })),
+                    ];
+                    if (allFields.length === 0) {
+                      return (
+                        <span className="text-slate-400 text-xs">
+                          {t("proxy.preview.noDetails")}
+                        </span>
+                      );
+                    }
+                    return (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-1 text-xs">
+                        {allFields.map((f) => (
+                          <div key={f.key} className="flex gap-2">
+                            <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                              {f.label}
+                            </span>
+                            {f.sensitive ? (
+                              <span
+                                className="font-mono truncate"
+                                title={formatValue(f.value)}
+                              >
+                                {typeof f.value === "string" &&
+                                f.value.length > 20
+                                  ? `${f.value.slice(0, 8)}...${f.value.slice(-8)}`
+                                  : formatValue(f.value)}
+                              </span>
+                            ) : typeof f.value === "object" ? (
+                              <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 px-1 rounded overflow-x-auto max-w-xs">
+                                {formatValue(f.value)}
+                              </pre>
+                            ) : (
+                              <span
+                                className="font-mono truncate"
+                                title={formatValue(f.value)}
+                              >
+                                {formatValue(f.value)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  },
+                }}
                 pagination={{
                   defaultPageSize: 500,
                   showSizeChanger: true,

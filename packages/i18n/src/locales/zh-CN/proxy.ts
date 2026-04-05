@@ -114,6 +114,7 @@ export default {
     manual: "手动添加",
     expand: "展开",
     collapse: "收起",
+    noDetails: "无详细信息",
     clickToCopyFull: "点击复制完整配置",
     unnamed: "未命名",
   },

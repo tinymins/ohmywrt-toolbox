@@ -313,7 +313,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
               <div key={stepKey} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div
-                    className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-current text-sm shrink-0"
+                    className="flex items-center justify-center w-6 h-6 text-lg shrink-0"
                     style={{ color }}
                   >
                     {getStepIcon(step)}

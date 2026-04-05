@@ -25,5 +25,6 @@ export default {
   of: "of",
   items: "items",
   noResults: "No matching results",
+  filtered: "Filtered",
   loading: "Loading...",
 };

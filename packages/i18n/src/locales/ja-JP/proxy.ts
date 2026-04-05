@@ -115,6 +115,7 @@ export default {
     manual: "Manual",
     expand: "Expand",
     collapse: "Collapse",
+    noDetails: "詳細情報なし",
     clickToCopyFull: "Click to copy full config",
     unnamed: "Unnamed",
   },

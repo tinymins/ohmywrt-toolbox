@@ -51,19 +51,6 @@ export const menuConfig: MenuItemConfig[] = [
     ],
   },
   {
-    key: "contentGroup",
-    labelKey: "contentGroup",
-    routeSuffix: null,
-    icon: "folderOpen",
-    children: [
-      {
-        key: "articles",
-        labelKey: "contentGroup.articles",
-        routeSuffix: "/articles",
-      },
-    ],
-  },
-  {
     key: "settingsGroup",
     labelKey: "settingsGroup",
     routeSuffix: null,

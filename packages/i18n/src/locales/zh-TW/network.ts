@@ -25,5 +25,6 @@ export default {
   of: "of",
   items: "items",
   noResults: "No matching results",
+  filtered: "已過濾",
   loading: "Loading...",
 };

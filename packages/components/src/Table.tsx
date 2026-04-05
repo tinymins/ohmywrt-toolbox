@@ -72,6 +72,14 @@ export interface TableProps<T = Record<string, unknown>> {
     onExpand?: (expanded: boolean, record: T) => void;
     childrenColumnName?: string;
     indentSize?: number;
+    /** Render expanded row content */
+    expandedRowRender?: (
+      record: T,
+      index: number,
+      expanded: boolean,
+    ) => ReactNode;
+    /** Control which rows can expand (default: all if expandedRowRender is set) */
+    rowExpandable?: (record: T) => boolean;
   };
   /** Row class name */
   rowClassName?: string | ((record: T, index: number) => string);
@@ -147,6 +155,7 @@ function renderRows<T>(
 ): ReactNode[] {
   const childrenField = expandable?.childrenColumnName ?? "children";
   const indentSize = expandable?.indentSize ?? 20;
+  const hasExpandRender = !!expandable?.expandedRowRender;
   const rows: ReactNode[] = [];
 
   for (const record of dataSource) {
@@ -157,6 +166,9 @@ function renderRows<T>(
       | undefined;
     const hasKids = Array.isArray(kids) && kids.length > 0;
     const expanded = expandedKeys.has(key);
+    const canExpand = hasExpandRender
+      ? (expandable?.rowExpandable?.(record) ?? true)
+      : hasKids;
     const rowCls =
       typeof rowClassName === "function"
         ? rowClassName(record, idx)
@@ -174,6 +186,26 @@ function renderRows<T>(
         )}
         {...restRowProps}
       >
+        {hasExpandRender && (
+          <td
+            className={cn(
+              sizeClass,
+              "text-center w-10",
+              bordered &&
+                "border-r border-black/[0.06] dark:border-white/[0.08]",
+            )}
+          >
+            {canExpand && (
+              <button
+                type="button"
+                className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                onClick={() => toggleExpand(key, record, !expanded)}
+              >
+                {expanded ? "−" : "+"}
+              </button>
+            )}
+          </td>
+        )}
         {columns.map((col, ci) => {
           const dataIndex = col.dataIndex ?? col.key;
           const value = getNestedValue(
@@ -205,7 +237,10 @@ function renderRows<T>(
               <span
                 className="flex items-center gap-1 w-full"
                 style={{
-                  paddingLeft: ci === 0 ? level * indentSize : undefined,
+                  paddingLeft:
+                    ci === 0 && !hasExpandRender
+                      ? level * indentSize
+                      : undefined,
                   justifyContent:
                     col.align === "center"
                       ? "center"
@@ -214,7 +249,7 @@ function renderRows<T>(
                         : undefined,
                 }}
               >
-                {ci === 0 && hasKids ? (
+                {ci === 0 && !hasExpandRender && hasKids ? (
                   <button
                     type="button"
                     className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-secondary)] w-4"
@@ -222,7 +257,7 @@ function renderRows<T>(
                   >
                     {expanded ? "▾" : "▸"}
                   </button>
-                ) : ci === 0 && level > 0 ? (
+                ) : ci === 0 && !hasExpandRender && level > 0 ? (
                   <span className="w-4 shrink-0" />
                 ) : null}
                 <span
@@ -241,7 +276,22 @@ function renderRows<T>(
       </tr>,
     );
 
-    if (hasKids && expanded) {
+    // Expanded row content (expandedRowRender)
+    if (hasExpandRender && expanded && canExpand) {
+      rows.push(
+        <tr
+          key={`${key}-expand`}
+          className="bg-black/[0.01] dark:bg-white/[0.02]"
+        >
+          <td colSpan={columns.length + 1} className="px-4 py-3">
+            {expandable.expandedRowRender?.(record, idx, expanded)}
+          </td>
+        </tr>,
+      );
+    }
+
+    // Tree children
+    if (!hasExpandRender && hasKids && expanded) {
       rows.push(
         ...renderRows(
           kids ?? [],
@@ -355,7 +405,10 @@ export function Table<T = Record<string, unknown>>({
 
   // Client-side pagination
   const paginationConfig = typeof pagination === "object" ? pagination : null;
-  const [paginationState, setPaginationState] = useState({ current: 1, pageSize: paginationConfig?.defaultPageSize ?? 10 });
+  const [paginationState, setPaginationState] = useState({
+    current: 1,
+    pageSize: paginationConfig?.defaultPageSize ?? 10,
+  });
   const paginatedData = useMemo(() => {
     if (!paginationConfig) return sortedData;
     const { current, pageSize } = paginationState;
@@ -551,6 +604,16 @@ export function Table<T = Record<string, unknown>>({
         >
           <thead>
             <tr className="bg-black/[0.02] dark:bg-white/[0.04]">
+              {expandable?.expandedRowRender && (
+                <th
+                  className={cn(
+                    sizeClass,
+                    "text-center font-medium text-[var(--text-secondary)] whitespace-nowrap border-b border-black/[0.06] dark:border-white/[0.08] w-10",
+                    bordered &&
+                      "border-r border-black/[0.06] dark:border-white/[0.08]",
+                  )}
+                />
+              )}
               {effectiveColumns.map((col, ci) => {
                 const sortKey = col.key ?? col.dataIndex ?? String(ci);
                 const isSortable = typeof col.sorter === "function";
@@ -641,7 +704,12 @@ export function Table<T = Record<string, unknown>>({
           <tbody className="bg-transparent">
             {loading ? (
               <tr>
-                <td colSpan={effectiveColumns.length}>
+                <td
+                  colSpan={
+                    effectiveColumns.length +
+                    (expandable?.expandedRowRender ? 1 : 0)
+                  }
+                >
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
                   </div>
@@ -649,7 +717,12 @@ export function Table<T = Record<string, unknown>>({
               </tr>
             ) : dataSource.length === 0 ? (
               <tr>
-                <td colSpan={effectiveColumns.length}>
+                <td
+                  colSpan={
+                    effectiveColumns.length +
+                    (expandable?.expandedRowRender ? 1 : 0)
+                  }
+                >
                   {locale?.emptyText ?? <Empty />}
                 </td>
               </tr>

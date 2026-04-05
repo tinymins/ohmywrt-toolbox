@@ -6,13 +6,7 @@ const dashboard = {
     toolsGroup: {
       _: "ツール",
       proxy: "プロキシ購読",
-      todo: "TODO",
-      testRequirement: "テスト要件",
       network: "ネットワーク",
-    },
-    contentGroup: {
-      _: "コンテンツ",
-      articles: "記事",
     },
     settingsGroup: {
       _: "設定",

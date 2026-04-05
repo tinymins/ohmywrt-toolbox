@@ -220,11 +220,11 @@ export default function ProxySubscribeList() {
           /* Desktop Table View */
           <Table
             rowKey="id"
-            size="small"
+            size="middle"
             bordered
             pagination={false}
             dataSource={list ?? []}
-            scroll={{ x: 800 }}
+            scroll={{ x: 900 }}
             columns={[
               {
                 title: t("proxy.columns.creator"),

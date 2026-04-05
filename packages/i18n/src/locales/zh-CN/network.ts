@@ -25,5 +25,6 @@ export default {
   of: "/",
   items: "项",
   noResults: "无匹配结果",
+  filtered: "已过滤",
   loading: "加载中...",
 };
