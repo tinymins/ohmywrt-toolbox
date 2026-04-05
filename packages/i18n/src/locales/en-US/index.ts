@@ -8,8 +8,11 @@ import generalSettings from "./generalSettings.js";
 import hero from "./hero.js";
 import login from "./login.js";
 import nav from "./nav.js";
+import network from "./network.js";
 import proxy from "./proxy.js";
 import systemSettings from "./systemSettings.js";
+import testRequirement from "./testRequirement.js";
+import todo from "./todo.js";
 import userMenu from "./userMenu.js";
 import userSettings from "./userSettings.js";
 import workspace from "./workspace.js";
@@ -31,5 +34,8 @@ export const enUS: TranslationSchema = {
     footer,
     features,
     proxy,
+    todo,
+    testRequirement,
+    network,
   },
 };
