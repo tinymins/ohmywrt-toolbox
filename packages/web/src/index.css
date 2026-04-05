@@ -9,6 +9,7 @@
   --color-surface-elevated: var(--bg-elevated);
   --color-border-base: var(--border-base);
   --color-border-subtle: var(--border-subtle);
+  --color-border-glass: var(--glass-border);
   --color-fg-primary: var(--text-primary);
   --color-fg-secondary: var(--text-secondary);
   --color-fg-muted: var(--text-muted);
