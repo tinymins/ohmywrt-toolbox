@@ -4,8 +4,6 @@ import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import { PAGE_NAMES } from "@/components/dashboard/nav-config";
 import { NetworkToolsPage } from "@/components/dashboard/network";
 import { ProxySubscribeList } from "@/components/dashboard/proxy";
-import { TestRequirementPage } from "@/components/dashboard/test-requirement";
-import { TodoListPage } from "@/components/dashboard/todo";
 import GeneralSettingsPage from "@/components/settings/GeneralSettingsPage";
 
 export default function DemoPageRoute() {
@@ -22,14 +20,6 @@ export default function DemoPageRoute() {
 
   if (page === "proxy") {
     return <ProxySubscribeList />;
-  }
-
-  if (page === "todo") {
-    return <TodoListPage />;
-  }
-
-  if (page === "test-requirement") {
-    return <TestRequirementPage />;
   }
 
   if (page === "network") {

@@ -1,9 +1,15 @@
 export default {
+  intro: {
+    headline: "プロキシサブスクリプション管理",
+    description:
+      "プロキシサブスクリプションを作成および管理して、複数の形式の設定ファイルを様々なクライアント用に生成します。Clash、Clash Meta、Sing-box などの複数のプロトコル形式をサポートします。",
+  },
   title: "Proxy Subscriptions",
   newSubscribe: "New Subscription",
   editSubscribe: "Edit Subscription",
   confirmDelete: "Confirm Delete",
-  confirmDeleteDesc: "Are you sure you want to delete this subscription? This action cannot be undone.",
+  confirmDeleteDesc:
+    "Are you sure you want to delete this subscription? This action cannot be undone.",
   createSuccess: "Created successfully",
   createFailed: "Create failed",
   updateSuccess: "Updated successfully",

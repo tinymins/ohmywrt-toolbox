@@ -1,9 +1,15 @@
 export default {
+  intro: {
+    headline: "Proxy-Abonnementverwaltung",
+    description:
+      "Erstellen und verwalten Sie Proxy-Abos, um Konfigurationsdateien in mehreren Formaten für verschiedene Clients zu generieren. Unterstützt Clash, Clash Meta, Sing-box und andere Protokollformate.",
+  },
   title: "Proxy Subscriptions",
   newSubscribe: "New Subscription",
   editSubscribe: "Edit Subscription",
   confirmDelete: "Confirm Delete",
-  confirmDeleteDesc: "Are you sure you want to delete this subscription? This action cannot be undone.",
+  confirmDeleteDesc:
+    "Are you sure you want to delete this subscription? This action cannot be undone.",
   createSuccess: "Created successfully",
   createFailed: "Create failed",
   updateSuccess: "Updated successfully",

@@ -24,10 +24,7 @@ model User {
   createdInvitationCodes InvitationCode[] @relation("InvitationCodeCreator")
   usedInvitationCodes    InvitationCode[] @relation("InvitationCodeUsedBy")
 
-  createdTodos           Todo[]              @relation("TodoCreator")
-  proxySubscribes        ProxySubscribe[]
-  createdTestRequirements TestRequirement[]  @relation("TestRequirementCreator")
-  assignedTestRequirements TestRequirement[] @relation("TestRequirementAssignee")
+  proxySubscribes ProxySubscribe[]
 
   @@map("users")
 }
@@ -53,8 +50,6 @@ model Workspace {
 
   owner            User?              @relation(fields: [ownerId], references: [id])
   members          WorkspaceMember[]
-  todos            Todo[]
-  testRequirements TestRequirement[]
 
   @@map("workspaces")
 }
@@ -125,51 +120,6 @@ model InvitationCode {
   usedByUser User? @relation("InvitationCodeUsedBy", fields: [usedBy], references: [id])
 
   @@map("invitation_codes")
-}
-
-model Todo {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId String    @map("workspace_id") @db.Uuid
-  title       String
-  category    String    @default("默认")
-  completed   Boolean   @default(false)
-  createdBy   String?   @map("created_by") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-
-  workspace Workspace @relation(fields: [workspaceId], references: [id])
-  creator   User?     @relation("TodoCreator", fields: [createdBy], references: [id])
-
-  @@map("todos")
-}
-
-model TestRequirement {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  workspaceId    String    @map("workspace_id") @db.Uuid
-  code           String
-  title          String
-  description    String?
-  content        String?
-  type           String    @default("functional")
-  status         String    @default("draft")
-  priority       String    @default("medium")
-  parentId       String?   @map("parent_id") @db.Uuid
-  tags           Json?
-  assigneeId     String?   @map("assignee_id") @db.Uuid
-  createdBy      String?   @map("created_by") @db.Uuid
-  dueDate        DateTime? @map("due_date") @db.Timestamptz
-  estimatedHours String?   @map("estimated_hours")
-  actualHours    String?   @map("actual_hours")
-  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
-
-  workspace Workspace        @relation(fields: [workspaceId], references: [id])
-  parent    TestRequirement?  @relation("TestRequirementParent", fields: [parentId], references: [id])
-  children  TestRequirement[] @relation("TestRequirementParent")
-  creator   User?             @relation("TestRequirementCreator", fields: [createdBy], references: [id])
-  assignee  User?             @relation("TestRequirementAssignee", fields: [assigneeId], references: [id])
-
-  @@map("test_requirements")
 }
 
 model ProxySubscribe {

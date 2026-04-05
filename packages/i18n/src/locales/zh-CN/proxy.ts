@@ -1,4 +1,9 @@
 export default {
+  intro: {
+    headline: "代理订阅管理",
+    description:
+      "创建和管理代理订阅，生成多种格式的配置文件供多个客户端使用。支持 Clash、Clash Meta、Sing-box 等多种协议格式。",
+  },
   title: "代理订阅",
   newSubscribe: "新建订阅",
   editSubscribe: "编辑订阅",

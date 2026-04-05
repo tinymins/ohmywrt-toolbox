@@ -1,14 +1,12 @@
 import {
   BarChartOutlined,
+  Button,
+  Card,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   LinkOutlined,
   PlusOutlined,
-} from "@acme/components";
-import {
-  Button,
-  Card,
   Popconfirm,
   Spin,
   Table,
@@ -16,10 +14,11 @@ import {
   Tooltip,
 } from "@acme/components";
 import dayjs from "dayjs";
+import { Share2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { message } from "@/lib/message";
 import { proxyApi } from "@/generated/rust-api";
+import { message } from "@/lib/message";
 import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
 import ProxyPreviewModal, {
   type ProxyPreviewModalRef,
@@ -93,10 +92,25 @@ export default function ProxySubscribeList() {
       <ProxyStatsModal ref={statsModalRef} />
       <ProxyLinksModal ref={linksModalRef} />
 
+      {/* Intro Banner */}
+      <div className="mb-5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 dark:border-blue-800/30 dark:from-blue-950/20 dark:to-cyan-950/20">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 dark:bg-blue-500/25">
+            <Share2 className="text-blue-600 dark:text-blue-400" size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
+              {t("proxy.intro.headline")}
+            </h3>
+            <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+              {t("proxy.intro.description")}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-3 md:mb-4">
-        <h4 className="mb-0 text-lg md:text-xl">
-          {t("proxy.title")}
-        </h4>
+        <h4 className="mb-0 text-lg md:text-xl">{t("proxy.title")}</h4>
         <Button
           variant="primary"
           icon={<PlusOutlined />}

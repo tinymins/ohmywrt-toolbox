@@ -1,9 +1,15 @@
 export default {
+  intro: {
+    headline: "Proxy Subscription Management",
+    description:
+      "Create and manage proxy subscriptions to generate configuration files in multiple formats for various clients. Supports Clash, Clash Meta, Sing-box, and other protocol formats.",
+  },
   title: "Proxy Subscriptions",
   newSubscribe: "New Subscription",
   editSubscribe: "Edit Subscription",
   confirmDelete: "Confirm Delete",
-  confirmDeleteDesc: "Are you sure you want to delete this subscription? This action cannot be undone.",
+  confirmDeleteDesc:
+    "Are you sure you want to delete this subscription? This action cannot be undone.",
   createSuccess: "Created successfully",
   createFailed: "Create failed",
   updateSuccess: "Updated successfully",

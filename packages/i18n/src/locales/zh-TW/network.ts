@@ -1,4 +1,9 @@
 export default {
+  intro: {
+    headline: "網路工具",
+    description:
+      "取得和管理地理位置資料庫、IP 清單和網域清單，用於網路設定和規則自訂。",
+  },
   title: "Network Tools",
   geoip: {
     title: "GeoIP CN",

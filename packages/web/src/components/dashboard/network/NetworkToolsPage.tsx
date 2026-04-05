@@ -1,3 +1,4 @@
+import { Network } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { networkApi } from "@/generated/rust-api/network";
@@ -136,6 +137,26 @@ export function NetworkToolsPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
+      {/* Intro Banner */}
+      <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-5 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-pink-950/20">
+        <div className="flex items-start gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 dark:bg-purple-500/25">
+            <Network
+              className="text-purple-600 dark:text-purple-400"
+              size={22}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-1 font-semibold text-gray-900 dark:text-gray-100">
+              {t("network.intro.headline")}
+            </h3>
+            <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+              {t("network.intro.description")}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <h2 className="text-xl font-semibold text-[var(--text-primary)]">
         {t("network.title")}
       </h2>

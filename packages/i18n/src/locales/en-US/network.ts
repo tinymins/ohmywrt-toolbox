@@ -1,4 +1,9 @@
 export default {
+  intro: {
+    headline: "Network Tools",
+    description:
+      "Obtain and manage geolocation databases, IP lists and domain lists for network configuration and rule customization.",
+  },
   title: "Network Tools",
   geoip: {
     title: "GeoIP CN",

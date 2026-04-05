@@ -11,8 +11,6 @@ mod cors;
 mod network;
 mod proxy;
 mod storage;
-mod test_requirement;
-mod todo;
 mod user;
 mod workspace;
 
@@ -23,8 +21,6 @@ pub fn build_app(state: Arc<AppState>) -> Router {
         .merge(workspace::build_workspace_routes())
         .merge(admin::build_admin_routes())
         .merge(storage::build_storage_routes())
-        .merge(todo::build_todo_routes())
-        .merge(test_requirement::build_test_requirement_routes())
         .merge(proxy::build_proxy_routes())
         .merge(network::build_network_routes())
         .layer(cors::build_cors_layer())

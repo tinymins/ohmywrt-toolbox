@@ -1,4 +1,9 @@
 export default {
+  intro: {
+    headline: "Netzwerk-Tools",
+    description:
+      "Abrufen und Verwalten von Geolokalisierungsdatenbanken, IP-Listen und Domänenlisten für Netzwerkkonfiguration und Regelanpassung.",
+  },
   title: "Network Tools",
   geoip: {
     title: "GeoIP CN",

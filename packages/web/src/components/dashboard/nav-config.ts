@@ -43,18 +43,6 @@ export const menuConfig: MenuItemConfig[] = [
         icon: "globe",
       },
       {
-        key: "todo",
-        labelKey: "toolsGroup.todo",
-        routeSuffix: "/todo",
-        icon: "checkSquare",
-      },
-      {
-        key: "testRequirement",
-        labelKey: "toolsGroup.testRequirement",
-        routeSuffix: "/test-requirement",
-        icon: "clipboardList",
-      },
-      {
         key: "network",
         labelKey: "toolsGroup.network",
         routeSuffix: "/network",
