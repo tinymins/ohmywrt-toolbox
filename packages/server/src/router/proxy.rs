@@ -46,4 +46,8 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
             "/api/public/proxy/{uuid}/sing-box",
             get(proxy::public_sing_box),
         )
+        .route(
+            "/api/public/proxy/{uuid}/sing-box/12",
+            get(proxy::public_sing_box_v12),
+        )
 }

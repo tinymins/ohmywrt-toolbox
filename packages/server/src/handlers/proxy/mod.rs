@@ -1,3 +1,10 @@
+pub mod cache;
+pub mod converter;
+pub mod engine;
+pub mod icons;
+pub mod parser;
+pub mod types;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -637,14 +644,31 @@ pub async fn get_user_stats(
 // ─── Preview / Debug placeholder handlers ───
 
 pub async fn preview_nodes(
-    State(_state): State<Arc<AppState>>,
+    State(state): State<Arc<AppState>>,
     _auth_user: AuthUser,
-    Path(_id): Path<String>,
+    Path(id): Path<String>,
 ) -> Response {
-    // TODO: Port from old proxy.service.ts previewNodes
+    let sub = match ProxySubscribeRepo::find_by_id(&state.db, &id).await {
+        Ok(Some(s)) => s,
+        Ok(None) => return AppError::NotFound("Subscription not found".into()).into_response(),
+        Err(e) => return e.into_response(),
+    };
+
+    let nodes = match engine::fetch_proxies_preview(&sub).await {
+        Ok(n) => n,
+        Err(e) => {
+            return Json(ApiResponse {
+                success: false,
+                data: None::<serde_json::Value>,
+                error: Some(e),
+            })
+            .into_response()
+        }
+    };
+
     Json(ApiResponse {
         success: true,
-        data: Some(serde_json::json!([])),
+        data: Some(serde_json::json!({ "nodes": nodes })),
         error: None,
     })
     .into_response()
@@ -711,19 +735,27 @@ pub async fn public_clash(
         Err(e) => return e.into_response(),
     };
 
+    let proxies = match engine::fetch_proxies(&sub, "clash").await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("fetch_proxies failed: {}", e);
+            Vec::new()
+        }
+    };
+
+    let config = engine::build_clash_config(&sub, &proxies, false);
+
     let _ = ProxyAccessLogRepo::create(
         &state.db,
         sub.id,
         "clash",
         extract_client_ip(&headers).as_deref(),
         extract_user_agent(&headers).as_deref(),
-        Some(0),
+        Some(proxies.len() as i32),
     )
     .await;
     let _ = ProxySubscribeRepo::touch_access(&state.db, sub.id).await;
 
-    // Stub: return minimal valid Clash config
-    let config = "mixed-port: 7890\nallow-lan: false\nmode: rule\nlog-level: info\nproxies: []\nrules:\n  - MATCH,DIRECT\n";
     (
         [(axum::http::header::CONTENT_TYPE, "text/yaml; charset=utf-8")],
         config,
@@ -742,18 +774,27 @@ pub async fn public_clash_meta(
         Err(e) => return e.into_response(),
     };
 
+    let proxies = match engine::fetch_proxies(&sub, "clash-meta").await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("fetch_proxies failed: {}", e);
+            Vec::new()
+        }
+    };
+
+    let config = engine::build_clash_config(&sub, &proxies, true);
+
     let _ = ProxyAccessLogRepo::create(
         &state.db,
         sub.id,
         "clash-meta",
         extract_client_ip(&headers).as_deref(),
         extract_user_agent(&headers).as_deref(),
-        Some(0),
+        Some(proxies.len() as i32),
     )
     .await;
     let _ = ProxySubscribeRepo::touch_access(&state.db, sub.id).await;
 
-    let config = "mixed-port: 7890\nallow-lan: false\nmode: rule\nlog-level: info\nfind-process-mode: strict\nunified-delay: true\nproxies: []\nrules:\n  - MATCH,DIRECT\n";
     (
         [(axum::http::header::CONTENT_TYPE, "text/yaml; charset=utf-8")],
         config,
@@ -766,36 +807,80 @@ pub async fn public_sing_box(
     Path(uuid): Path<String>,
     headers: HeaderMap,
 ) -> Response {
+    handle_singbox(state, uuid, headers, false).await
+}
+
+pub async fn public_sing_box_v12(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, true).await
+}
+
+async fn handle_singbox(
+    state: Arc<AppState>,
+    uuid: String,
+    headers: HeaderMap,
+    is_v12: bool,
+) -> Response {
     let sub = match ProxySubscribeRepo::find_by_url(&state.db, &uuid).await {
         Ok(Some(s)) => s,
         Ok(None) => return AppError::NotFound("Subscription not found".into()).into_response(),
         Err(e) => return e.into_response(),
     };
 
+    let format = if is_v12 { "sing-box-v12" } else { "sing-box" };
+    let proxies = match engine::fetch_proxies(&sub, format).await {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!("fetch_proxies failed: {}", e);
+            Vec::new()
+        }
+    };
+
+    // Derive public server URL from headers
+    let public_server_url = get_public_server_url(&headers);
+
+    let config = engine::build_singbox_config(&sub, &proxies, is_v12, &public_server_url);
+
+    let access_type = if is_v12 { "sing-box-v12" } else { "sing-box" };
     let _ = ProxyAccessLogRepo::create(
         &state.db,
         sub.id,
-        "sing-box",
+        access_type,
         extract_client_ip(&headers).as_deref(),
         extract_user_agent(&headers).as_deref(),
-        Some(0),
+        Some(proxies.len() as i32),
     )
     .await;
     let _ = ProxySubscribeRepo::touch_access(&state.db, sub.id).await;
 
-    let config = serde_json::json!({
-        "log": { "level": "info" },
-        "inbounds": [],
-        "outbounds": [
-            { "type": "direct", "tag": "direct" }
-        ],
-        "route": {
-            "rules": [],
-            "final": "direct"
-        }
-    });
+    (
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "application/json; charset=utf-8",
+        )],
+        serde_json::to_string_pretty(&config).unwrap_or_default(),
+    )
+        .into_response()
+}
 
-    Json(config).into_response()
+fn get_public_server_url(headers: &HeaderMap) -> String {
+    if let Ok(url) = std::env::var("PUBLIC_SERVER_URL") {
+        if !url.is_empty() {
+            return url;
+        }
+    }
+    let proto = headers
+        .get("x-forwarded-proto")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("http");
+    let host = headers
+        .get("host")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("localhost:4000");
+    format!("{}://{}", proto, host)
 }
 
 // ─── Default config constants (ported from old lib-config.ts) ───
