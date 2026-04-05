@@ -97,6 +97,7 @@ export default {
     copy: "複製",
     open: "開啟",
     debug: "除錯",
+    tools: "小工具",
     clearCache: "清除快取",
     cacheClearedSuccess: "訂閱快取已清除",
   },

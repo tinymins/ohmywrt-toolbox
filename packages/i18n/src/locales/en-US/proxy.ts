@@ -98,6 +98,7 @@ export default {
     copy: "Copy",
     open: "Open",
     debug: "Debug",
+    tools: "Tools",
     clearCache: "Clear Cache",
     cacheClearedSuccess: "Subscription cache cleared",
   },

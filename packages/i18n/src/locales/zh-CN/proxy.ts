@@ -97,6 +97,7 @@ export default {
     copy: "复制",
     open: "打开",
     debug: "调试",
+    tools: "小工具",
     clearCache: "清除缓存",
     cacheClearedSuccess: "订阅缓存已清除",
   },

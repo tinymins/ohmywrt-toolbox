@@ -108,19 +108,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
         }
         open={visible}
         onCancel={() => setVisible(false)}
-        footer={
-          <div className="flex justify-end pt-2">
-            <Button
-              variant="text"
-              size="small"
-              icon={<DeleteOutlined />}
-              onClick={() => clearCacheMutation.mutate(undefined)}
-              loading={clearCacheMutation.isPending}
-            >
-              {t("proxy.links.clearCache")}
-            </Button>
-          </div>
-        }
+        footer={null}
         width={560}
         destroyOnClose
       >
@@ -191,6 +179,23 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
               </p>
             </div>
           ))}
+        </div>
+
+        <div className="mt-5">
+          <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
+            {t("proxy.links.tools")}
+          </h4>
+          <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <Button
+              variant="outline"
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => clearCacheMutation.mutate(undefined)}
+              loading={clearCacheMutation.isPending}
+            >
+              {t("proxy.links.clearCache")}
+            </Button>
+          </div>
         </div>
       </Modal>
     </>

@@ -98,6 +98,7 @@ export default {
     copy: "Copy",
     open: "Open",
     debug: "Debug",
+    tools: "ツール",
     clearCache: "キャッシュをクリア",
     cacheClearedSuccess: "サブスクリプションキャッシュをクリアしました",
   },

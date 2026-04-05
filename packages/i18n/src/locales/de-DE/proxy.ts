@@ -99,6 +99,7 @@ export default {
     copy: "Copy",
     open: "Open",
     debug: "Debug",
+    tools: "Werkzeuge",
     clearCache: "Cache leeren",
     cacheClearedSuccess: "Abonnement-Cache gelöscht",
   },
