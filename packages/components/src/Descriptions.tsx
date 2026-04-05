@@ -77,12 +77,14 @@ export function Descriptions({
         {(title || extra) && (
           <div className="flex items-center justify-between mb-3">
             {title ? (
-              <h3 className="text-base font-medium text-fg-primary">{title}</h3>
+              <h3 className="text-base font-medium text-[var(--text-primary)]">
+                {title}
+              </h3>
             ) : null}
             {extra}
           </div>
         )}
-        <table className="w-full border-collapse border border-border-base rounded-lg overflow-hidden">
+        <table className="w-full border-collapse border border-[var(--border-base)] rounded-lg overflow-hidden">
           <tbody>
             {rows.map((row, ri) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: rows are index-based
@@ -92,7 +94,7 @@ export function Descriptions({
                     <th
                       className={cn(
                         padClass,
-                        "text-left font-normal text-fg-muted bg-surface-base/50 border border-border-base whitespace-nowrap",
+                        "text-left font-normal text-[var(--text-muted)] bg-[var(--fill-tertiary)] border border-[var(--border-base)] whitespace-nowrap",
                       )}
                       style={labelStyle}
                     >
@@ -101,7 +103,7 @@ export function Descriptions({
                     <td
                       className={cn(
                         padClass,
-                        "text-fg-secondary bg-surface-elevated border border-border-base",
+                        "text-[var(--text-secondary)] bg-[var(--bg-elevated)] border border-[var(--border-base)]",
                       )}
                       colSpan={
                         (item.span ?? 1) > 1
@@ -128,7 +130,9 @@ export function Descriptions({
       {(title || extra) && (
         <div className="flex items-center justify-between mb-3">
           {title ? (
-            <h3 className="text-base font-medium text-fg-primary">{title}</h3>
+            <h3 className="text-base font-medium text-[var(--text-primary)]">
+              {title}
+            </h3>
           ) : null}
           {extra}
         </div>
@@ -142,10 +146,16 @@ export function Descriptions({
             key={item.key ?? i}
             style={item.span ? { gridColumn: `span ${item.span}` } : undefined}
           >
-            <div className="text-sm text-fg-muted mb-0.5" style={labelStyle}>
+            <div
+              className="text-sm text-[var(--text-muted)] mb-0.5"
+              style={labelStyle}
+            >
               {item.label}
             </div>
-            <div className="text-sm text-fg-primary" style={contentStyle}>
+            <div
+              className="text-sm text-[var(--text-primary)]"
+              style={contentStyle}
+            >
               {item.children}
             </div>
           </div>

@@ -3,6 +3,18 @@
 @source "../../components/src";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* ── Map design tokens to Tailwind v4 @theme so utilities resolve ── */
+@theme {
+  --color-surface-base: var(--bg-base);
+  --color-surface-elevated: var(--bg-elevated);
+  --color-border-base: var(--border-base);
+  --color-border-subtle: var(--border-subtle);
+  --color-fg-primary: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-fill-tertiary: var(--fill-tertiary);
+}
+
 /* ── Base surface tokens (light mode) ── */
 :root {
   font-family:

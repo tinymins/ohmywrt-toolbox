@@ -269,12 +269,13 @@ export const SourceResultStepContent = ({
       {/* Basic info */}
       <Descriptions
         size="small"
-        column={2}
+        column={3}
         bordered
         items={[
           {
             label: t("proxy.debug.sourceUrl"),
             children: <span className="text-xs break-all">{data.url}</span>,
+            span: 2,
           },
           {
             label: t("proxy.debug.httpStatus"),
@@ -482,7 +483,7 @@ export const MergeStepContent = ({
     <div className="flex flex-col gap-2">
       <Descriptions
         size="small"
-        column={2}
+        column={3}
         bordered
         items={[
           {
