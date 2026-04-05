@@ -1,7 +1,6 @@
 import {
   BarChartOutlined,
   Button,
-  Card,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -92,8 +91,8 @@ export default function ProxySubscribeList() {
       <ProxyStatsModal ref={statsModalRef} />
       <ProxyLinksModal ref={linksModalRef} />
 
-      {/* Intro Banner */}
-      <div className="mb-5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 dark:border-blue-800/30 dark:from-blue-950/20 dark:to-cyan-950/20">
+      {/* Intro Banner — hidden on mobile */}
+      <div className="mb-5 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-cyan-50 p-5 dark:border-blue-800/30 dark:from-blue-950/20 dark:to-cyan-950/20 hidden md:block">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 dark:bg-blue-500/25">
             <Share2 className="text-blue-600 dark:text-blue-400" size={22} />
@@ -110,7 +109,7 @@ export default function ProxySubscribeList() {
       </div>
 
       <div className="flex justify-between items-center mb-3 md:mb-4">
-        <h4 className="mb-0 text-lg md:text-xl">{t("proxy.title")}</h4>
+        <h4 className="mb-0 text-lg md:text-xl">{t("proxy.intro.headline")}</h4>
         <Button
           variant="primary"
           icon={<PlusOutlined />}
@@ -124,19 +123,17 @@ export default function ProxySubscribeList() {
       <Spin spinning={isLoading}>
         {/* Mobile Card View */}
         {isMobile ? (
-          <div className="flex flex-col gap-3 -mx-6">
+          <div className="flex flex-col">
             {(list ?? []).map((record) => (
-              <Card
+              <div
                 key={record.id}
-                size="small"
-                className="!rounded-none !border-x-0 !shadow-none"
-                styles={{ body: { padding: "12px 24px" } }}
+                className="border-b border-gray-100 dark:border-gray-800 py-3"
               >
                 <div className="space-y-2.5">
                   {/* Header: Creator & Remark */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-semibold">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-semibold text-base">
                         {record.remark || t("proxy.preview.unnamed")}
                       </span>
                       <div className="text-xs text-gray-500 mt-0.5">
@@ -144,7 +141,7 @@ export default function ProxySubscribeList() {
                         {dayjs(record.updatedAt).format("MM-DD HH:mm")}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                       <Tag color="blue">
                         {t("proxy.columns.nodeCount")}: {record.cachedNodeCount}
                       </Tag>
@@ -208,7 +205,7 @@ export default function ProxySubscribeList() {
                     </Popconfirm>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
             {(list ?? []).length === 0 && (
               <div className="text-center text-gray-500 py-8">
