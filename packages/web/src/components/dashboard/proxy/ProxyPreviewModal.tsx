@@ -1,6 +1,5 @@
 import type { DescriptionsItem, TableColumnsType } from "@acme/components";
 import {
-  Card,
   Descriptions,
   Empty,
   EyeOutlined,
@@ -10,9 +9,17 @@ import {
   Tag,
   Tooltip,
 } from "@acme/components";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { Copy } from "lucide-react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { message } from "@/lib/message";
 
 // 检测是否为移动设备
 const useIsMobile = () => {
@@ -300,7 +307,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
       {},
     );
 
-  // 移动端卡片视图（带展开详情）
+  // 移动端卡片视图（匹配线上设计）
   const MobileNodeCard = ({ node }: { node: ProxyNode }) => {
     const [expanded, setExpanded] = useState(false);
     const fields = protocolFields[node.type] || [];
@@ -312,62 +319,78 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
     );
     const hasDetails = fields.length > 0 || extraKeys.length > 0;
 
+    const copyToClipboard = useCallback((text: string) => {
+      navigator.clipboard.writeText(text).then(() => {
+        message.success(t("proxy.preview.copied") || "已复制");
+      });
+    }, []);
+
     return (
-      <Card
-        size="small"
-        className={`${node.filtered ? "opacity-60" : ""}`}
-        title={
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className={`truncate flex-1${node.filtered ? " line-through text-slate-500" : ""}`}
-              title={node.name}
-            >
-              {node.name}
-            </span>
-            <Tag
-              color={
-                node.filtered ? "default" : typeColorMap[node.type] || "default"
-              }
-              className="!m-0 shrink-0"
-            >
-              {node.type.toUpperCase()}
-            </Tag>
-          </div>
-        }
+      <div
+        className={`rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden ${node.filtered ? "opacity-50" : ""}`}
       >
-        <div className="space-y-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("proxy.preview.server")}:</span>
-            <span
-              className="font-mono truncate max-w-[180px]"
-              title={node.server}
-            >
-              {node.server}
+        {/* Header: name + protocol tag */}
+        <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50 dark:bg-white/[0.04]">
+          <span
+            className={`font-medium text-sm truncate flex-1 ${node.filtered ? "line-through text-gray-400" : ""}`}
+            title={node.name}
+          >
+            {node.name}
+          </span>
+          <Tag
+            color={
+              node.filtered ? "default" : typeColorMap[node.type] || "default"
+            }
+            className="!m-0 shrink-0"
+          >
+            {node.type.toUpperCase()}
+          </Tag>
+        </div>
+
+        {/* Body: server / port / source */}
+        <div className="px-3 py-2 space-y-1.5 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 dark:text-gray-400 shrink-0">
+              {t("proxy.preview.server")}:
             </span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-xs" title={node.server}>
+                {node.server}
+              </span>
+              <Copy
+                size={13}
+                className="text-gray-400 hover:text-blue-500 cursor-pointer shrink-0"
+                onClick={() => copyToClipboard(node.server)}
+              />
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("proxy.preview.port")}:</span>
-            <span className="font-mono">{node.port}</span>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 dark:text-gray-400 shrink-0">
+              {t("proxy.preview.port")}:
+            </span>
+            <span className="font-mono text-xs">{node.port}</span>
           </div>
           {Boolean(node.raw?.network) && (
-            <div className="flex justify-between">
-              <span className="text-gray-500">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500 dark:text-gray-400 shrink-0">
                 {t("proxy.preview.transport")}:
               </span>
-              <span>
+              <span className="flex items-center gap-1">
                 <Tag className="!m-0">
                   {String(node.raw.network).toUpperCase()}
                 </Tag>
                 {Boolean(node.raw?.tls) && (
-                  <Tag color="green" className="!m-0 !ml-1">
+                  <Tag color="green" className="!m-0">
                     TLS
                   </Tag>
                 )}
               </span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-gray-500">{t("proxy.preview.source")}:</span>
+          <div className="flex items-center justify-between">
+            <span className="text-gray-500 dark:text-gray-400 shrink-0">
+              {t("proxy.preview.source")}:
+            </span>
             <Tag
               color={node.sourceIndex === 0 ? "default" : "blue"}
               className="!m-0"
@@ -382,72 +405,88 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
               ⚠️ {t("proxy.preview.filteredBy", { rule: node.filteredBy })}
             </div>
           )}
-
-          {/* 展开/收起按钮 */}
-          {hasDetails && (
-            <div
-              className="text-center pt-2 border-t border-gray-200 dark:border-gray-700 mt-2 cursor-pointer text-blue-500"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded
-                ? t("proxy.preview.collapse") || "收起"
-                : t("proxy.preview.expand") || "展开详情"}
-            </div>
-          )}
-
-          {/* 详情区域 */}
-          {expanded && (
-            <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              {fields.map((field) => {
-                const value = raw[field.key];
-                if (value === undefined) return null;
-                return (
-                  <div
-                    key={field.key}
-                    className="flex justify-between items-start"
-                  >
-                    <span className="text-gray-500 shrink-0">
-                      {field.label}:
-                    </span>
-                    {field.sensitive ? (
-                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
-                        {typeof value === "string" && value.length > 20
-                          ? `${value.slice(0, 8)}...${value.slice(-8)}`
-                          : formatValue(value)}
-                      </span>
-                    ) : typeof value === "object" ? (
-                      <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
-                        {formatValue(value)}
-                      </pre>
-                    ) : (
-                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
-                        {formatValue(value)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-              {extraKeys.map((key) => {
-                const value = raw[key];
-                return (
-                  <div key={key} className="flex justify-between items-start">
-                    <span className="text-gray-500 shrink-0">{key}:</span>
-                    {typeof value === "object" ? (
-                      <pre className="m-0 text-xs bg-gray-100 dark:bg-gray-700 p-1 rounded max-w-[60%] overflow-x-auto">
-                        {formatValue(value)}
-                      </pre>
-                    ) : (
-                      <span className="font-mono text-xs text-right max-w-[60%] break-all">
-                        {formatValue(value)}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
-      </Card>
+
+        {/* Expand/Collapse toggle */}
+        {hasDetails && (
+          <>
+            <div className="border-t border-gray-200 dark:border-gray-700">
+              <div
+                className="text-center py-2 text-blue-500 text-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03]"
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded
+                  ? t("proxy.preview.collapse") || "收起"
+                  : t("proxy.preview.expand") || "展开详情"}
+              </div>
+            </div>
+
+            {/* Expanded protocol details */}
+            {expanded && (
+              <div className="border-t border-gray-200 dark:border-gray-700 px-3 py-2 space-y-1.5 text-sm">
+                {fields.map((field) => {
+                  const value = raw[field.key];
+                  if (value === undefined) return null;
+                  return (
+                    <div
+                      key={field.key}
+                      className="flex justify-between items-start gap-2"
+                    >
+                      <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                        {field.label}:
+                      </span>
+                      {typeof value === "object" ? (
+                        <pre className="m-0 text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded max-w-[65%] overflow-x-auto whitespace-pre-wrap">
+                          {formatValue(value)}
+                        </pre>
+                      ) : (
+                        <div className="flex items-center gap-1.5 max-w-[65%]">
+                          <span className="font-mono text-xs text-right break-all">
+                            {field.sensitive &&
+                            typeof value === "string" &&
+                            value.length > 16
+                              ? `${value.slice(0, 8)}...${value.slice(-8)}`
+                              : formatValue(value)}
+                          </span>
+                          {field.sensitive && typeof value === "string" && (
+                            <Copy
+                              size={13}
+                              className="text-gray-400 hover:text-blue-500 cursor-pointer shrink-0"
+                              onClick={() => copyToClipboard(String(value))}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                {extraKeys.map((key) => {
+                  const value = raw[key];
+                  return (
+                    <div
+                      key={key}
+                      className="flex justify-between items-start gap-2"
+                    >
+                      <span className="text-gray-500 dark:text-gray-400 shrink-0">
+                        {key}:
+                      </span>
+                      {typeof value === "object" ? (
+                        <pre className="m-0 text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded max-w-[65%] overflow-x-auto whitespace-pre-wrap">
+                          {formatValue(value)}
+                        </pre>
+                      ) : (
+                        <span className="font-mono text-xs text-right max-w-[65%] break-all">
+                          {formatValue(value)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     );
   };
 
@@ -485,19 +524,15 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
             )}
 
             {/* 统计信息 */}
-            <div className="mb-4 px-2 md:px-4 flex items-center gap-2 flex-wrap">
-              <span className="text-slate-500 text-xs md:text-sm">
-                {t("proxy.preview.totalNodes", {
-                  total: totalCount,
-                  active: activeCount,
-                })}
+            <div className="mb-4 px-2 md:px-4 flex items-center gap-2 flex-wrap text-sm">
+              <span className="text-gray-500 dark:text-gray-400">
+                共 {totalCount} 个节点，有效 {activeCount} 个
                 {filteredCount > 0 && (
                   <span>
-                    , {t("proxy.preview.filtered")}{" "}
+                    , 已过滤{" "}
                     <span className="text-orange-500">{filteredCount}</span>
                   </span>
                 )}
-                :
               </span>
               {Object.entries(typeCounts).map(([type, count]) => (
                 <Tag
@@ -512,10 +547,7 @@ const ProxyPreviewModal = forwardRef<ProxyPreviewModalRef>((_, ref) => {
 
             {isMobile ? (
               /* 移动端卡片列表 */
-              <div
-                className="flex flex-col gap-2 overflow-y-auto"
-                style={{ maxHeight: "calc(100vh - 160px)" }}
-              >
+              <div className="flex flex-col gap-3 px-1">
                 {nodes.map((node) => (
                   <MobileNodeCard
                     key={`${node.sourceIndex}-${node.name}-${node.server}-${node.port}`}
