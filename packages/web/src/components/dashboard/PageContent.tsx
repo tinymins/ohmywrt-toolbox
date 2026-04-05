@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import AdminSettingsPage from "@/components/admin/AdminSettingsPage";
 import { PAGE_NAMES } from "@/components/dashboard/nav-config";
+import { NetworkToolsPage } from "@/components/dashboard/network";
+import { ProxySubscribeList } from "@/components/dashboard/proxy";
 import GeneralSettingsPage from "@/components/settings/GeneralSettingsPage";
 import WorkspaceOverview from "./WorkspaceOverview";
 
@@ -10,6 +12,8 @@ export default function PageContent({ page }: { page?: string }) {
   if (!page) return <WorkspaceOverview />;
   if (page === "settings") return <GeneralSettingsPage />;
   if (page === "admin") return <AdminSettingsPage />;
+  if (page === "proxy") return <ProxySubscribeList />;
+  if (page === "network") return <NetworkToolsPage />;
 
   const pageName = PAGE_NAMES[page] ?? page ?? t("dashboard.unknownPage");
 
