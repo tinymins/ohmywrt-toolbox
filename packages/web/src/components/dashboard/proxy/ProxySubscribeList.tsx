@@ -158,7 +158,7 @@ export default function ProxySubscribeList() {
                 <div className="flex border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() =>
                       linksModalRef.current?.open(
                         record.url,
@@ -167,47 +167,39 @@ export default function ProxySubscribeList() {
                       )
                     }
                   >
-                    <LinkOutlined className="w-4 h-4" />
-                    <span className="text-[10px] leading-tight">
-                      {t("proxy.links.title")}
-                    </span>
+                    <LinkOutlined className="w-3.5 h-3.5" />
+                    链接
                   </button>
                   <div className="w-px bg-gray-200 dark:bg-gray-700" />
                   <button
                     type="button"
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() =>
                       statsModalRef.current?.open(record.id, record.remark)
                     }
                   >
-                    <BarChartOutlined className="w-4 h-4" />
-                    <span className="text-[10px] leading-tight">
-                      {t("proxy.actions.stats")}
-                    </span>
+                    <BarChartOutlined className="w-3.5 h-3.5" />
+                    统计
                   </button>
                   <div className="w-px bg-gray-200 dark:bg-gray-700" />
                   <button
                     type="button"
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() =>
                       previewModalRef.current?.open(record.id, record.remark)
                     }
                   >
-                    <EyeOutlined className="w-4 h-4" />
-                    <span className="text-[10px] leading-tight">
-                      {t("proxy.actions.preview")}
-                    </span>
+                    <EyeOutlined className="w-3.5 h-3.5" />
+                    预览
                   </button>
                   <div className="w-px bg-gray-200 dark:bg-gray-700" />
                   <button
                     type="button"
-                    className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-1 py-2 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 active:bg-gray-100 dark:active:bg-gray-700 transition-colors cursor-pointer"
                     onClick={() => modalRef.current?.open(record.id)}
                   >
-                    <EditOutlined className="w-4 h-4" />
-                    <span className="text-[10px] leading-tight">
-                      {t("proxy.actions.edit")}
-                    </span>
+                    <EditOutlined className="w-3.5 h-3.5" />
+                    编辑
                   </button>
                   <div className="w-px bg-gray-200 dark:bg-gray-700" />
                   <Popconfirm
@@ -219,12 +211,10 @@ export default function ProxySubscribeList() {
                   >
                     <button
                       type="button"
-                      className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors cursor-pointer"
+                      className="flex-1 flex items-center justify-center gap-1 py-2 text-xs text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30 transition-colors cursor-pointer"
                     >
-                      <DeleteOutlined className="w-4 h-4" />
-                      <span className="text-[10px] leading-tight">
-                        {t("proxy.actions.delete")}
-                      </span>
+                      <DeleteOutlined className="w-3.5 h-3.5" />
+                      删除
                     </button>
                   </Popconfirm>
                 </div>
