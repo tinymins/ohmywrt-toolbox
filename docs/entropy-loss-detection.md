@@ -118,7 +118,7 @@ pub fn convert_clash_proxy_to_singbox_with_diff(
 | vless | `uuid`, `flow` |
 | ss | `cipher`, `password`, `plugin`, `plugin-opts` |
 | trojan | `password` |
-| hysteria2 | `password`, `ports`, `mport`, `up`, `down` |
+| hysteria2 | `password`, `ports`, `hop-interval`, `mport`, `up`, `down` |
 | hysteria | `auth-str`, `obfs`, `up`, `down`, `recv-window-conn`, `recv-window`, `ca`, `ca-str`, `disable-mtu-discovery` |
 | tuic | `uuid`, `password`, `heartbeat-interval`, `congestion-controller`, `reduce-rtt`, `udp-relay-mode` |
 | http | `username`, `password`, `headers` |
@@ -144,7 +144,17 @@ let mux = proxy.extra.get("smux")
 
 **修复**：添加 `parse_mbps()` 辅助函数解析带宽字符串，并在转换器中映射到 Sing-box 的整数字段。
 
-### 案例 3：Trojan 传输层支持
+### 案例 3：Hysteria2 端口跳跃（Port Hopping）
+
+**问题**：Clash 使用 `ports: "35000-39000"`（破折号分隔范围），Sing-box 使用 `server_ports: ["35000:39000"]`（冒号分隔、数组格式）。转换器最初输出 `hop_ports`（错误字段名）且未转换分隔符。
+
+**修复**：
+1. 字段名从 `hop_ports` 改为 `server_ports`（Sing-box 规范）
+2. 端口范围分隔符从 `-` 转为 `:`（`ports.replace('-', ":")`）
+3. 输出为 JSON 数组格式
+4. `hop-interval` 添加到已消费字段列表
+
+### 案例 4：Trojan 传输层支持
 
 **问题**：Trojan 节点配置了 WebSocket 传输层（`ws-opts`），但转换器未调用 `build_transport()`。
 

@@ -43,6 +43,9 @@ dotenvy::from_path(&root_env).ok();
 | DATA_LOCAL_PATH | 本地数据存储路径 |
 | PUBLIC_SERVER_URL | 公开服务器地址（用于生成订阅链接） |
 | SINGLE_WORKSPACE_MODE_OVERRIDE | 强制单工作空间模式 |
+| ALLOW_INSECURE_VALIDATION | 允许配置校验在沙箱不可用时降级执行（开发 `true` / 生产 `false`） |
+| CLASH_WS_URL | Clash API WebSocket 地址（规则测试用） |
+| CLASH_WS_TOKEN | Clash API 认证 Token |
 
 ### `packages/server/.env`（技术栈配置）
 
@@ -75,5 +78,6 @@ environment:
 
 1. **禁止在内层 `.env` 放业务变量**——保持关注点分离
 2. **`PUBLIC_SERVER_URL` 决定订阅链接中的域名**——生产环境必须设置为外部可访问地址
-3. **所有 `.env` 文件都在 `.gitignore` 中**——不会提交到仓库
-4. **`.env.example` 提供模板**——新部署时复制并修改
+3. **`ALLOW_INSECURE_VALIDATION` 控制安全降级**——生产环境必须设为 `false`，禁止在无沙箱隔离的情况下执行第三方二进制
+4. **所有 `.env` 文件都在 `.gitignore` 中**——不会提交到仓库
+5. **`.env.example` 提供模板**——新部署时复制并修改

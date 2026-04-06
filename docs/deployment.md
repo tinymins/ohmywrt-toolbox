@@ -58,6 +58,7 @@ make docker
 | `POSTGRES_DB` | `ohmywrt_toolbox_db` | 数据库名 |
 | `WEB_PORT` | `8080` | 前端+后端对外端口 |
 | `DATA_LOCAL_PATH` | `data` | 数据存储目录 |
+| `ALLOW_INSECURE_VALIDATION` | `false` | 配置校验安全：禁止在无沙箱时降级执行二进制 |
 
 ### `packages/web/.env`
 

@@ -129,7 +129,7 @@ pub struct ClashProxy {
 | VLESS | uuid, flow, transport, tls, multiplex |
 | Shadowsocks | method, password, plugin, plugin_opts |
 | Trojan | password, tls (强制启用), transport, multiplex |
-| Hysteria2 | password, hop_ports, up_mbps, down_mbps |
+| Hysteria2 | password, server_ports (端口跳跃), up_mbps, down_mbps |
 | Hysteria | auth_str, obfs, bandwidth |
 | TUIC | uuid, password, heartbeat, congestion_control |
 | HTTP | username, password, tls |
@@ -172,7 +172,14 @@ timeout 5s unshare --net -- sing-box check -c /tmp/validate_xxx.json
 | Docker 容器边界 | 生产环境隔离，DB 在另一个容器 |
 | 版本锁定 | `scripts/download-vendors.sh` 固定版本号 |
 
-如果 `unshare` 不可用（权限不足），降级为 `timeout 5s sing-box check`。
+如果 `unshare` 不可用（权限不足），行为由 `ALLOW_INSECURE_VALIDATION` 环境变量控制：
+
+| 环境 | 值 | 行为 |
+|------|------|------|
+| 开发 | `true` | 降级为 `timeout 5s sing-box check`（无网络隔离） |
+| 生产 | `false` | 跳过校验并返回提示，**不执行**不受沙箱保护的二进制 |
+
+sing-box 输出的 ANSI 颜色转义码会在返回前端前自动清除。
 
 ### 二进制管理
 

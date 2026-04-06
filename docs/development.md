@@ -121,6 +121,25 @@ cd packages/wasm && wasm-pack build --target web
 cd packages/wasm && wasm-pack build --release --target bundler --out-dir pkg
 ```
 
+### Vendor 二进制（配置校验）
+
+```bash
+# 手动下载/更新校验用代理二进制
+sh scripts/download-vendors.sh
+
+# 查看已下载的二进制
+ls -la ${DATA_LOCAL_PATH}/vendors/*/
+```
+
+`pnpm install` 时通过 postinstall hook 自动运行（best-effort，失败不阻断安装）。
+
+下载到 `DATA_LOCAL_PATH/vendors/` 目录（默认 `.data/vendors/`），包含：
+- `sing-box-v11/sing-box` — v1.11.0
+- `sing-box-v12/sing-box` — v1.12.25
+- `mihomo/mihomo` — v1.19.22
+
+脚本通过 `.version` 标记文件实现幂等——版本匹配时跳过下载。
+
 ### 类型生成
 
 ```bash
