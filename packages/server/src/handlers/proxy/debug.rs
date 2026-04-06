@@ -579,14 +579,6 @@ async fn run_debug_stream(
             }
         }
 
-        // Truncate rawText for SSE (limit to ~2000 chars)
-        let raw_text_preview = if text.len() > 2000 {
-            let truncated: String = text.chars().take(2000).collect();
-            format!("{}... (truncated, total {} bytes)", truncated, text.len())
-        } else {
-            text.clone()
-        };
-
         // source-result
         if !send_event(
             tx,
@@ -597,7 +589,7 @@ async fn run_debug_stream(
                     "url": item.url,
                     "httpStatus": http_status,
                     "httpHeaders": http_headers,
-                    "rawText": raw_text_preview,
+                    "rawText": text,
                     "format": source_format,
                     "parsedNodeCount": parsed.len(),
                     "nodesBeforeFilter": nodes_before_filter,
@@ -713,18 +705,6 @@ async fn run_debug_stream(
         _ => (0, 0, 0, String::new()),
     };
 
-    // Truncate config output for SSE
-    let config_preview = if config_output.len() > 50000 {
-        let truncated: String = config_output.chars().take(50000).collect();
-        format!(
-            "{}... (truncated, total {} bytes)",
-            truncated,
-            config_output.len()
-        )
-    } else {
-        config_output
-    };
-
     if !send_event(
         tx,
         json!({
@@ -733,7 +713,7 @@ async fn run_debug_stream(
                 "proxyGroupCount": proxy_group_count,
                 "ruleCount": rule_count,
                 "ruleProviderCount": rule_provider_count,
-                "configOutput": config_preview,
+                "configOutput": config_output,
             }
         }),
     )
