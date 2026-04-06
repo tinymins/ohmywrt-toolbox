@@ -23,7 +23,7 @@ help: ## 显示帮助信息
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 	@printf "$(GREEN)  可用的 Make 命令$(NC)\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
-	@printf "  $(YELLOW)make init$(NC)      - 首次初始化项目（清理+安装+迁移）\n"
+	@printf "  $(YELLOW)make init$(NC)      - 初始化项目（安装依赖+迁移，可选清除数据库）\n"
 	@printf "  $(YELLOW)make dev$(NC)       - 启动开发环境（数据库+开发服务器）\n"
 	@printf "  $(YELLOW)make dev:kill$(NC)  - 杀掉残留 dev 进程（释放端口）\n"
 	@printf "  $(YELLOW)make build$(NC)     - 编译生产版本\n"
@@ -34,7 +34,7 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make db:sync$(NC)   - 同步 schema 到 DB（prisma db push）\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 
-init: ## 首次初始化项目（清理+安装+迁移）
+init: ## 初始化项目（安装依赖+迁移，可选清除数据库）
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 	@printf "$(GREEN)  🚀 项目初始化$(NC)\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
@@ -68,23 +68,7 @@ init: ## 首次初始化项目（清理+安装+迁移）
 		printf "$(YELLOW)⚠ sccache 未安装（可选，加速编译缓存）$(NC)\n"; \
 	fi
 	@printf "\n"
-	@printf "$(YELLOW)⚠️  警告：此操作将执行以下内容：$(NC)\n"
-	@printf "  • 停止并删除现有数据库容器\n"
-	@printf "  • 删除现有数据库数据（$(DATA_DIR)/postgres）\n"
-	@printf "  • 重新安装依赖并迁移数据库\n"
-	@printf "\n"
-	@printf "$(YELLOW)确认继续？[y/N]: $(NC)"; \
-	read confirm; \
-	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
-		printf "$(GREEN)已取消初始化$(NC)\n"; \
-		exit 1; \
-	fi
-	@printf "\n"
-	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
-	@printf "$(GREEN)  开始初始化...$(NC)\n"
-	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
-	@printf "\n"
-	@printf "$(YELLOW)📝 [1/9] 检查环境变量文件...$(NC)\n"
+	@printf "$(YELLOW)📝 [1/7] 检查环境变量文件...$(NC)\n"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
 		printf "$(GREEN)✓ 已从 .env.example 创建根目录 .env 文件$(NC)\n"; \
@@ -92,24 +76,30 @@ init: ## 首次初始化项目（清理+安装+迁移）
 		printf "$(GREEN)✓ 根目录 .env 文件已存在$(NC)\n"; \
 	fi
 	@printf "\n"
-	@printf "$(YELLOW)🛑 [2/9] 停止现有数据库容器...$(NC)\n"
-	@$(COMPOSE_DEV) down -v 2>/dev/null || true
-	@printf "$(GREEN)✓ 容器已停止$(NC)\n"
+	@printf "$(YELLOW)⚠️  是否清除现有数据库并重新初始化？$(NC)\n"
+	@printf "  • 输入 y：停止容器、删除数据库数据（$(DATA_DIR)/postgres）、重建\n"
+	@printf "  • 输入 n：保留现有数据库，仅安装依赖并同步 Schema\n"
 	@printf "\n"
-	@printf "$(YELLOW)🗑️  [3/9] 清理数据库数据目录...$(NC)\n"
-	@sudo rm -rf $(DATA_DIR)/postgres
-	@sudo chown -R $(shell id -u):$(shell id -g) $(DATA_DIR) 2>/dev/null || true
-	@printf "$(GREEN)✓ 数据目录已清理$(NC)\n"
-	@printf "\n"
-	@printf "$(YELLOW)📁 [4/9] 创建数据目录...$(NC)\n"
+	@printf "$(YELLOW)清除数据库？[y/N]: $(NC)"; \
+	read confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		printf "\n$(YELLOW)🗑️  停止容器并清理数据库...$(NC)\n"; \
+		$(COMPOSE_DEV) down -v 2>/dev/null || true; \
+		sudo rm -rf $(DATA_DIR)/postgres; \
+		sudo chown -R $$(id -u):$$(id -g) $(DATA_DIR) 2>/dev/null || true; \
+		printf "$(GREEN)✓ 数据库已清除$(NC)\n\n"; \
+	else \
+		printf "\n$(GREEN)✓ 保留现有数据库$(NC)\n\n"; \
+	fi
+	@printf "$(YELLOW)📁 [2/7] 创建数据目录...$(NC)\n"
 	@mkdir -p $(DATA_DIR)/postgres $(DATA_DIR)/storage
-	@printf "$(GREEN)✓ 数据目录已创建$(NC)\n"
+	@printf "$(GREEN)✓ 数据目录已就绪$(NC)\n"
 	@printf "\n"
-	@printf "$(YELLOW)📦 [5/9] 安装依赖...$(NC)\n"
+	@printf "$(YELLOW)📦 [3/7] 安装依赖...$(NC)\n"
 	@pnpm install
 	@printf "$(GREEN)✓ 依赖安装完成$(NC)\n"
 	@printf "\n"
-	@printf "$(YELLOW)🦀 [6/9] 构建 WASM 模块...$(NC)\n"
+	@printf "$(YELLOW)🦀 [4/7] 构建 WASM 模块...$(NC)\n"
 	@if [ -d packages/wasm ]; then \
 		cd packages/wasm && wasm-pack build --release --target bundler --out-dir pkg; \
 		printf "$(GREEN)✓ WASM 构建完成$(NC)\n"; \
@@ -117,16 +107,16 @@ init: ## 首次初始化项目（清理+安装+迁移）
 		printf "$(YELLOW)⚠ packages/wasm 不存在，跳过$(NC)\n"; \
 	fi
 	@printf "\n"
-	@printf "$(YELLOW)🐳 [7/9] 启动数据库容器...$(NC)\n"
+	@printf "$(YELLOW)🐳 [5/7] 启动数据库容器...$(NC)\n"
 	@$(COMPOSE_DEV) up -d
 	@printf "$(GREEN)✓ 数据库已启动$(NC)\n"
 	@printf "\n"
-	@printf "$(YELLOW)⏳ [8/9] 等待数据库就绪...$(NC)\n"
+	@printf "$(YELLOW)⏳ [6/7] 等待数据库就绪...$(NC)\n"
 	@sleep 5
 	@$(COMPOSE_DEV) exec -T db pg_isready -U postgres > /dev/null 2>&1 || sleep 3
 	@printf "$(GREEN)✓ 数据库就绪$(NC)\n"
 	@printf "\n"
-	@printf "$(YELLOW)🗃️  [9/9] 同步数据库 Schema...$(NC)\n"
+	@printf "$(YELLOW)🗃️  [7/7] 同步数据库 Schema...$(NC)\n"
 	@npx prisma db push --schema prisma/schema.prisma
 	@printf "$(GREEN)✓ 数据库 Schema 同步完成$(NC)\n"
 	@printf "\n"

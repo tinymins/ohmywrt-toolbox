@@ -12,6 +12,7 @@ import { DragHandle, useDnd } from "./dnd";
 import { Empty } from "./Empty";
 import { Pagination, type PaginationProps } from "./Pagination";
 import { cn } from "./utils";
+
 /* ─── Types ─── */
 export interface TableColumn<T = Record<string, unknown>> {
   /** Column title */
@@ -42,6 +43,7 @@ export interface TableColumn<T = Record<string, unknown>> {
   /** Column children for grouping */
   children?: TableColumn<T>[];
 }
+
 export interface TableProps<T = Record<string, unknown>> {
   /** Column definitions */
   columns?: TableColumn<T>[];
@@ -116,7 +118,7 @@ export interface TableProps<T = Record<string, unknown>> {
   /** Disable drag sorting (e.g. during a pending mutation) */
   sortDisabled?: boolean;
 }
-/** Get value from a record by dot path */
+
 /** Resolve a stable string key from a column's key/dataIndex. */
 function colKey(
   col: { key?: string; dataIndex?: string | string[] },
@@ -130,6 +132,7 @@ function colKey(
   return fallback;
 }
 
+/** Get value from a record by dot path or array path */
 function getNestedValue(
   obj: Record<string, unknown>,
   path?: string | string[],
@@ -141,6 +144,7 @@ function getNestedValue(
     return undefined;
   }, obj);
 }
+
 function getKey<T>(
   record: T,
   rowKey: string | ((r: T, index: number) => string),
@@ -150,6 +154,7 @@ function getKey<T>(
   const val = (record as Record<string, unknown>)[rowKey];
   return val != null ? String(val) : String(idx);
 }
+
 /* ─── Tree Row Renderer ─── */
 function renderRows<T>(
   dataSource: T[],
@@ -169,6 +174,7 @@ function renderRows<T>(
   const indentSize = expandable?.indentSize ?? 20;
   const hasExpandRender = !!expandable?.expandedRowRender;
   const rows: ReactNode[] = [];
+
   for (const record of dataSource) {
     const idx = startIdx.v++;
     const key = getKey(record, rowKey, idx);
@@ -185,6 +191,7 @@ function renderRows<T>(
         ? rowClassName(record, idx)
         : rowClassName;
     const rowProps = onRow?.(record, idx) ?? {};
+
     const { className: rowPropClassName, ...restRowProps } = rowProps;
     rows.push(
       <tr
@@ -225,6 +232,7 @@ function renderRows<T>(
           const rendered = col.render
             ? col.render(value, record, idx)
             : (value as ReactNode);
+
           return (
             <td
               key={colKey(col, ci)}
@@ -282,6 +290,7 @@ function renderRows<T>(
         })}
       </tr>,
     );
+
     // Expanded row content (expandedRowRender)
     if (hasExpandRender && expanded && canExpand) {
       rows.push(
@@ -302,6 +311,7 @@ function renderRows<T>(
         </tr>,
       );
     }
+
     // Tree children
     if (!hasExpandRender && hasKids && expanded) {
       rows.push(
@@ -322,8 +332,10 @@ function renderRows<T>(
       );
     }
   }
+
   return rows;
 }
+
 /* ─── Table Component ─── */
 export function Table<T = Record<string, unknown>>({
   columns = [],
@@ -371,9 +383,11 @@ export function Table<T = Record<string, unknown>>({
       return new Set(expandable?.expandedRowKeys ?? []);
     },
   );
+
   const expandedKeys = expandable?.expandedRowKeys
     ? new Set(expandable.expandedRowKeys)
     : expandedKeysState;
+
   const toggleExpand = (key: string, record: T, expanded: boolean) => {
     const next = new Set(expandedKeys);
     if (expanded) next.add(key);
@@ -381,17 +395,20 @@ export function Table<T = Record<string, unknown>>({
     setExpandedKeysState(next);
     expandable?.onExpand?.(expanded, record);
   };
+
   const sizeClass = {
     small: "px-2 py-1 text-xs",
     middle: "px-3 py-2 text-sm",
     large: "px-4 py-3 text-base",
   }[size];
+
   // Sort state
   const [sortState, setSortState] = useState<{
     key: string;
     dir: "asc" | "desc";
     fn: (a: T, b: T) => number;
   } | null>(null);
+
   const handleSortClick = (key: string, fn: (a: T, b: T) => number) => {
     setSortState((prev) => {
       if (prev?.key === key) {
@@ -401,11 +418,13 @@ export function Table<T = Record<string, unknown>>({
       return { key, dir: "asc", fn };
     });
   };
+
   const sortedData = useMemo(() => {
     if (!sortState) return dataSource;
     const arr = [...dataSource].sort(sortState.fn);
     return sortState.dir === "desc" ? arr.reverse() : arr;
   }, [dataSource, sortState]);
+
   // Client-side pagination
   const paginationConfig = typeof pagination === "object" ? pagination : null;
   const [paginationState, setPaginationState] = useState({
@@ -418,6 +437,7 @@ export function Table<T = Record<string, unknown>>({
     const start = (current - 1) * pageSize;
     return sortedData.slice(start, start + pageSize);
   }, [sortedData, paginationConfig, paginationState]);
+
   // Virtual scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -425,6 +445,7 @@ export function Table<T = Record<string, unknown>>({
   const ROW_HEIGHT_MAP = { small: 33, middle: 41, large: 49 } as const;
   const rowHeight = itemHeight ?? ROW_HEIGHT_MAP[size];
   const OVERSCAN = 5;
+
   // Measure container height after mount and on resize
   useEffect(() => {
     const el = scrollContainerRef.current;
@@ -435,12 +456,14 @@ export function Table<T = Record<string, unknown>>({
     ro.observe(el);
     return () => ro.disconnect();
   }, [virtual]);
+
   const handleVirtualScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       setScrollTop(e.currentTarget.scrollTop);
     },
     [],
   );
+
   const effectiveData = paginationConfig ? paginatedData : sortedData;
   const effectiveContainerH = containerH || 600;
   const visibleCount = Math.ceil(effectiveContainerH / rowHeight);
@@ -458,6 +481,7 @@ export function Table<T = Record<string, unknown>>({
   const renderData = virtual
     ? effectiveData.slice(startIdx, endIdx + 1)
     : effectiveData;
+
   // Row selection helpers
   const selectedSet = new Set(rowSelection?.selectedRowKeys ?? []);
   const allKeys = dataSource.map((r, i) => getKey(r, rowKey, i));
@@ -470,6 +494,7 @@ export function Table<T = Record<string, unknown>>({
     allSelectableKeys.length > 0 &&
     allSelectableKeys.every((k) => selectedSet.has(k));
   const someSelected = allSelectableKeys.some((k) => selectedSet.has(k));
+
   const toggleRow = (key: string, _record: T) => {
     if (!rowSelection?.onChange) return;
     const next = new Set(selectedSet);
@@ -481,6 +506,7 @@ export function Table<T = Record<string, unknown>>({
     );
     rowSelection.onChange(nextKeys, nextRows);
   };
+
   const toggleAll = () => {
     if (!rowSelection?.onChange) return;
     if (allSelected) {
@@ -502,6 +528,7 @@ export function Table<T = Record<string, unknown>>({
       rowSelection.onChange(nextKeys, nextRows);
     }
   };
+
   // ── Drag-to-reorder (via useDnd) ──
   const dnd = useDnd({
     count: dataSource.length,
@@ -515,6 +542,7 @@ export function Table<T = Record<string, unknown>>({
       : undefined,
     disabled: sortDisabled || !onReorder,
   });
+
   const dndMergedOnRow = onReorder
     ? (record: T, index: number) => {
         const userProps = onRow?.(record, index) ?? {};
@@ -525,6 +553,7 @@ export function Table<T = Record<string, unknown>>({
         };
       }
     : onRow;
+
   // Effective columns (prepend drag + selection columns as needed)
   const dragColumn: TableColumn<T> | null = onReorder
     ? {
@@ -540,6 +569,7 @@ export function Table<T = Record<string, unknown>>({
         ),
       }
     : null;
+
   const effectiveColumns: TableColumn<T>[] = [
     ...(dragColumn ? [dragColumn] : []),
     ...(rowSelection
@@ -572,6 +602,7 @@ export function Table<T = Record<string, unknown>>({
       : []),
     ...columns,
   ];
+
   return (
     <div className={cn("w-full", className)} style={style}>
       {title ? <div className="mb-2">{title()}</div> : null}
@@ -768,5 +799,6 @@ export function Table<T = Record<string, unknown>>({
     </div>
   );
 }
+
 /* Re-export types for convenience */
 export type TableColumnsType<T = Record<string, unknown>> = TableColumn<T>[];
