@@ -28,12 +28,10 @@ services:
       dockerfile: packages/server/Dockerfile
     ports:
       - "${WEB_PORT:-8080}:5678"
+    env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-ohmywrt_toolbox_db}
-      RUST_LOG: ${RUST_LOG:-info}
-      DATA_LOCAL_PATH: ./${DATA_LOCAL_PATH:-data}
-      PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
-      SINGLE_WORKSPACE_MODE_OVERRIDE: ${SINGLE_WORKSPACE_MODE_OVERRIDE:-}
+      # DATABASE_URL 必须指向 compose 内部网络的 db 服务，覆盖 .env 中的值
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-rs_fullstack_db}
     volumes:
       - ./${DATA_LOCAL_PATH:-data}/server:/app/data
     depends_on:
