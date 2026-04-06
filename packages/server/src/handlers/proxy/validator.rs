@@ -45,7 +45,7 @@ impl ValidationResult {
 }
 
 /// Find the sing-box binary path.
-/// Priority: SINGBOX_BIN env → "sing-box" in PATH.
+/// Priority: SINGBOX_BIN env → DATA_LOCAL_PATH/vendors/ → PATH.
 fn find_singbox_bin(format: &str) -> Option<String> {
     // For v12, allow a separate binary via SINGBOX_V12_BIN
     if format == "sing-box-v12" {
@@ -54,6 +54,10 @@ fn find_singbox_bin(format: &str) -> Option<String> {
                 return Some(bin);
             }
         }
+        // Try vendor directory
+        if let Some(vendor) = find_vendor_bin("sing-box-v12", "sing-box") {
+            return Some(vendor);
+        }
     }
     // Generic sing-box binary
     if let Ok(bin) = std::env::var("SINGBOX_BIN") {
@@ -61,9 +65,26 @@ fn find_singbox_bin(format: &str) -> Option<String> {
             return Some(bin);
         }
     }
+    // Try vendor directory for v11
+    if let Some(vendor) = find_vendor_bin("sing-box-v11", "sing-box") {
+        return Some(vendor);
+    }
     // Try PATH
     if which_exists("sing-box") {
         return Some("sing-box".to_string());
+    }
+    None
+}
+
+/// Find a binary in the vendor directory under DATA_LOCAL_PATH.
+fn find_vendor_bin(vendor_name: &str, binary_name: &str) -> Option<String> {
+    let data_path = std::env::var("DATA_LOCAL_PATH").unwrap_or_else(|_| ".data".to_string());
+    let candidate = std::path::Path::new(&data_path)
+        .join("vendors")
+        .join(vendor_name)
+        .join(binary_name);
+    if candidate.is_file() {
+        return Some(candidate.to_string_lossy().to_string());
     }
     None
 }

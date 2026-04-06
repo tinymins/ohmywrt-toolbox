@@ -15,7 +15,8 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:push": "npx prisma db push --schema prisma/schema.prisma",
-    "db:generate": "npx prisma generate --schema prisma/schema.prisma"
+    "db:generate": "npx prisma generate --schema prisma/schema.prisma",
+    "postinstall": "sh scripts/download-vendors.sh || true"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
