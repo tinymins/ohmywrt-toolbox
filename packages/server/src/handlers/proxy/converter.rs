@@ -131,22 +131,55 @@ fn build_tls(proxy: &ClashProxy, force_enabled: bool) -> Option<Value> {
 }
 
 fn build_multiplex(proxy: &ClashProxy) -> Option<Value> {
-    if proxy.extra.get("multiplex").is_some() {
-        Some(json!({
-            "enabled": true,
-            "protocol": "h2mux",
-            "max_connections": 8,
-            "min_streams": 16,
-            "padding": true,
-            "brutal": {
-                "enabled": true,
-                "up_mbps": 1000,
-                "down_mbps": 1000
-            }
-        }))
-    } else {
-        None
+    // Clash Meta uses "smux", some configs use "multiplex"
+    let smux = proxy
+        .extra
+        .get("smux")
+        .or_else(|| proxy.extra.get("multiplex"));
+    let smux_obj = match smux {
+        Some(Value::Object(m)) => Some(m),
+        Some(Value::Bool(true)) => None, // enabled but no details → use defaults below
+        Some(_) => return None,
+        None => return None,
+    };
+
+    let enabled = smux_obj
+        .and_then(|m| m.get("enabled"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    if !enabled {
+        return None;
     }
+
+    let protocol = smux_obj
+        .and_then(|m| m.get("protocol"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("h2mux");
+    let max_connections = smux_obj
+        .and_then(|m| m.get("max-connections"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(8);
+    let min_streams = smux_obj
+        .and_then(|m| m.get("min-streams"))
+        .and_then(|v| v.as_u64())
+        .unwrap_or(16);
+    let padding = smux_obj
+        .and_then(|m| m.get("padding"))
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+
+    Some(json!({
+        "enabled": true,
+        "protocol": protocol,
+        "max_connections": max_connections,
+        "min_streams": min_streams,
+        "padding": padding,
+        "brutal": {
+            "enabled": true,
+            "up_mbps": 1000,
+            "down_mbps": 1000
+        }
+    }))
 }
 
 // ─── Converters ───
@@ -279,6 +312,7 @@ fn convert_ss(proxy: &ClashProxy) -> Value {
 }
 
 fn convert_trojan(proxy: &ClashProxy) -> Value {
+    let transport = convert_transport(proxy);
     let tls = build_tls(proxy, true);
     let multiplex = build_multiplex(proxy);
 
@@ -291,6 +325,9 @@ fn convert_trojan(proxy: &ClashProxy) -> Value {
         "tls": tls.unwrap_or(json!({"enabled": true})),
     });
 
+    if let Some(t) = transport {
+        out["transport"] = t;
+    }
     if proxy.bool_field("udp") == Some(false) {
         out["network"] = json!("tcp");
     }
@@ -311,15 +348,52 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
     if proxy.bool_field("skip-cert-verify") == Some(true) {
         tls["insecure"] = json!(true);
     }
+    if let Some(Value::Array(alpn)) = proxy.extra.get("alpn") {
+        tls["alpn"] = Value::Array(alpn.clone());
+    }
 
-    json!({
+    let mut out = json!({
         "type": "hysteria2",
         "tag": proxy.name,
         "server": proxy.server,
         "server_port": proxy.port,
         "password": proxy.str_field("password").unwrap_or(""),
         "tls": tls,
-    })
+    });
+
+    // Port hopping: Clash Meta uses "ports" (e.g. "20000-40000")
+    if let Some(ports) = proxy.str_field("ports") {
+        out["hop_ports"] = json!(ports);
+    }
+
+    // Bandwidth hints: Clash uses "up"/"down" (e.g. "200 Mbps"),
+    // Sing-box uses "up_mbps"/"down_mbps" (integer)
+    if let Some(up) = proxy.str_field("up") {
+        if let Some(mbps) = parse_mbps(up) {
+            out["up_mbps"] = json!(mbps);
+        }
+    }
+    if let Some(down) = proxy.str_field("down") {
+        if let Some(mbps) = parse_mbps(down) {
+            out["down_mbps"] = json!(mbps);
+        }
+    }
+
+    // Multiplex (smux)
+    if let Some(mux) = build_multiplex(proxy) {
+        out["multiplex"] = mux;
+    }
+
+    out
+}
+
+/// Parse bandwidth string like "200 Mbps", "1000Mbps", or "50" into Mbps integer.
+fn parse_mbps(s: &str) -> Option<u64> {
+    let s = s.trim();
+    let num_str = s
+        .trim_end_matches(|c: char| c.is_alphabetic() || c == ' ')
+        .trim();
+    num_str.parse::<u64>().ok()
 }
 
 fn convert_hysteria(proxy: &ClashProxy) -> Value {
@@ -476,10 +550,13 @@ fn convert_anytls(proxy: &ClashProxy) -> Value {
 // ─── Field tracking for entropy-loss detection ───
 
 /// Returns the set of `extra` keys that the converter for this proxy type
-/// is known to consume. Any keys NOT in this set are "lost" during conversion.
+/// is known to consume (or that are implicitly handled). Any keys NOT in
+/// this set are "lost" during conversion.
 fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
     // Keys consumed by convert_transport()
     let transport: &[&str] = &["http-opts", "h2-opts", "ws-opts", "grpc-opts"];
+    // "network" tells which transport, redundant with *-opts presence
+    let transport_meta: &[&str] = &["network"];
     // Keys consumed by build_tls()
     let tls: &[&str] = &[
         "tls",
@@ -490,33 +567,51 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
         "client-fingerprint",
         "reality-opts",
     ];
-    let multiplex: &[&str] = &["multiplex"];
+    // Clash Meta uses "smux", some configs use "multiplex"
+    let multiplex: &[&str] = &["multiplex", "smux"];
 
     let mut keys = HashSet::new();
+    // "udp" — Sing-box enables UDP by default; udp:false → network:tcp.
+    // Universally implicit across all proxy types.
+    keys.insert("udp");
 
     match proxy_type {
         "vmess" => {
             keys.extend(transport);
+            keys.extend(transport_meta);
             keys.extend(tls);
             keys.extend(multiplex);
             keys.extend(["uuid", "cipher", "alterId"]);
         }
         "vless" => {
             keys.extend(transport);
+            keys.extend(transport_meta);
             keys.extend(tls);
             keys.extend(multiplex);
             keys.extend(["uuid", "flow"]);
         }
         "ss" => {
-            keys.extend(["cipher", "password", "udp", "plugin", "plugin-opts"]);
+            keys.extend(["cipher", "password", "plugin", "plugin-opts"]);
         }
         "trojan" => {
+            keys.extend(transport);
+            keys.extend(transport_meta);
             keys.extend(tls);
             keys.extend(multiplex);
-            keys.extend(["password", "udp"]);
+            keys.extend(["password"]);
         }
         "hysteria2" => {
-            keys.extend(["sni", "skip-cert-verify", "password", "alpn"]);
+            keys.extend(multiplex);
+            keys.extend([
+                "sni",
+                "skip-cert-verify",
+                "password",
+                "alpn",
+                "ports",
+                "mport",
+                "up",
+                "down",
+            ]);
         }
         "hysteria" => {
             keys.extend([
@@ -547,7 +642,7 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
             keys.extend(["username", "password", "tls", "skip-cert-verify", "sni"]);
         }
         "socks5" => {
-            keys.extend(["udp", "username", "password"]);
+            keys.extend(["username", "password"]);
         }
         "anytls" => {
             keys.extend([
