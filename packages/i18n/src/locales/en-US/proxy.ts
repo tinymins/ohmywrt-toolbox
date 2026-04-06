@@ -221,5 +221,15 @@ export default {
     validateSkipped: "Validation skipped",
     validateMethodSingbox: "sing-box binary check",
     validateMethodYaml: "YAML syntax check",
+    ruleSets: "Rule Sets Check",
+    ruleSetCount: "Rule Sets",
+    ruleSetTotalRules: "Total Rules",
+    ruleSetErrors: "Errors",
+    ruleSetSetsUnit: "sets",
+    ruleSetRulesUnit: "rules",
+    ruleSetTruncated: "truncated",
+    ruleSetBuiltinHint:
+      "Built-in rule set, binary format, downloaded by client automatically",
+    ruleSetEffectiveUrl: "Effective URL",
   },
 };

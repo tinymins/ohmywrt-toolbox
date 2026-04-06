@@ -419,6 +419,46 @@ export const ProxyDebugValidateStepSchema = z.object({
   }),
 });
 
+/** Step: 规则集调试 */
+export const ProxyDebugRuleSetItemSchema = z.object({
+  /** 规则集名称/tag */
+  tag: z.string(),
+  /** 原始 URL（规则源文件） */
+  url: z.string(),
+  /** 最终配置中的实际 URL（sing-box 可能是 convert 端点） */
+  effectiveUrl: z.string().optional(),
+  /** 所属代理分组 */
+  group: z.string(),
+  /** 拉取状态 */
+  status: z.enum(["ok", "error", "skipped"]),
+  /** 错误信息 */
+  error: z.string().optional(),
+  /** HTTP 状态码 */
+  httpStatus: z.number().optional(),
+  /** 规则条数 */
+  ruleCount: z.number(),
+  /** 规则样本（截断） */
+  sampleRules: z.array(z.string()).optional(),
+  /** 规则是否被截断 */
+  truncated: z.boolean().optional(),
+  /** 是否为内置规则集（如 geoip-cn） */
+  builtin: z.boolean().optional(),
+  /** 规则集格式（source / binary） */
+  format: z.string().optional(),
+});
+
+export type ProxyDebugRuleSetItem = z.infer<typeof ProxyDebugRuleSetItemSchema>;
+
+export const ProxyDebugRuleSetsStepSchema = z.object({
+  type: z.literal("rule-sets"),
+  data: z.object({
+    totalCount: z.number(),
+    totalRules: z.number(),
+    errorCount: z.number(),
+    items: z.array(ProxyDebugRuleSetItemSchema),
+  }),
+});
+
 /** 调试步骤联合类型 */
 export const ProxyDebugStepSchema = z.discriminatedUnion("type", [
   ProxyDebugConfigStepSchema,
@@ -427,6 +467,7 @@ export const ProxyDebugStepSchema = z.discriminatedUnion("type", [
   ProxyDebugSourceResultStepSchema,
   ProxyDebugMergeStepSchema,
   ProxyDebugOutputStepSchema,
+  ProxyDebugRuleSetsStepSchema,
   ProxyDebugValidateStepSchema,
   ProxyDebugDoneStepSchema,
 ]);

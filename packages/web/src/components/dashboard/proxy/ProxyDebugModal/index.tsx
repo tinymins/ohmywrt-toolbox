@@ -33,6 +33,7 @@ import {
 } from "./DebugStepContent";
 import type { NodeTraceModalRef } from "./NodeTraceModal";
 import NodeTraceModal from "./NodeTraceModal";
+import { RuleSetsStepContent } from "./RuleSetsStepContent";
 
 export interface ProxyDebugModalRef {
   open: (subscribeId: string, format: ProxyDebugFormat) => void;
@@ -183,6 +184,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         return t("proxy.debug.nodeMerge");
       case "output":
         return t("proxy.debug.configBuild");
+      case "rule-sets":
+        return t("proxy.debug.ruleSets");
       case "validate":
         return t("proxy.debug.validate");
       case "done":
@@ -204,6 +207,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       step.data.valid === false
     )
       return "error";
+    if (step.type === "rule-sets" && step.data.errorCount > 0) return "error";
     return "finish";
   };
 
@@ -252,6 +256,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         );
       case "output":
         return <OutputStepContent step={step} />;
+      case "rule-sets":
+        return <RuleSetsStepContent step={step} />;
       case "validate":
         return <ValidateStepContent step={step} />;
       case "done":

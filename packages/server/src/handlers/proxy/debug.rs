@@ -1,5 +1,5 @@
 use std::convert::Infallible;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
@@ -759,5 +759,263 @@ async fn run_debug_stream(
         return Err(());
     }
 
+    // Step: rule-sets — fetch and parse each rule provider URL
+    let rule_set_items = fetch_rule_sets(&rule_providers, format).await;
+    let total_count = rule_set_items.len();
+    let total_rules: usize = rule_set_items
+        .iter()
+        .filter_map(|v| v.get("ruleCount").and_then(|n| n.as_u64()))
+        .map(|n| n as usize)
+        .sum();
+    let error_count = rule_set_items
+        .iter()
+        .filter(|v| v.get("status").and_then(|s| s.as_str()) == Some("error"))
+        .count();
+
+    if !send_event(
+        tx,
+        json!({
+            "type": "rule-sets",
+            "data": {
+                "totalCount": total_count,
+                "totalRules": total_rules,
+                "errorCount": error_count,
+                "items": rule_set_items,
+            }
+        }),
+    )
+    .await
+    {
+        return Err(());
+    }
+
     Ok(())
+}
+
+// ─── Rule-set fetching & parsing ───
+
+/// Maximum number of sample rules to include per item (avoid huge payloads).
+const MAX_SAMPLE_RULES: usize = 50;
+/// Maximum response body size to read (2 MB).
+const MAX_BODY_SIZE: usize = 2 * 1024 * 1024;
+
+/// Fetch and parse all rule provider URLs concurrently.
+///
+/// For sing-box formats, computes `effectiveUrl` (convert endpoint) and appends
+/// built-in geoip/geosite entries as skipped markers.
+async fn fetch_rule_sets(
+    rule_providers: &Map<String, Value>,
+    format: &str,
+) -> Vec<Value> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(15))
+        .build()
+        .unwrap_or_default();
+
+    let is_singbox = format.starts_with("sing-box");
+    let is_v12 = format == "sing-box-v12";
+
+    // Build effective URL base for sing-box
+    let convert_base = if is_singbox {
+        let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
+        if is_v12 {
+            format!("{}/public/proxy/sing-box/convert/rule/12", public_url)
+        } else {
+            format!("{}/public/proxy/sing-box/convert/rule", public_url)
+        }
+    } else {
+        String::new()
+    };
+
+    // Collect (group, name, url, effective_url) tuples
+    let mut tasks: Vec<(String, String, String, Option<String>)> = Vec::new();
+    for (group_name, items) in rule_providers {
+        if let Some(arr) = items.as_array() {
+            for item in arr {
+                let name = item
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let url = item
+                    .get("url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if !url.is_empty() {
+                    let effective = if is_singbox {
+                        Some(format!(
+                            "{}?url={}",
+                            convert_base,
+                            urlencoding::encode(&url)
+                        ))
+                    } else {
+                        None
+                    };
+                    tasks.push((group_name.clone(), name, url, effective));
+                }
+            }
+        }
+    }
+
+    // Fetch all URLs concurrently
+    let mut join_set = tokio::task::JoinSet::new();
+    for (group, tag, url, effective_url) in tasks {
+        let client = client.clone();
+        join_set.spawn(async move {
+            match client.get(&url).send().await {
+                Ok(resp) => {
+                    let status = resp.status().as_u16();
+                    // Read body with size limit
+                    let body = read_body_limited(resp, MAX_BODY_SIZE).await;
+                    match body {
+                        Ok(text) if status < 400 => {
+                            let rules = parse_rule_provider_yaml(&text);
+                            let rule_count = rules.len();
+                            let is_truncated = rule_count > MAX_SAMPLE_RULES;
+                            let samples: Vec<Value> = rules
+                                .into_iter()
+                                .take(MAX_SAMPLE_RULES)
+                                .map(|s| json!(s))
+                                .collect();
+                            json!({
+                                "tag": tag,
+                                "url": url,
+                                "effectiveUrl": effective_url,
+                                "group": group,
+                                "status": "ok",
+                                "httpStatus": status,
+                                "ruleCount": rule_count,
+                                "sampleRules": samples,
+                                "truncated": is_truncated,
+                            })
+                        }
+                        Ok(_) => json!({
+                            "tag": tag,
+                            "url": url,
+                            "effectiveUrl": effective_url,
+                            "group": group,
+                            "status": "error",
+                            "error": format!("HTTP {}", status),
+                            "httpStatus": status,
+                            "ruleCount": 0,
+                        }),
+                        Err(e) => json!({
+                            "tag": tag,
+                            "url": url,
+                            "effectiveUrl": effective_url,
+                            "group": group,
+                            "status": "error",
+                            "error": e,
+                            "ruleCount": 0,
+                        }),
+                    }
+                }
+                Err(e) => {
+                    let error_msg = if e.is_timeout() {
+                        "Request timed out".to_string()
+                    } else {
+                        e.to_string()
+                    };
+                    json!({
+                        "tag": tag,
+                        "url": url,
+                        "effectiveUrl": effective_url,
+                        "group": group,
+                        "status": "error",
+                        "error": error_msg,
+                        "ruleCount": 0,
+                    })
+                }
+            }
+        });
+    }
+
+    let mut results: Vec<Value> = Vec::new();
+    while let Some(res) = join_set.join_next().await {
+        if let Ok(val) = res {
+            results.push(val);
+        }
+    }
+
+    // Sort results by group name for consistent ordering
+    results.sort_by(|a, b| {
+        let ga = a.get("group").and_then(|v| v.as_str()).unwrap_or("");
+        let gb = b.get("group").and_then(|v| v.as_str()).unwrap_or("");
+        ga.cmp(gb)
+    });
+
+    // For sing-box, append built-in geoip/geosite rule sets as skipped markers
+    if is_singbox {
+        let builtin_sets = [
+            ("geoip-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs"),
+            ("geoip-hk", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.srs"),
+            ("geosite-openai", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.srs"),
+            ("geosite-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs"),
+            ("geoip-gfwblack", ""),
+        ];
+        for (tag, url) in builtin_sets {
+            results.push(json!({
+                "tag": tag,
+                "url": url,
+                "group": "built-in",
+                "status": "skipped",
+                "ruleCount": 0,
+                "builtin": true,
+                "format": "binary",
+            }));
+        }
+    }
+
+    results
+}
+
+/// Read response body with size limit to prevent OOM.
+async fn read_body_limited(resp: reqwest::Response, max_size: usize) -> Result<String, String> {
+    let content_length = resp.content_length().unwrap_or(0) as usize;
+    if content_length > max_size {
+        return Err(format!("Response too large: {} bytes", content_length));
+    }
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+    if bytes.len() > max_size {
+        return Err(format!("Response too large: {} bytes", bytes.len()));
+    }
+    String::from_utf8(bytes.to_vec())
+        .map_err(|_| "Response is not valid UTF-8".to_string())
+}
+
+/// Parse a Clash-format rule provider YAML.
+///
+/// Typical format:
+/// ```yaml
+/// payload:
+///   - DOMAIN-SUFFIX,apple.com
+///   - DOMAIN,apple.com
+///   - IP-CIDR,17.0.0.0/8
+/// ```
+///
+/// Falls back to line-based parsing if `payload:` key is not found.
+fn parse_rule_provider_yaml(text: &str) -> Vec<String> {
+    // Try parsing as YAML with payload key
+    if let Ok(parsed) = serde_yaml::from_str::<serde_yaml::Value>(text) {
+        if let Some(payload) = parsed.get("payload").and_then(|v| v.as_sequence()) {
+            return payload
+                .iter()
+                .filter_map(|v| match v {
+                    serde_yaml::Value::String(s) => Some(s.clone()),
+                    _ => None,
+                })
+                .collect();
+        }
+    }
+
+    // Fallback: treat non-empty, non-comment lines as rules
+    text.lines()
+        .map(|l| l.trim())
+        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("payload:"))
+        .map(|l| l.strip_prefix("- ").unwrap_or(l).to_string())
+        .collect()
 }

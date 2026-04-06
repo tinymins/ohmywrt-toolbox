@@ -222,5 +222,15 @@ export default {
     validateSkipped: "検証スキップ",
     validateMethodSingbox: "sing-box バイナリ検証",
     validateMethodYaml: "YAML 構文検証",
+    ruleSets: "ルールセット検査",
+    ruleSetCount: "ルールセット数",
+    ruleSetTotalRules: "ルール合計",
+    ruleSetErrors: "エラー数",
+    ruleSetSetsUnit: "セット",
+    ruleSetRulesUnit: "件",
+    ruleSetTruncated: "省略あり",
+    ruleSetBuiltinHint:
+      "組み込みルールセット、バイナリ形式、クライアントが自動ダウンロード",
+    ruleSetEffectiveUrl: "実効 URL",
   },
 };

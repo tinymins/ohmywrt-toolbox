@@ -223,5 +223,15 @@ export default {
     validateSkipped: "Validierung übersprungen",
     validateMethodSingbox: "sing-box Binärprüfung",
     validateMethodYaml: "YAML-Syntaxprüfung",
+    ruleSets: "Regelsatz-Prüfung",
+    ruleSetCount: "Regelsätze",
+    ruleSetTotalRules: "Gesamtregeln",
+    ruleSetErrors: "Fehler",
+    ruleSetSetsUnit: "Sätze",
+    ruleSetRulesUnit: "Regeln",
+    ruleSetTruncated: "gekürzt",
+    ruleSetBuiltinHint:
+      "Integrierter Regelsatz, Binärformat, wird automatisch vom Client heruntergeladen",
+    ruleSetEffectiveUrl: "Effektive URL",
   },
 };
