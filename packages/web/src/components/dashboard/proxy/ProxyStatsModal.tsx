@@ -22,28 +22,16 @@ import {
 import { useTranslation } from "react-i18next";
 import "dayjs/locale/zh-cn";
 import { proxyApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 
 dayjs.extend(relativeTime);
-
-// 检测是否为移动设备
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return isMobile;
-};
 
 export interface ProxyStatsModalRef {
   open: (id: string, remark?: string | null) => void;
 }
 
 const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const lang = i18n.language as "zh" | "en";
   const isMobile = useIsMobile();
 

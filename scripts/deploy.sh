@@ -1,5 +1,150 @@
 #!/bin/bash
 
+# =============================================================================
+# ohmywrt-toolbox 一键部署脚本
+# =============================================================================
+
+set -e
+
+# 颜色
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 日志函数
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# 获取脚本所在目录的父目录（项目根目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# 加载配置文件
+ENV_FILE="${SCRIPT_DIR}/.env"
+ENV_EXAMPLE="${SCRIPT_DIR}/.env.example"
+
+if [ ! -f "$ENV_FILE" ]; then
+    log_error "配置文件不存在: $ENV_FILE"
+    log_info ""
+    log_info "请先创建配置文件:"
+    log_info "  cp ${ENV_EXAMPLE} ${ENV_FILE}"
+    log_info ""
+    log_info "然后根据你的环境修改配置:"
+    log_info "  - DEPLOY_SERVER: SSH 服务器地址"
+    log_info "  - DEPLOY_REMOTE_DIR: 服务器部署目录"
+    exit 1
+fi
+
+# 检查 .env 是否缺少 .env.example 中的变量（本地部署脚本配置）
+check_local_env_updates() {
+    if [ ! -f "$ENV_EXAMPLE" ]; then
+        return
+    fi
+
+    # 提取 .env.example 中的变量名（排除注释和空行）
+    local example_vars=$(grep -E '^[A-Z_]+=' "$ENV_EXAMPLE" | cut -d'=' -f1 | sort)
+    local env_vars=$(grep -E '^[A-Z_]+=' "$ENV_FILE" | cut -d'=' -f1 | sort)
+
+    # 找出 .env.example 中有但 .env 中没有的变量
+    local missing_vars=$(comm -23 <(echo "$example_vars") <(echo "$env_vars"))
+
+    if [ -n "$missing_vars" ]; then
+        log_warn "本地部署配置 scripts/.env 可能需要更新！"
+        log_warn "以下变量在 scripts/.env.example 中存在但 scripts/.env 中缺失:"
+        for var in $missing_vars; do
+            local default_value=$(grep "^${var}=" "$ENV_EXAMPLE" | cut -d'=' -f2-)
+            log_warn "  ${var}=${default_value}"
+        done
+        log_info ""
+    fi
+}
+
+check_local_env_updates
+
+# 加载环境变量
+set -a
+source "$ENV_FILE"
+set +a
+
+# 检查必填环境变量
+check_required_var() {
+    local var_name="$1"
+    local var_value="${!var_name}"
+    if [ -z "$var_value" ]; then
+        log_error "环境变量 $var_name 未配置"
+        exit 1
+    fi
+}
+
+check_required_var "DEPLOY_SERVER"
+check_required_var "DEPLOY_LOCAL_TMP"
+check_required_var "DEPLOY_REMOTE_TMP"
+check_required_var "DEPLOY_REMOTE_DIR"
+check_required_var "DEPLOY_IMAGE_FILE"
+check_required_var "DEPLOY_PORT"
+
+# 使用环境变量
+SERVER="$DEPLOY_SERVER"
+LOCAL_TMP="$DEPLOY_LOCAL_TMP"
+REMOTE_TMP="$DEPLOY_REMOTE_TMP"
+REMOTE_DIR="$DEPLOY_REMOTE_DIR"
+IMAGE_FILE="$DEPLOY_IMAGE_FILE"
+PORT="$DEPLOY_PORT"
+
+cd "$PROJECT_ROOT"
+log_info "工作目录: $PROJECT_ROOT"
+log_info "目标服务器: $SERVER"
+log_info "部署目录: $REMOTE_DIR"
+
+# 显示帮助
+show_help() {
+    echo "用法: $0 [选项]"
+    echo ""
+    echo "选项:"
+    echo "  -b, --build-only     仅构建镜像，不上传和部署"
+    echo "  -u, --upload-only    仅上传镜像（跳过构建）"
+    echo "  -d, --deploy-only    仅在服务器部署（跳过构建和上传）"
+    echo "  -m, --migrate        部署后执行数据库迁移"
+    echo "  -e, --check-env      检查服务器 .env 配置是否需要更新"
+    echo "  -r, --restart        仅重启服务"
+    echo "  -l, --logs           查看服务日志"
+    echo "  -h, --help           显示帮助"
+    echo ""
+    echo "示例:"
+    echo "  $0                   完整部署（构建 + 上传 + 部署）"
+    echo "  $0 -m                完整部署并执行数据库迁移"
+    echo "  $0 -b                仅本地构建"
+    echo "  $0 -m                仅执行数据库迁移（服务已部署时）"
+    echo "  $0 -e                检查服务器 .env 配置"
+    echo "  $0 -r                重启服务"
+}
+
+# 构建镜像
+build_images() {
+    log_info "开始构建 Docker 镜像..."
+    make docker
+    log_success "镜像构建完成"
+}
+
+# 导出镜像
+export_images() {
+    log_info "导出镜像到 ${LOCAL_TMP}/${IMAGE_FILE}..."
+    docker save ohmywrt-toolbox-server:latest \
         -o "${LOCAL_TMP}/${IMAGE_FILE}"
 
     local size=$(du -h "${LOCAL_TMP}/${IMAGE_FILE}" | cut -f1)
@@ -160,3 +305,133 @@ cleanup_local() {
 full_deploy() {
     local start_time=$(date +%s)
 
+    log_info "========== 开始完整部署 =========="
+
+    build_images
+    export_images
+    upload_images
+    upload_configs
+    deploy_on_server
+    cleanup_local
+    check_server_env_updates
+
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+
+    log_success "========== 部署完成 =========="
+    log_info "总耗时: ${duration} 秒"
+    log_info ""
+    log_info "服务地址: http://${SERVER}:${PORT}"
+    log_info ""
+    log_info "如需执行数据库迁移，运行: $0 -m"
+}
+
+# 解析参数
+DO_BUILD=false
+DO_UPLOAD=false
+DO_DEPLOY=false
+DO_MIGRATE=false
+DO_CHECK_ENV=false
+DO_RESTART=false
+DO_LOGS=false
+DO_FULL=true
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -b|--build-only)
+            DO_BUILD=true
+            DO_FULL=false
+            shift
+            ;;
+        -u|--upload-only)
+            DO_UPLOAD=true
+            DO_FULL=false
+            shift
+            ;;
+        -d|--deploy-only)
+            DO_DEPLOY=true
+            DO_FULL=false
+            shift
+            ;;
+        -m|--migrate)
+            DO_MIGRATE=true
+            DO_FULL=false
+            shift
+            ;;
+        -e|--check-env)
+            DO_CHECK_ENV=true
+            DO_FULL=false
+            shift
+            ;;
+        -r|--restart)
+            DO_RESTART=true
+            DO_FULL=false
+            shift
+            ;;
+        -l|--logs)
+            DO_LOGS=true
+            DO_FULL=false
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            log_error "未知选项: $1"
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+# 执行操作
+if $DO_FULL; then
+    full_deploy
+else
+    if $DO_BUILD; then
+        build_images
+        export_images
+    fi
+
+    if $DO_UPLOAD; then
+        if [ ! -f "${LOCAL_TMP}/${IMAGE_FILE}" ]; then
+            log_error "镜像文件不存在: ${LOCAL_TMP}/${IMAGE_FILE}"
+            log_info "请先运行 $0 -b 构建镜像"
+            exit 1
+        fi
+        upload_images
+        upload_configs
+    fi
+
+    if $DO_DEPLOY; then
+        # 检查远程是否有镜像文件需要加载
+        if ssh "$SERVER" "test -f ${REMOTE_TMP}/${IMAGE_FILE}" 2>/dev/null; then
+            upload_configs
+            deploy_on_server
+        else
+            log_info "未发现待部署的镜像文件，跳过部署流程"
+            log_info "如需完整部署，请先运行: $0 (完整流程) 或 $0 -b && $0 -u (构建+上传)"
+        fi
+    fi
+
+    if $DO_RESTART; then
+        restart_services
+    fi
+
+    if $DO_LOGS; then
+        view_logs
+    fi
+fi
+
+# 执行迁移（如果指定）
+if $DO_MIGRATE; then
+    run_migration
+fi
+
+# 检查服务器 env（如果指定或部署后自动检查）
+if $DO_CHECK_ENV; then
+    check_server_env_updates
+fi
+
+log_success "所有操作完成!"

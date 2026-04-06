@@ -11,15 +11,10 @@ import {
   Tag,
 } from "@acme/components";
 import type { ProxyDebugFormat } from "@acme/types";
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import ProxyDebugModal, { type ProxyDebugModalRef } from "./ProxyDebugModal";
 
@@ -43,15 +38,7 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const [subscribeId, setSubscribeId] = useState<string>("");
   const debugModalRef = useRef<ProxyDebugModalRef>(null);
 
-  // 移动端检测
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768,
-  );
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const isMobile = useIsMobile();
 
   const clearCacheMutation = proxyApi.clearCache.useMutation({
     onSuccess: () => message.success(t("proxy.links.cacheClearedSuccess")),

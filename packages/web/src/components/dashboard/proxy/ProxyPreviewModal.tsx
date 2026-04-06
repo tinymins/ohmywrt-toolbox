@@ -10,29 +10,11 @@ import {
   Tooltip,
 } from "@acme/components";
 import { Copy } from "lucide-react";
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useState,
-} from "react";
+import { forwardRef, useCallback, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
-
-// 检测是否为移动设备
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return isMobile;
-};
 
 export interface ProxyPreviewModalRef {
   open: (subscribeId: string, remark?: string | null) => void;

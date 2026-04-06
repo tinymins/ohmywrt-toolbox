@@ -14,9 +14,10 @@ import {
 } from "@acme/components";
 import dayjs from "dayjs";
 import { Share2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import ProxyLinksModal, { type ProxyLinksModalRef } from "./ProxyLinksModal";
 import ProxyPreviewModal, {
@@ -26,21 +27,6 @@ import ProxyStatsModal, { type ProxyStatsModalRef } from "./ProxyStatsModal";
 import ProxySubscribeModal, {
   type ProxySubscribeModalRef,
 } from "./ProxySubscribeModal";
-
-// 检测是否为移动设备
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 768,
-  );
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return isMobile;
-};
 
 interface ProxySubscribeWithUser {
   id: string;

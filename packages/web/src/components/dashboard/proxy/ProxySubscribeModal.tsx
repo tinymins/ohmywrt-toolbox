@@ -15,9 +15,10 @@ import type {
 import Editor, { loader } from "@monaco-editor/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { adminApi, proxyApi, userApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
@@ -193,14 +194,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     const queryClient = useQueryClient();
 
     // 移动端检测
-    const [isMobile, setIsMobile] = useState(
-      typeof window !== "undefined" && window.innerWidth < 768,
-    );
-    useEffect(() => {
-      const handleResize = () => setIsMobile(window.innerWidth < 768);
-      window.addEventListener("resize", handleResize);
-      return () => window.removeEventListener("resize", handleResize);
-    }, []);
+    const isMobile = useIsMobile();
 
     // 获取 tabs 的本地化标签
     const localizedTabs = TABS.map((tab) => ({
