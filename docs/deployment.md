@@ -2,6 +2,14 @@
 
 本文档提供部署流程概览。详细的步骤指南请参考 [DEPLOY.md](../DEPLOY.md)。
 
+## 一键部署
+
+```bash
+make deploy    # 构建 → 导出 → 上传 → 部署 → 启动
+```
+
+首次部署需先配置 `scripts/.env` 和 `docker/.env`，详见 [DEPLOY.md](../DEPLOY.md)。
+
 ## 生产构建流程
 
 ```
@@ -13,10 +21,21 @@ make docker
         └── Stage 2: node:20-trixie-slim
             ├── COPY ohmywrt-toolbox-server binary
             ├── COPY frontend dist/
-            └── npm install -g prisma@6
+            ├── COPY download-vendors.sh + docker-entrypoint.sh
+            └── npm install prisma@7
 ```
 
 输出镜像：`ohmywrt-toolbox-server:latest`
+
+### 容器启动流程
+
+```
+docker-entrypoint.sh
+  ├── download-vendors.sh    # 下载 sing-box/mihomo（已存在则跳过）
+  └── exec ohmywrt-toolbox-server   # 启动 Rust 服务器
+```
+
+> Volume mount `./${DATA_LOCAL_PATH}/server:/app/data` 覆盖构建时的 `/app/data`，因此 vendor 二进制需在启动时下载到持久化卷中。
 
 ## 容器架构
 
@@ -34,7 +53,17 @@ make docker
 | 路径 | 用途 |
 |------|------|
 | `./{DATA_LOCAL_PATH}/postgres` | PostgreSQL 数据文件 |
-| `./{DATA_LOCAL_PATH}/server` | 应用数据（上传文件等） |
+| `./{DATA_LOCAL_PATH}/server` | 应用数据（上传文件、vendor 二进制等） |
+
+### 安全：配置校验沙箱
+
+配置校验在隔离的网络命名空间中执行第三方二进制，防止 RCE 攻击：
+
+```bash
+timeout 5s unshare --user --net -- sing-box check -c config.json
+```
+
+Docker 默认 seccomp profile 禁止 `unshare` syscall。通过自定义 seccomp profile（`docker/seccomp.json`）仅额外放行 `unshare` 一个 syscall，配合 `--user` 参数通过用户命名空间获得权限，无需给容器添加 `CAP_SYS_ADMIN`。
 
 ## 环境变量参考
 
@@ -48,6 +77,7 @@ make docker
 | `POSTGRES_DB` | `ohmywrt_toolbox_db` | 数据库名 |
 | `DB_PORT` | `5432` | 数据库端口（开发环境暴露） |
 | `DATA_LOCAL_PATH` | `.data` | 数据存储目录 |
+| `ALLOW_INSECURE_VALIDATION` | `true` | 允许无沙箱时降级执行（开发环境） |
 
 ### `docker/.env`（生产环境）
 
@@ -58,7 +88,7 @@ make docker
 | `POSTGRES_DB` | `ohmywrt_toolbox_db` | 数据库名 |
 | `WEB_PORT` | `8080` | 前端+后端对外端口 |
 | `DATA_LOCAL_PATH` | `data` | 数据存储目录 |
-| `ALLOW_INSECURE_VALIDATION` | `false` | 配置校验安全：禁止在无沙箱时降级执行二进制 |
+| `ALLOW_INSECURE_VALIDATION` | `false` | 配置校验安全：生产环境禁止无沙箱降级 |
 
 ### `packages/web/.env`
 
@@ -74,81 +104,12 @@ make docker
 | `RUST_SOURCE_REQUEST_TIMEOUT_SECONDS` | `300` | 请求超时（秒） |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | CORS 允许的源（逗号分隔） |
 
-## 部署步骤摘要
-
-1. **本地构建**：`make docker`
-2. **导出镜像**：`docker save ohmywrt-toolbox-server:latest -o ohmywrt-toolbox-docker-images.tar`
-3. **上传到服务器**：`scp ohmywrt-toolbox-docker-images.tar <server>:/path/`
-4. **加载镜像**：`docker load -i ohmywrt-toolbox-docker-images.tar`
-5. **上传配置**：`docker-compose.yml` + `.env`
-6. **启动服务**：`docker compose up -d`
-7. **初始化数据库**（首次）：`docker exec ohmywrt-toolbox-server npx prisma db push`
-8. **验证**：`docker compose ps` + `docker compose logs`
-
-详细步骤见 [DEPLOY.md](../DEPLOY.md)。
-
 ## 健康检查与监控
 
-### 日志查看
-
 ```bash
-# 查看所有服务日志
-docker compose logs --tail=50
-
-# 实时跟踪
-docker compose logs -f
-
-# 仅查看后端日志
-docker compose logs --tail=100 server
+./scripts/deploy.sh -l     # 查看日志
+./scripts/deploy.sh -r     # 重启服务
+./scripts/deploy.sh -e     # 检查 .env 配置更新
 ```
-
-### 容器状态
-
-```bash
-docker compose ps
-```
-
-### 数据库连接测试
-
-```bash
-docker exec ohmywrt-toolbox-postgres pg_isready -U postgres
-```
-
-### 进入容器调试
-
-```bash
-# 后端容器
-docker exec -it ohmywrt-toolbox-server sh
-
-# 数据库容器
-docker exec -it ohmywrt-toolbox-postgres psql -U postgres -d ohmywrt_toolbox_db
-```
-
-### 启动验证
 
 后端启动时会在日志中打印 banner，包含版本号、git commit 和构建时间。确认这些信息与预期一致，即可验证部署的代码版本正确。
-
-## 更新部署
-
-```bash
-# 1. 本地重新构建
-make docker
-
-# 2. 导出并上传
-docker save ohmywrt-toolbox-server:latest -o ohmywrt-toolbox-docker-images.tar
-scp ohmywrt-toolbox-docker-images.tar <server>:/path/
-
-# 3. 服务器端加载并重启
-ssh <server> "docker load -i /path/ohmywrt-toolbox-docker-images.tar && \
-  cd /mnt/docker/apps && \
-  docker compose up -d"
-```
-
-## 默认账号
-
-首次部署并初始化数据库后，可使用以下账号登录：
-
-| 邮箱 | 密码 | 角色 |
-|------|------|------|
-| admin@example.com | password | 超级管理员 |
-| user@example.com | password | 普通用户 |

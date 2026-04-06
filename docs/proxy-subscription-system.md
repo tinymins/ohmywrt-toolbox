@@ -161,16 +161,30 @@ pub struct ClashProxy {
 ### 安全隔离（纵深防御）
 
 ```bash
-timeout 5s unshare --net -- sing-box check -c /tmp/validate_xxx.json
+timeout 5s unshare --user --net -- sing-box check -c /tmp/validate_xxx.json
 ```
 
 | 措施 | 防范 |
 |------|------|
-| `unshare --net` | 网络命名空间隔离，即使 RCE 也无法发起网络连接 |
+| `unshare --user --net` | 用户+网络命名空间隔离，无需 CAP_SYS_ADMIN，即使 RCE 也无法发起网络连接 |
 | `timeout 5s` | 防止挂死、死循环 |
 | 临时文件 RAII | 用后即删，无法读写业务数据 |
 | Docker 容器边界 | 生产环境隔离，DB 在另一个容器 |
+| 自定义 seccomp profile | `docker/seccomp.json` 仅放行 `unshare` syscall，其余保持 Docker 默认限制 |
 | 版本锁定 | `scripts/download-vendors.sh` 固定版本号 |
+
+#### Docker 沙箱原理
+
+Docker 默认的 seccomp profile 禁止 `unshare` syscall，导致无法在容器内创建命名空间。解决方案：
+
+1. **自定义 seccomp profile**（`docker/seccomp.json`）：在 Docker 默认策略基础上仅额外放行 `unshare` syscall
+2. **用户命名空间**（`--user`）：通过 `unshare --user --net` 先创建用户命名空间，再在其中创建网络命名空间，不需要 `CAP_SYS_ADMIN`
+3. **compose 配置**：`security_opt: - seccomp=seccomp.json` 引用自定义 profile
+
+降级逻辑（优先级从高到低）：
+1. `unshare --user --net`（无特权，需 seccomp 放行 unshare）
+2. `unshare --net`（需 CAP_SYS_ADMIN）
+3. 直接执行（仅当 `ALLOW_INSECURE_VALIDATION=true`，**生产环境禁止**）
 
 如果 `unshare` 不可用（权限不足），行为由 `ALLOW_INSECURE_VALIDATION` 环境变量控制：
 
@@ -193,7 +207,7 @@ sing-box 输出的 ANSI 颜色转义码会在返回前端前自动清除。
 
 - 脚本通过 `.version` 标记文件实现幂等（已存在且版本匹配则跳过下载）
 - 开发环境：`pnpm install` 时自动运行（postinstall hook，best-effort）
-- Docker 环境：Dockerfile 构建阶段运行（`RUN sh scripts/download-vendors.sh`）
+- Docker 环境：容器启动时由 `docker-entrypoint.sh` 调用（volume mount 会覆盖构建时下载的文件）
 - 二进制发现优先级：环境变量覆盖 → vendor 目录 → PATH
 
 ### SSE 事件格式

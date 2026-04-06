@@ -172,12 +172,19 @@ upload_configs() {
         log_info "上传 docker-compose.yml..."
         scp docker/docker-compose.yml "${SERVER}:${REMOTE_DIR}/"
     else
-        log_info "docker/docker-compose.yml 已存在，跳过上传"
+        # 始终更新 compose（可能新增 security_opt 等配置）
+        scp docker/docker-compose.yml "${SERVER}:${REMOTE_DIR}/"
+        log_info "docker-compose.yml 已更新"
     fi
 
     # 上传 docker/docker-compose.debug.yml（叠加文件，始终更新）
     if [ -f "docker/docker-compose.debug.yml" ]; then
         scp docker/docker-compose.debug.yml "${SERVER}:${REMOTE_DIR}/"
+    fi
+
+    # 上传 seccomp.json（安全策略，始终更新）
+    if [ -f "docker/seccomp.json" ]; then
+        scp docker/seccomp.json "${SERVER}:${REMOTE_DIR}/"
     fi
 
     # 上传生产环境 .env

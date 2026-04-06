@@ -205,15 +205,15 @@ docker/docker-compose.yml
 
 ### Vendor 二进制（配置校验用）
 
-Docker 构建阶段通过 `scripts/download-vendors.sh` 自动下载校验用的代理软件二进制到镜像中：
+容器启动时通过 `docker-entrypoint.sh` 调用 `scripts/download-vendors.sh` 自动下载校验用的代理软件二进制（Volume mount 覆盖构建时下载的文件，因此需在启动时重新下载）：
 
-| 二进制 | 版本 | 镜像内路径 | 用途 |
+| 二进制 | 版本 | 容器内路径 | 用途 |
 |--------|------|-----------|------|
 | sing-box | v1.11.0 | `/app/data/vendors/sing-box-v11/sing-box` | Sing-box v11 格式校验 |
 | sing-box | v1.12.25 | `/app/data/vendors/sing-box-v12/sing-box` | Sing-box v12 格式校验 |
 | mihomo | v1.19.22 | `/app/data/vendors/mihomo/mihomo` | Clash/Clash-Meta 格式校验（预留） |
 
-校验时通过 `unshare --net` 在网络隔离的命名空间中执行二进制，防止 RCE 风险。
+校验时通过 `unshare --user --net` 在用户+网络命名空间中执行二进制，实现无特权的网络隔离。Docker 环境需配合自定义 seccomp profile（`docker/seccomp.json`）放行 `unshare` syscall。
 
 ## 开发工作流
 
