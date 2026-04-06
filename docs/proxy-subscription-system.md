@@ -170,9 +170,24 @@ timeout 5s unshare --net -- sing-box check -c /tmp/validate_xxx.json
 | `timeout 5s` | 防止挂死、死循环 |
 | 临时文件 RAII | 用后即删，无法读写业务数据 |
 | Docker 容器边界 | 生产环境隔离，DB 在另一个容器 |
-| 版本锁定 | Dockerfile 固定版本 v1.11.0 |
+| 版本锁定 | `scripts/download-vendors.sh` 固定版本号 |
 
 如果 `unshare` 不可用（权限不足），降级为 `timeout 5s sing-box check`。
+
+### 二进制管理
+
+所有校验用的代理软件二进制由 `scripts/download-vendors.sh` 统一管理：
+
+| 目录 | 工具 | 用途 |
+|------|------|------|
+| `DATA_LOCAL_PATH/vendors/sing-box-v11/` | sing-box v1.11.0 | sing-box 格式校验 |
+| `DATA_LOCAL_PATH/vendors/sing-box-v12/` | sing-box v1.12.25 | sing-box-v12 格式校验 |
+| `DATA_LOCAL_PATH/vendors/mihomo/` | mihomo v1.19.22 | clash/clash-meta 格式（预留） |
+
+- 脚本通过 `.version` 标记文件实现幂等（已存在且版本匹配则跳过下载）
+- 开发环境：`pnpm install` 时自动运行（postinstall hook，best-effort）
+- Docker 环境：Dockerfile 构建阶段运行（`RUN sh scripts/download-vendors.sh`）
+- 二进制发现优先级：环境变量覆盖 → vendor 目录 → PATH
 
 ### SSE 事件格式
 
