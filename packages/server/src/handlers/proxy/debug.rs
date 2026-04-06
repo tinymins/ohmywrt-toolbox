@@ -17,6 +17,7 @@ use super::engine::{
 use super::icons::append_icon;
 use super::parser::{is_base64_subscription, parse_subscription};
 use super::types::ClashProxy;
+use super::validator;
 use super::{
     DEFAULT_CUSTOM_CONFIG_JSON, DEFAULT_FILTER_JSON, DEFAULT_GROUPS_JSON,
     DEFAULT_RULE_PROVIDERS_JSON,
@@ -735,6 +736,20 @@ async fn run_debug_stream(
                 "ruleProviderCount": rule_provider_count,
                 "configOutput": config_output,
             }
+        }),
+    )
+    .await
+    {
+        return Err(());
+    }
+
+    // Step: validate — run real binary check on the generated config
+    let validation = validator::validate_config(&config_output, format).await;
+    if !send_event(
+        tx,
+        json!({
+            "type": "validate",
+            "data": validation.to_json(),
         }),
     )
     .await

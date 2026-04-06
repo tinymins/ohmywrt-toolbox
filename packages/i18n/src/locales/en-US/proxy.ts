@@ -211,5 +211,11 @@ export default {
     entropyWarningTip:
       "This node has configuration fields lost during format conversion. Click to trace details.",
     lostFieldsLabel: "Fields lost during conversion:",
+    validate: "Config Validation",
+    validatePassed: "Config validation passed",
+    validateFailed: "Config validation failed",
+    validateSkipped: "Validation skipped",
+    validateMethodSingbox: "sing-box binary check",
+    validateMethodYaml: "YAML syntax check",
   },
 };

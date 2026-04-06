@@ -213,5 +213,11 @@ export default {
     entropyWarningTip:
       "Dieser Knoten hat Konfigurationsfelder während der Formatkonvertierung verloren. Klicken Sie zum Verfolgen.",
     lostFieldsLabel: "Bei der Konvertierung verlorene Felder:",
+    validate: "Konfigurationsvalidierung",
+    validatePassed: "Konfigurationsvalidierung bestanden",
+    validateFailed: "Konfigurationsvalidierung fehlgeschlagen",
+    validateSkipped: "Validierung übersprungen",
+    validateMethodSingbox: "sing-box Binärprüfung",
+    validateMethodYaml: "YAML-Syntaxprüfung",
   },
 };

@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
   LoadingOutlined,
   Modal,
+  ShieldCheckOutlined,
   Tag,
 } from "@acme/components";
 import type { ProxyDebugFormat, ProxyDebugStep } from "@acme/types";
@@ -28,6 +29,7 @@ import {
   OutputStepContent,
   SourceResultStepContent,
   SourceStartStepContent,
+  ValidateStepContent,
 } from "./DebugStepContent";
 import type { NodeTraceModalRef } from "./NodeTraceModal";
 import NodeTraceModal from "./NodeTraceModal";
@@ -166,6 +168,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         return t("proxy.debug.nodeMerge");
       case "output":
         return t("proxy.debug.configBuild");
+      case "validate":
+        return t("proxy.debug.validate");
       case "done":
         return t("proxy.debug.complete");
       default:
@@ -179,10 +183,17 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   ): "process" | "finish" | "error" => {
     if (step.type === "source-start") return "process";
     if (step.type === "source-result" && step.data.error) return "error";
+    if (
+      step.type === "validate" &&
+      !step.data.skipped &&
+      step.data.valid === false
+    )
+      return "error";
     return "finish";
   };
 
   const getStepIcon = (step: ProxyDebugStep) => {
+    if (step.type === "validate") return <ShieldCheckOutlined />;
     const status = getStepStatus(step);
     if (status === "process") return <LoadingOutlined />;
     if (status === "error") return <CloseCircleOutlined />;
@@ -226,6 +237,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         );
       case "output":
         return <OutputStepContent step={step} />;
+      case "validate":
+        return <ValidateStepContent step={step} />;
       case "done":
         return <DoneStepContent step={step} />;
     }
@@ -299,11 +312,13 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
             const isLast = index === steps.length - 1;
             const status = getStepStatus(step);
             const color =
-              status === "error"
-                ? "#ef4444"
-                : status === "process"
-                  ? "#3b82f6"
-                  : "#22c55e";
+              step.type === "validate" && step.data.skipped
+                ? "#a1a1aa"
+                : status === "error"
+                  ? "#ef4444"
+                  : status === "process"
+                    ? "#3b82f6"
+                    : "#22c55e";
             const stepKey =
               step.type === "source-start" || step.type === "source-result"
                 ? `${step.type}-${step.data.sourceIndex}`

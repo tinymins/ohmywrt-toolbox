@@ -379,10 +379,10 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
         }
     }
 
-    // Multiplex (smux)
-    if let Some(mux) = build_multiplex(proxy) {
-        out["multiplex"] = mux;
-    }
+    // NOTE: hysteria2 uses QUIC-based native multiplexing — sing-box does NOT
+    // support the smux `multiplex` field on hysteria2 outbounds.  Any smux/multiplex
+    // config in the Clash source is silently ignored (kept in known_consumed_keys
+    // to suppress entropy-loss warnings, since the field is inapplicable, not lost).
 
     out
 }
@@ -601,6 +601,9 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
             keys.extend(["password"]);
         }
         "hysteria2" => {
+            // smux/multiplex is inapplicable to hysteria2 (QUIC-native muxing),
+            // but we list it here to suppress false-positive entropy-loss warnings
+            // when the source Clash config contains these fields.
             keys.extend(multiplex);
             keys.extend([
                 "sni",

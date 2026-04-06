@@ -6,6 +6,7 @@ pub mod fetch_subscription;
 pub mod icons;
 pub mod parser;
 pub mod types;
+pub mod validator;
 
 use std::collections::HashMap;
 use std::sync::Arc;

@@ -398,6 +398,25 @@ export const ProxyDebugDoneStepSchema = z.object({
   }),
 });
 
+/** Step: 配置校验 */
+export const ProxyDebugValidateStepSchema = z.object({
+  type: z.literal("validate"),
+  data: z.object({
+    /** 校验是否通过 */
+    valid: z.boolean().optional(),
+    /** 校验方法 */
+    method: z.string().optional(),
+    /** 警告列表 */
+    warnings: z.array(z.string()).optional(),
+    /** 错误列表 */
+    errors: z.array(z.string()).optional(),
+    /** 是否跳过校验 */
+    skipped: z.boolean().optional(),
+    /** 跳过原因 */
+    reason: z.string().optional(),
+  }),
+});
+
 /** 调试步骤联合类型 */
 export const ProxyDebugStepSchema = z.discriminatedUnion("type", [
   ProxyDebugConfigStepSchema,
@@ -406,6 +425,7 @@ export const ProxyDebugStepSchema = z.discriminatedUnion("type", [
   ProxyDebugSourceResultStepSchema,
   ProxyDebugMergeStepSchema,
   ProxyDebugOutputStepSchema,
+  ProxyDebugValidateStepSchema,
   ProxyDebugDoneStepSchema,
 ]);
 

@@ -6,6 +6,7 @@ import {
   Collapse,
   Descriptions,
   LoadingOutlined,
+  ShieldCheckOutlined,
   Table,
   Tag,
   Tooltip,
@@ -616,6 +617,108 @@ export const OutputStepContent = ({
           },
         ]}
       />
+    </div>
+  );
+};
+
+/** 方法名称映射 */
+const getValidateMethodLabel = (
+  method: string | undefined,
+  t: (key: string) => string,
+): string => {
+  switch (method) {
+    case "sing-box-binary":
+      return t("proxy.debug.validateMethodSingbox");
+    case "yaml-syntax":
+      return t("proxy.debug.validateMethodYaml");
+    default:
+      return method ?? "";
+  }
+};
+
+/** 配置校验步骤 */
+export const ValidateStepContent = ({
+  step,
+}: {
+  step: Extract<ProxyDebugStep, { type: "validate" }>;
+}) => {
+  const { t } = useTranslation();
+  const { data } = step;
+
+  if (data.skipped) {
+    return (
+      <div className="flex items-center gap-2 text-zinc-400">
+        <ShieldCheckOutlined />
+        <span>{t("proxy.debug.validateSkipped")}</span>
+        {data.reason && (
+          <span className="text-xs text-zinc-400">({data.reason})</span>
+        )}
+      </div>
+    );
+  }
+
+  const warnings = data.warnings ?? [];
+  const errors = data.errors ?? [];
+
+  if (data.valid) {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 text-green-500">
+          <CheckCircleOutlined />
+          <span className="font-medium">{t("proxy.debug.validatePassed")}</span>
+          {data.method && (
+            <Tag color="green">{getValidateMethodLabel(data.method, t)}</Tag>
+          )}
+        </div>
+        {warnings.length > 0 && (
+          <div className="flex flex-col gap-1 ml-6">
+            {warnings.map((w) => (
+              <div
+                key={w}
+                className="text-xs text-yellow-500 break-all font-mono"
+              >
+                ⚠ {w}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 text-red-500">
+        <CloseCircleOutlined />
+        <span className="font-medium">{t("proxy.debug.validateFailed")}</span>
+        {data.method && (
+          <Tag color="error">{getValidateMethodLabel(data.method, t)}</Tag>
+        )}
+      </div>
+      {errors.length > 0 && (
+        <div className="flex flex-col gap-1 ml-6 p-2 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          {errors.map((e) => (
+            <div
+              key={e}
+              className="text-xs text-red-500 dark:text-red-400 break-all font-mono"
+            >
+              ✕ {e}
+            </div>
+          ))}
+        </div>
+      )}
+      {warnings.length > 0 && (
+        <div className="flex flex-col gap-1 ml-6">
+          {warnings.map((w) => (
+            <div
+              key={w}
+              className="text-xs text-yellow-500 break-all font-mono"
+            >
+              ⚠ {w}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -32,9 +32,17 @@ RUN pnpm --filter @acme/i18n build && \
 # ============================================================
 FROM node:20-trixie-slim
 
+# Install runtime deps + sing-box binary for config validation
+ARG SINGBOX_VERSION=1.11.0
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libssl3 ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends libssl3 ca-certificates curl && \
+    ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-${ARCH}.tar.gz" -o /tmp/sb.tar.gz && \
+    tar -xzf /tmp/sb.tar.gz -C /tmp && \
+    mv /tmp/sing-box-${SINGBOX_VERSION}-linux-${ARCH}/sing-box /usr/local/bin/sing-box && \
+    chmod +x /usr/local/bin/sing-box && \
+    rm -rf /tmp/sb.tar.gz /tmp/sing-box-* && \
+    apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

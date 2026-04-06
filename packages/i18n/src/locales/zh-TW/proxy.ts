@@ -209,5 +209,11 @@ export default {
     entropyWarningShort: "警告",
     entropyWarningTip: "該節點在格式轉換中存在配置資訊丟失，點擊追蹤查看詳情",
     lostFieldsLabel: "以下配置欄位在轉換中丟失:",
+    validate: "配置校驗",
+    validatePassed: "配置校驗通過",
+    validateFailed: "配置校驗失敗",
+    validateSkipped: "校驗跳過",
+    validateMethodSingbox: "sing-box 二進制校驗",
+    validateMethodYaml: "YAML 語法校驗",
   },
 };
