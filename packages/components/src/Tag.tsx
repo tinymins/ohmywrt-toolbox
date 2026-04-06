@@ -7,7 +7,7 @@ const colorMap: Record<string, string> = {
     "bg-fill-tertiary text-fg-secondary border-border-base dark:bg-white/[0.06] dark:border-white/[0.1]",
   blue: "bg-blue-50 text-blue-600 border-blue-200 dark:bg-sky-500/[0.12] dark:text-sky-400 dark:border-sky-400/[0.15]",
   green:
-    "bg-green-50 text-green-600 border-green-200 dark:bg-emerald-500/[0.12] dark:text-emerald-400 dark:border-emerald-400/[0.15]",
+    "bg-green-50 text-green-600 border-green-200 dark:bg-emerald-500/[0.12] dark:text-emerald-500 dark:border-emerald-400/[0.15]",
   red: "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/[0.12] dark:text-red-400 dark:border-red-400/[0.15]",
   orange:
     "bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/[0.12] dark:text-orange-400 dark:border-orange-400/[0.15]",
@@ -25,7 +25,7 @@ const colorMap: Record<string, string> = {
   geekblue:
     "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/[0.12] dark:text-indigo-400 dark:border-indigo-400/[0.15]",
   success:
-    "bg-green-50 text-green-600 border-green-200 dark:bg-emerald-500/[0.12] dark:text-emerald-400 dark:border-emerald-400/[0.15]",
+    "bg-green-50 text-green-600 border-green-200 dark:bg-emerald-500/[0.12] dark:text-emerald-500 dark:border-emerald-400/[0.15]",
   processing:
     "bg-blue-50 text-blue-600 border-blue-200 dark:bg-sky-500/[0.12] dark:text-sky-400 dark:border-sky-400/[0.15]",
   error:
@@ -38,7 +38,7 @@ const borderlessColorMap: Record<string, string> = {
   default: "bg-fill-tertiary text-fg-secondary dark:bg-white/[0.06]",
   blue: "bg-blue-50 text-blue-600 dark:bg-sky-500/[0.12] dark:text-sky-400",
   green:
-    "bg-green-50 text-green-600 dark:bg-emerald-500/[0.12] dark:text-emerald-400",
+    "bg-green-50 text-green-600 dark:bg-emerald-500/[0.12] dark:text-emerald-500",
   red: "bg-red-50 text-red-600 dark:bg-red-500/[0.12] dark:text-red-400",
   orange:
     "bg-orange-50 text-orange-600 dark:bg-orange-500/[0.12] dark:text-orange-400",
@@ -49,7 +49,7 @@ const borderlessColorMap: Record<string, string> = {
     "bg-purple-50 text-purple-600 dark:bg-purple-500/[0.12] dark:text-purple-400",
   cyan: "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/[0.12] dark:text-cyan-400",
   success:
-    "bg-green-50 text-green-600 dark:bg-emerald-500/[0.12] dark:text-emerald-400",
+    "bg-green-50 text-green-600 dark:bg-emerald-500/[0.12] dark:text-emerald-500",
   processing:
     "bg-blue-50 text-blue-600 dark:bg-sky-500/[0.12] dark:text-sky-400",
   error: "bg-red-50 text-red-600 dark:bg-red-500/[0.12] dark:text-red-400",
