@@ -1,4 +1,4 @@
-.PHONY: init dev dev\:kill build docker lint gen\:api db\:sync help
+.PHONY: init dev dev\:kill build docker deploy lint gen\:api db\:sync help
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -28,6 +28,7 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make dev:kill$(NC)  - 杀掉残留 dev 进程（释放端口）\n"
 	@printf "  $(YELLOW)make build$(NC)     - 编译生产版本\n"
 	@printf "  $(YELLOW)make docker$(NC)    - 构建 Docker 镜像（Rust + 前端）\n"
+	@printf "  $(YELLOW)make deploy$(NC)    - 一键部署到服务器（构建+上传+部署）\n"
 	@printf "  $(YELLOW)make lint$(NC)      - 代码检查（Biome lint & format）\n"
 	@printf "  $(YELLOW)make gen:api$(NC)   - 从 Rust 生成 TypeScript 类型（ts-rs）\n"
 	@printf "  $(YELLOW)make db:sync$(NC)   - 同步 schema 到 DB（prisma db push）\n"
@@ -160,6 +161,9 @@ docker: ## 构建 Docker 镜像（Rust + 前端）
 	@printf "$(BLUE)→ 构建 $(SERVER_IMAGE) 镜像（含前端）...$(NC)\n"
 	@docker build -f packages/server/Dockerfile -t $(SERVER_IMAGE):latest .
 	@printf "$(GREEN)✓ 镜像构建完成$(NC)\n"
+
+deploy: ## 一键部署到服务器（构建+上传+部署）
+	@./scripts/deploy.sh
 
 gen\:api: ## 从 Rust 生成 TypeScript 类型（ts-rs）
 	@printf "$(GREEN)🦀 生成 TypeScript 类型...$(NC)\n"
