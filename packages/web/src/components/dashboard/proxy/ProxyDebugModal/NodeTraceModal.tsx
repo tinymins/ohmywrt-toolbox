@@ -25,6 +25,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { useIsMobile } from "@/hooks";
 import {
   InteractiveJsonViewer,
   SyntaxJsonViewer,
@@ -568,6 +569,7 @@ interface NodeTraceModalProps {
 const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
   ({ subscribeId, format, allNodeNames, nodeWarnings, nodeIgnored }, ref) => {
     const { t } = useTranslation();
+    const isMobile = useIsMobile();
     const [visible, setVisible] = useState(false);
     const [tracingNodeName, setTracingNodeName] = useState<string | null>(null);
     const [searchValue, setSearchValue] = useState("");
@@ -663,7 +665,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         open={visible}
         onCancel={handleClose}
         footer={null}
-        size="almost-full"
+        size={isMobile ? "full" : "almost-full"}
         destroyOnClose={false}
       >
         {/* 搜索栏 */}

@@ -196,7 +196,7 @@ function JsonNode({
   value: unknown;
   path: string;
   selectedPath: string | null;
-  onSelect: (path: string) => void;
+  onSelect: (path: string | null) => void;
   fieldOrigins?: Record<string, FieldOrigin>;
   onHoverKey?: (path: string, e: React.MouseEvent) => void;
   onLeaveKey?: () => void;
@@ -294,7 +294,7 @@ function JsonNode({
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelect(childPath);
+                  onSelect(isSelected ? null : childPath);
                 }}
                 onMouseEnter={(e) => onHoverKey?.(childPath, e)}
                 onMouseLeave={() => onLeaveKey?.()}

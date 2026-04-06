@@ -13,6 +13,7 @@ import {
 } from "@acme/components";
 import type { ProxyDebugStep } from "@acme/types";
 import { useTranslation } from "react-i18next";
+import { SyntaxJsonViewer } from "./InteractiveJsonViewer";
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -29,6 +30,22 @@ const CodeBlock = ({
     {content}
   </pre>
 );
+
+/** Try JSON parse → SyntaxJsonViewer, fallback to plain CodeBlock */
+const SmartCodeBlock = ({
+  content,
+  maxHeight,
+}: {
+  content: string;
+  maxHeight?: number;
+}) => {
+  try {
+    const parsed = JSON.parse(content);
+    return <SyntaxJsonViewer data={parsed} maxHeight={maxHeight} />;
+  } catch {
+    return <CodeBlock content={content} maxHeight={maxHeight} />;
+  }
+};
 
 /** 配置解析步骤 */
 export const ConfigStepContent = ({
@@ -91,9 +108,7 @@ export const ConfigStepContent = ({
               <Tag color="purple">{data.groups.length}</Tag>
             </div>
           ),
-          children: (
-            <CodeBlock content={JSON.stringify(data.groups, null, 2)} />
-          ),
+          children: <SyntaxJsonViewer data={data.groups} />,
         },
         {
           key: "ruleProviders",
@@ -103,9 +118,7 @@ export const ConfigStepContent = ({
               <Tag color="cyan">{Object.keys(data.ruleProviders).length}</Tag>
             </div>
           ),
-          children: (
-            <CodeBlock content={JSON.stringify(data.ruleProviders, null, 2)} />
-          ),
+          children: <SyntaxJsonViewer data={data.ruleProviders} />,
         },
         {
           key: "customConfig",
@@ -115,9 +128,7 @@ export const ConfigStepContent = ({
               <Tag>{data.customConfig.length}</Tag>
             </div>
           ),
-          children: (
-            <CodeBlock content={JSON.stringify(data.customConfig, null, 2)} />
-          ),
+          children: <SyntaxJsonViewer data={data.customConfig} />,
         },
         {
           key: "servers",
@@ -127,9 +138,7 @@ export const ConfigStepContent = ({
               <Tag>{data.servers.length}</Tag>
             </div>
           ),
-          children: (
-            <CodeBlock content={JSON.stringify(data.servers, null, 2)} />
-          ),
+          children: <SyntaxJsonViewer data={data.servers} />,
         },
         {
           key: "dnsConfig",
@@ -143,9 +152,7 @@ export const ConfigStepContent = ({
               </Tag>
             </div>
           ),
-          children: (
-            <CodeBlock content={JSON.stringify(data.dnsConfig, null, 2)} />
-          ),
+          children: <SyntaxJsonViewer data={data.dnsConfig} />,
         },
       ]}
     />
@@ -345,7 +352,7 @@ export const SourceResultStepContent = ({
                 </Tag>
               </div>
             ),
-            children: <CodeBlock content={data.rawText} maxHeight={300} />,
+            children: <SmartCodeBlock content={data.rawText} maxHeight={300} />,
           },
           ...(data.filteredNodes.length > 0
             ? [
@@ -619,7 +626,9 @@ export const OutputStepContent = ({
                 </Tag>
               </div>
             ),
-            children: <CodeBlock content={data.configOutput} maxHeight={500} />,
+            children: (
+              <SmartCodeBlock content={data.configOutput} maxHeight={500} />
+            ),
           },
         ]}
       />
