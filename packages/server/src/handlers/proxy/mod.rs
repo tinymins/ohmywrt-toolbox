@@ -17,6 +17,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::db::entities::{proxy_access_logs, proxy_subscribes, users};
 use crate::db::repos::proxy_access_log_repo::ProxyAccessLogRepo;
@@ -998,6 +999,155 @@ fn get_public_server_url(headers: &HeaderMap) -> String {
         .and_then(|v| v.to_str().ok())
         .unwrap_or("localhost:4000");
     format!("{}://{}", proto, host)
+}
+
+// ─── Convert Clash YAML rule to Sing-box JSON source format ───
+
+#[derive(Deserialize)]
+pub struct ConvertRuleQuery {
+    pub url: String,
+}
+
+pub async fn convert_rule(Query(query): Query<ConvertRuleQuery>) -> Response {
+    handle_convert_rule(&query.url, 1).await
+}
+
+pub async fn convert_rule_v12(Query(query): Query<ConvertRuleQuery>) -> Response {
+    handle_convert_rule(&query.url, 3).await
+}
+
+async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
+    if url.is_empty() {
+        return AppError::BadRequest("url is required".into()).into_response();
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .unwrap_or_default();
+
+    let text = match client.get(url).send().await {
+        Ok(resp) => match resp.text().await {
+            Ok(t) => t,
+            Err(e) => {
+                return AppError::Internal(format!("Failed to read response: {e}")).into_response()
+            }
+        },
+        Err(e) => {
+            return AppError::Internal(format!("Failed to fetch rule: {e}")).into_response()
+        }
+    };
+
+    let parsed: serde_yaml::Value = match serde_yaml::from_str(&text) {
+        Ok(v) => v,
+        Err(_) => serde_yaml::Value::Sequence(
+            text.lines()
+                .map(|l| serde_yaml::Value::String(l.to_string()))
+                .collect(),
+        ),
+    };
+
+    let arr = if let serde_yaml::Value::Sequence(seq) = &parsed {
+        seq.clone()
+    } else if let Some(payload) = parsed.get("payload").and_then(|v| v.as_sequence()) {
+        payload.clone()
+    } else {
+        Vec::new()
+    };
+
+    let mut domain: Vec<String> = Vec::new();
+    let mut domain_suffix: Vec<String> = Vec::new();
+    let mut domain_keyword: Vec<String> = Vec::new();
+    let mut domain_regex: Vec<String> = Vec::new();
+    let mut ip_cidr: Vec<String> = Vec::new();
+    let mut source_ip_cidr: Vec<String> = Vec::new();
+    let mut port: Vec<u16> = Vec::new();
+    let mut source_port: Vec<u16> = Vec::new();
+    let mut process_name: Vec<String> = Vec::new();
+    let mut process_path: Vec<String> = Vec::new();
+
+    for item in &arr {
+        let line_str = match item.as_str() {
+            Some(s) => s.trim().to_string(),
+            None => continue,
+        };
+        if line_str.is_empty() || line_str.starts_with('#') {
+            continue;
+        }
+
+        let parts: Vec<&str> = line_str.splitn(3, ',').collect();
+        if parts.len() == 1 {
+            domain.push(parts[0].to_string());
+            continue;
+        }
+
+        let rule_type = parts[0];
+        let value = parts[1].to_string();
+        match rule_type {
+            "DOMAIN" | "+" | "HOST" => domain.push(value),
+            "DOMAIN-SUFFIX" | "HOST-SUFFIX" => domain_suffix.push(value),
+            "DOMAIN-KEYWORD" | "HOST-KEYWORD" => domain_keyword.push(value),
+            "DOMAIN-REGEX" => domain_regex.push(value),
+            "IP-CIDR" | "IP-CIDR6" => ip_cidr.push(value),
+            "SRC-IP-CIDR" => source_ip_cidr.push(value),
+            "DST-PORT" => {
+                if let Ok(p) = value.parse::<u16>() {
+                    port.push(p);
+                }
+            }
+            "SRC-PORT" => {
+                if let Ok(p) = value.parse::<u16>() {
+                    source_port.push(p);
+                }
+            }
+            "PROCESS-NAME" => process_name.push(value),
+            "PROCESS-PATH" => process_path.push(value),
+            _ => {}
+        }
+    }
+
+    let mut rule = serde_json::Map::new();
+    if !domain.is_empty() {
+        rule.insert("domain".into(), json!(domain));
+    }
+    if !domain_suffix.is_empty() {
+        rule.insert("domain_suffix".into(), json!(domain_suffix));
+    }
+    if !domain_keyword.is_empty() {
+        rule.insert("domain_keyword".into(), json!(domain_keyword));
+    }
+    if !domain_regex.is_empty() {
+        rule.insert("domain_regex".into(), json!(domain_regex));
+    }
+    if !ip_cidr.is_empty() {
+        rule.insert("ip_cidr".into(), json!(ip_cidr));
+    }
+    if !source_ip_cidr.is_empty() {
+        rule.insert("source_ip_cidr".into(), json!(source_ip_cidr));
+    }
+    if !port.is_empty() {
+        rule.insert("port".into(), json!(port));
+    }
+    if !source_port.is_empty() {
+        rule.insert("source_port".into(), json!(source_port));
+    }
+    if !process_name.is_empty() {
+        rule.insert("process_name".into(), json!(process_name));
+    }
+    if !process_path.is_empty() {
+        rule.insert("process_path".into(), json!(process_path));
+    }
+
+    let result = json!({
+        "version": rule_set_version,
+        "rules": [rule],
+    });
+
+    (
+        [(axum::http::header::CONTENT_TYPE, "application/json")],
+        serde_json::to_string(&result).unwrap_or_default(),
+    )
+        .into_response()
 }
 
 // ─── Default config constants (ported from old lib-config.ts) ───

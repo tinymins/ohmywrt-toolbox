@@ -52,4 +52,13 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
             "/api/public/proxy/{uuid}/sing-box/12",
             get(proxy::public_sing_box_v12),
         )
+        // Rule conversion endpoints (no auth) — Clash YAML → Sing-box JSON
+        .route(
+            "/api/proxy/sing-box/convert/rule",
+            get(proxy::convert_rule),
+        )
+        .route(
+            "/api/proxy/sing-box/convert/rule/12",
+            get(proxy::convert_rule_v12),
+        )
 }

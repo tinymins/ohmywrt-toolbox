@@ -819,9 +819,9 @@ async fn fetch_rule_sets(
     let convert_base = if is_singbox {
         let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
         if is_v12 {
-            format!("{}/public/proxy/sing-box/convert/rule/12", public_url)
+            format!("{}/api/proxy/sing-box/convert/rule/12", public_url)
         } else {
-            format!("{}/public/proxy/sing-box/convert/rule", public_url)
+            format!("{}/api/proxy/sing-box/convert/rule", public_url)
         }
     } else {
         String::new()

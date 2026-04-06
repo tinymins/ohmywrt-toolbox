@@ -751,9 +751,9 @@ pub fn build_singbox_config(
     };
 
     let convert_rule_base = if is_v12 {
-        format!("{}/public/proxy/sing-box/convert/rule/12", public_server_url)
+        format!("{}/api/proxy/sing-box/convert/rule/12", public_server_url)
     } else {
-        format!("{}/public/proxy/sing-box/convert/rule", public_server_url)
+        format!("{}/api/proxy/sing-box/convert/rule", public_server_url)
     };
 
     let mut rule_set_entries: Vec<Value> = Vec::new();
@@ -842,13 +842,13 @@ pub fn build_singbox_config(
     // Geo rule sets
     let gfwblack_url = if is_v12 {
         format!(
-            "{}/public/proxy/sing-box/convert/rule/12?url={}",
+            "{}/api/proxy/sing-box/convert/rule/12?url={}",
             public_server_url,
             urlencoding::encode("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")
         )
     } else {
         format!(
-            "{}/public/proxy/sing-box/convert/rule?url={}",
+            "{}/api/proxy/sing-box/convert/rule?url={}",
             public_server_url,
             urlencoding::encode("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")
         )
