@@ -76,9 +76,12 @@ function useKeyTooltip(fieldOrigins?: Record<string, FieldOrigin>) {
         text += ` · ${reasonText}`;
       }
 
-      const rect = containerRef.current?.getBoundingClientRect();
-      const x = e.clientX - (rect?.left ?? 0);
-      const y = e.clientY - (rect?.top ?? 0);
+      // Position above the key element, not at cursor
+      const target = e.currentTarget as HTMLElement;
+      const targetRect = target.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const x = targetRect.left - (containerRect?.left ?? 0);
+      const y = targetRect.top - (containerRect?.top ?? 0);
       setTooltip({ text, x, y });
     },
     [fieldOrigins, t],
@@ -96,7 +99,7 @@ function Tooltip({ state }: { state: TooltipState | null }) {
   return (
     <div
       className="absolute z-50 max-w-xs px-2 py-1 text-[10px] leading-tight font-sans rounded shadow-lg bg-gray-800 text-gray-100 dark:bg-gray-200 dark:text-gray-900 pointer-events-none whitespace-nowrap"
-      style={{ left: state.x, top: state.y - 28 }}
+      style={{ left: state.x, top: state.y - 20 }}
     >
       {state.text}
     </div>
