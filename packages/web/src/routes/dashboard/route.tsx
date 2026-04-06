@@ -1,16 +1,16 @@
 import { useEffect } from "react";
-import type { LoaderFunctionArgs, MetaFunction } from "react-router";
+import type { MetaFunction } from "react-router";
 import { Outlet, useNavigate } from "react-router";
 import { WorkspaceRedirectSkeleton } from "@/components/skeleton";
 import { workspaceApi } from "@/generated/rust-api";
 import { useAuth, WorkspaceListContext } from "@/hooks";
 import { parseLangFromCookie, serverT } from "@/lib/server-i18n";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  return { lang: parseLangFromCookie(request.headers.get("Cookie") ?? "") };
+export async function clientLoader() {
+  return { lang: parseLangFromCookie(document.cookie) };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
+export const meta: MetaFunction<typeof clientLoader> = ({ data }) => {
   const lang = data?.lang ?? "zh-CN";
   return [
     { title: serverT(lang, "common.meta.dashboardTitle") },

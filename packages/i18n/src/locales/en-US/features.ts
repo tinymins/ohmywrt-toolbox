@@ -4,19 +4,19 @@ const features = {
     "Production-ready full-stack architecture covering every layer from database to frontend",
   trpc: {
     title: "End-to-End Type Safety",
-    desc: "tRPC + Zod delivers full type inference from backend to frontend — no manual API type definitions",
+    desc: "Rust DTOs auto-generate TypeScript types via ts-rs, paired with Zod validation for full-stack type safety",
   },
   ssr: {
-    title: "React Router v7 SSR",
-    desc: "Server-side rendering for faster first paint and better SEO performance",
+    title: "React 19 + React Router v7",
+    desc: "Modern React architecture with file-based routing, client loaders, and code splitting",
   },
   db: {
-    title: "Prisma ORM",
-    desc: "Type-safe database operations with built-in migration management and intuitive data modeling",
+    title: "Sea-ORM + PostgreSQL",
+    desc: "Async Rust ORM with type-safe database operations, plus Prisma for schema migration management",
   },
   backend: {
-    title: "Hono Backend",
-    desc: "Lightweight, high-performance web framework with Edge Runtime support and minimal API design",
+    title: "Rust (Axum) Backend",
+    desc: "High-performance async web framework, compiles to a single binary — memory-safe with zero-cost abstractions",
   },
   tailwind: {
     title: "TailwindCSS 4",

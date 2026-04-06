@@ -12,7 +12,12 @@ const resources: Record<Lang, Record<string, unknown>> = {
 
 /** Parse the i18next cookie and return a canonical BCP 47 lang tag. */
 export function parseLangFromCookie(cookieHeader: string): Lang {
-  const match = cookieHeader.match(/(?:^|;\s*)i18next=([^;]+)/);
+  let header = cookieHeader;
+  // SPA mode: request.headers won't have cookies; fall back to document.cookie
+  if (!header && typeof document !== "undefined") {
+    header = document.cookie;
+  }
+  const match = header.match(/(?:^|;\s*)i18next=([^;]+)/);
   const raw = match?.[1] ?? "";
   if (raw.startsWith("en")) return "en-US";
   if (raw.startsWith("de")) return "de-DE";

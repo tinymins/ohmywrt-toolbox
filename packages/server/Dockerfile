@@ -11,12 +11,14 @@ COPY packages/web/package.json packages/web/
 COPY packages/components/package.json packages/components/
 COPY packages/types/package.json packages/types/
 COPY packages/i18n/package.json packages/i18n/
+COPY packages/wasm/package.json packages/wasm/
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY packages/i18n packages/i18n
 COPY packages/types packages/types
 COPY packages/components packages/components
+COPY packages/wasm/pkg packages/wasm/pkg
 COPY packages/web packages/web
 COPY tsconfig.base.json biome.json turbo.json ./
 
@@ -36,15 +38,16 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Prisma schema (for db push migrations)
+# Prisma schema + config (for db push migrations)
 COPY prisma ./prisma
-RUN npm install -g prisma@6
+COPY prisma.config.ts ./
+RUN npm install prisma@7 --save-dev 2>/dev/null
 
 # Rust binary (pre-built release — cargo build --release runs before docker build)
 COPY packages/server/target/release/ohmywrt-toolbox-server /usr/local/bin/
 
 # Frontend static files
-COPY --from=web-builder /app/packages/web/dist /app/web
+COPY --from=web-builder /app/packages/web/build/client /app/web
 
 ENV STATIC_DIR=/app/web
 EXPOSE 5678

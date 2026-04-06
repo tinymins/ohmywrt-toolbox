@@ -237,7 +237,7 @@ export default function DashboardLayout({
         {/* Main Content */}
         <div className="flex h-full flex-1 flex-col overflow-hidden">
           {/* Mobile Header */}
-          <div className="glass-header flex h-16 items-center justify-between gap-4 px-4 lg:hidden">
+          <div className="glass-header flex h-16 items-center justify-between gap-4 px-4 pt-[env(safe-area-inset-top,0px)] lg:hidden">
             <Button
               variant="text"
               icon={<MenuOutlined />}
@@ -246,7 +246,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Page Content */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 lg:px-6 lg:py-6">
+          <div className="flex-1 overflow-y-auto px-3 py-3 lg:px-6 lg:py-6 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] lg:pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]">
             {workspaceNotFound ? (
               <WorkspaceNotFound slug={workspaceParam ?? ""} />
             ) : (

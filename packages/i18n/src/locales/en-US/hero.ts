@@ -1,7 +1,7 @@
 const hero = {
-  title: "Full-Stack AI App Scaffold",
+  title: "Full-Stack Rust + React Boilerplate",
   subtitle:
-    "Modern full-stack template powered by React + Hono + tRPC + Prisma, built for the AI era",
+    "Modern full-stack boilerplate built with Rust (Axum) + React 19 + PostgreSQL — auth, workspaces, i18n, and Docker deployment included",
   cta: "Get Started",
   secondary: "Sign In",
   ctaGithub: "Fork Template",

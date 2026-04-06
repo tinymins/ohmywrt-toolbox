@@ -4,19 +4,19 @@ const features = {
     "データベースからフロントエンドまで全レイヤーをカバーする本番対応アーキテクチャ",
   trpc: {
     title: "エンドツーエンド型安全",
-    desc: "tRPC + Zod がバックエンドからフロントエンドまでの完全な型推論を提供",
+    desc: "Rust の DTO から ts-rs で TypeScript 型を自動生成、Zod バリデーションと組み合わせた完全な型安全",
   },
   ssr: {
-    title: "React Router v7 SSR",
-    desc: "サーバーサイドレンダリングによる高速な初期表示と優れた SEO パフォーマンス",
+    title: "React 19 + React Router v7",
+    desc: "ファイルベースルーティング、クライアントローダー、コード分割を備えたモダン React アーキテクチャ",
   },
   db: {
-    title: "Prisma ORM",
-    desc: "型安全なデータベース操作、組み込みのマイグレーション管理と直感的なデータモデリング",
+    title: "Sea-ORM + PostgreSQL",
+    desc: "型安全なデータベース操作を備えた Rust 非同期 ORM、Prisma によるスキーママイグレーション管理",
   },
   backend: {
-    title: "Hono バックエンド",
-    desc: "モジュラーアーキテクチャと依存性注入を備えたエンタープライズ級 Node.js フレームワーク",
+    title: "Rust (Axum) バックエンド",
+    desc: "高性能非同期 Web フレームワーク、単一バイナリにコンパイル — メモリ安全でゼロコスト抽象化",
   },
   tailwind: {
     title: "TailwindCSS 4",

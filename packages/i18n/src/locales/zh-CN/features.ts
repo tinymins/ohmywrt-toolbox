@@ -3,19 +3,19 @@ const features = {
   subheading: "开箱即用的全栈架构，覆盖从数据库到前端的每一层",
   trpc: {
     title: "端到端类型安全",
-    desc: "tRPC + Zod 提供从后端到前端的完整类型推导，告别手写 API 类型定义",
+    desc: "Rust DTO 通过 ts-rs 自动生成 TypeScript 类型，配合 Zod 校验，全链路类型安全",
   },
   ssr: {
-    title: "React Router v7 SSR",
-    desc: "服务端渲染带来更快的首屏加载和更好的 SEO 表现",
+    title: "React 19 + React Router v7",
+    desc: "现代 React 架构，基于文件路由、客户端加载器与代码分割",
   },
   db: {
-    title: "Prisma ORM",
-    desc: "下一代 Node.js ORM，类型安全的数据库操作，内置迁移管理",
+    title: "Sea-ORM + PostgreSQL",
+    desc: "Rust 异步 ORM，类型安全的数据库操作，配合 Prisma 管理 Schema 迁移",
   },
   backend: {
-    title: "Hono 后端框架",
-    desc: "轻量高性能 Web 框架，支持 Edge Runtime，极简 API 设计",
+    title: "Rust (Axum) 后端",
+    desc: "高性能异步 Web 框架，编译为单二进制文件，内存安全、零开销抽象",
   },
   tailwind: {
     title: "TailwindCSS 4",

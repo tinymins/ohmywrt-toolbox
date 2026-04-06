@@ -20,7 +20,7 @@ const common = {
   language: "語言",
   theme: "主題",
   welcome: "歡迎使用",
-  homeDesc: "這是一個腳手架專案，首頁佔位符。",
+  homeDesc: "Rust + React 全端開發模板，開箱即用。",
   getStarted: "開始使用",
   saveSuccess: "儲存成功",
   saveFailed: "儲存失敗",

@@ -20,8 +20,7 @@ const common = {
   language: "言語",
   theme: "テーマ",
   welcome: "ようこそ",
-  homeDesc:
-    "これはスキャフォールドプロジェクトのホームページプレースホルダーです。",
+  homeDesc: "フルスタック Rust + React ボイラープレート、すぐに使えます。",
   getStarted: "はじめる",
   saveSuccess: "保存しました",
   saveFailed: "保存に失敗しました",

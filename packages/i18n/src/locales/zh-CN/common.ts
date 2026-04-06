@@ -20,7 +20,7 @@ const common = {
   language: "语言",
   theme: "主题",
   welcome: "欢迎使用",
-  homeDesc: "这是一个脚手架项目，首页占位符。",
+  homeDesc: "Rust + React 全栈开发模板，开箱即用。",
   getStarted: "开始使用",
   saveSuccess: "保存成功",
   saveFailed: "保存失败",
@@ -41,7 +41,7 @@ const common = {
     notFoundTitle: "页面不存在 — OhMyWRT Toolbox",
     homeTitle: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
     homeDescription:
-      "基于 TypeScript 的全栈应用模板。tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+      "基于 Rust (Axum) + React 19 + PostgreSQL 的全栈工具箱。认证 · 工作空间 · 国际化 · Docker 部署。",
     homeOgTitle: "OhMyWRT Toolbox — OpenWrt 全栈工具箱",
   },
   lang: {

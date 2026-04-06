@@ -1,74 +1,77 @@
 # OhMyWRT Toolbox
 
-Rust + React 全栈 Monorepo 应用，使用 pnpm workspaces 管理。
+Production-ready full-stack boilerplate: Rust (Axum) backend + React 19 SPA, managed as a pnpm monorepo. Ships with authentication, multi-workspace, i18n (5 languages), dark mode, WASM modules, and one-command Docker deployment.
 
-## 技术栈
+[简体中文](README.zh-CN.md)
+
+## Tech Stack
 
 | Layer | Tech |
 |-------|------|
 | **Backend** | Rust (Axum) · Sea-ORM · PostgreSQL 18 |
-| **Frontend** | React 19 · React Router v7 (SSR) · TailwindCSS 4 · TanStack Query v5 |
+| **Frontend** | React 19 · React Router v7 · TailwindCSS 4 · TanStack Query v5 |
 | **WASM** | wasm-bindgen · wasm-pack |
 | **Types** | Zod v4 · TypeScript 5.9 · ts-rs |
 | **Build** | Turborepo · Vite 7 |
 | **Dev Tools** | Biome · Docker Compose · pnpm 10 |
-| **Miniapp** | Taro 4 · React 18 · WeChat |
+| **Mini Program** | Taro 4 · React 18 · WeChat |
 
-## 快速开始
+## Quick Start
 
 ```bash
-# 首次初始化（创建 .env、安装依赖、启动 DB、迁移）
+# First-time setup (creates .env, installs deps, starts DB, runs migrations)
 make init
 
-# 启动开发环境
+# Start dev environment
 make dev
 ```
 
-开发服务器：
-- 前端: http://localhost:5173
-- 后端 API: http://localhost:5678
+Dev servers:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5678
 
-## 核心命令
+## Commands
 
 ```bash
-make init     # 首次初始化（破坏性操作，会重建数据库）
-make dev      # 启动开发环境（DB + 开发服务器）
-make build    # 生产构建
-make docker   # Docker 构建
-make lint     # Biome lint + typecheck
-make gen:api  # 从 Rust 生成 TypeScript 类型
+make init      # First-time setup (destructive — rebuilds database)
+make dev       # Start dev environment (DB + dev servers)
+make build     # Production build
+make docker    # Docker image build
+make deploy    # One-command deploy to server
+make lint      # Biome lint + typecheck
+make gen:api   # Generate TypeScript types from Rust DTOs
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 packages/
-  server/       Rust (Axum + Sea-ORM) 后端
-  web/          React Router v7 SSR 前端
-  wasm/         WebAssembly 模块
-  types/        共享 Zod 模式 + TypeScript 类型
-  components/   通用 UI 组件（TailwindCSS，无业务逻辑）
-  i18n/         国际化资源（5种语言）
-  miniapp/      微信小程序（Taro 4）
+  server/       Rust (Axum + Sea-ORM) backend
+  web/          React Router v7 SPA frontend
+  wasm/         WebAssembly modules
+  types/        Shared Zod schemas + TypeScript types
+  components/   Generic UI components (TailwindCSS, no business logic)
+  i18n/         Internationalization resources (5 languages)
+  miniapp/      WeChat Mini Program (Taro 4)
 ```
 
-## 特色功能
+## Features
 
-- **端到端类型安全**: Rust DTO → ts-rs → TypeScript，全链路类型安全
-- **SSR 支持**: React Router v7 服务端渲染，SEO 友好
-- **多工作空间**: 支持多工作空间切换
-- **管理后台**: 超级管理员/管理员/用户三级角色
-- **对象存储**: OpenDAL 抽象（本地文件系统，可扩展 S3）
-- **国际化**: 5种语言（zh-CN / en-US / de-DE / ja-JP / zh-TW）
-- **主题系统**: 明暗主题 + CSS 变量 + 跟随系统
+- **End-to-end type safety**: Rust DTO → ts-rs → TypeScript, full-chain type safety
+- **SPA with client routing**: React Router v7 with code splitting and client loaders
+- **Multi-workspace**: Switchable workspaces with role-based access
+- **Admin panel**: Super admin / admin / user three-tier roles
+- **Object storage**: OpenDAL abstraction (local filesystem, extensible to S3)
+- **Internationalization**: 5 languages (zh-CN / en-US / de-DE / ja-JP / zh-TW)
+- **Theming**: Light/dark mode + CSS variables + system preference detection
 
-## 部署
+## Deployment
 
-参见 [DEPLOY.md](DEPLOY.md) 了解生产部署流程。
+See [DEPLOY.md](DEPLOY.md) for production deployment guide.
 
-Docker Compose 包含 2 个服务：PostgreSQL、Rust 后端（内嵌前端静态文件）。
+Docker Compose runs 2 services: PostgreSQL + Rust backend (with embedded frontend static files).
 
-## 相关文档
+## Links
 
 - [Axum](https://github.com/tokio-rs/axum) · [Sea-ORM](https://www.sea-ql.org/SeaORM/)
 - [React](https://react.dev/) · [React Router](https://reactrouter.com/) · [TailwindCSS](https://tailwindcss.com/)

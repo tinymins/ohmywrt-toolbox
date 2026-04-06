@@ -1,7 +1,7 @@
 const hero = {
-  title: "Full-Stack-KI-App-Gerüst",
+  title: "Full-Stack Rust + React Boilerplate",
   subtitle:
-    "Moderne Full-Stack-Vorlage mit React + Hono + tRPC + Prisma, für das KI-Zeitalter entwickelt",
+    "Modernes Full-Stack-Boilerplate mit Rust (Axum) + React 19 + PostgreSQL — mit Authentifizierung, Workspaces, i18n und Docker-Deployment",
   cta: "Jetzt starten",
   secondary: "Anmelden",
   ctaGithub: "Vorlage forken",

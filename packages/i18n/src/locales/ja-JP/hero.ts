@@ -1,7 +1,7 @@
 const hero = {
-  title: "フルスタック AI アプリスキャフォールド",
+  title: "フルスタック Rust + React ボイラープレート",
   subtitle:
-    "React + Hono + tRPC + Prisma によるモダンなフルスタックテンプレート、AI 時代のために構築",
+    "Rust (Axum) + React 19 + PostgreSQL のモダンフルスタックボイラープレート — 認証、ワークスペース、i18n、Docker デプロイ対応",
   cta: "今すぐ始める",
   secondary: "ログイン",
   ctaGithub: "テンプレートをフォーク",

@@ -3,19 +3,19 @@ const features = {
   subheading: "開箱即用的全端架構，覆蓋從資料庫到前端的每一層",
   trpc: {
     title: "端到端類型安全",
-    desc: "tRPC + Zod 提供從後端到前端的完整類型推導，告別手寫 API 類型定義",
+    desc: "Rust DTO 透過 ts-rs 自動生成 TypeScript 類型，配合 Zod 驗證，全鏈路類型安全",
   },
   ssr: {
-    title: "React Router v7 SSR",
-    desc: "伺服端渲染帶來更快的首屏載入和更好的 SEO 表現",
+    title: "React 19 + React Router v7",
+    desc: "現代 React 架構，基於檔案路由、客戶端載入器與程式碼分割",
   },
   db: {
-    title: "Prisma ORM",
-    desc: "類型安全的資料庫操作，內建遷移管理和直觀的資料建模",
+    title: "Sea-ORM + PostgreSQL",
+    desc: "Rust 非同步 ORM，類型安全的資料庫操作，配合 Prisma 管理 Schema 遷移",
   },
   backend: {
-    title: "Hono 後端框架",
-    desc: "輕量高效能 Web 框架，支援 Edge Runtime，極簡 API 設計",
+    title: "Rust (Axum) 後端",
+    desc: "高效能非同步 Web 框架，編譯為單一二進制檔案，記憶體安全、零開銷抽象",
   },
   tailwind: {
     title: "TailwindCSS 4",

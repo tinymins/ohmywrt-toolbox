@@ -1,4 +1,6 @@
+import { Dropdown } from "@acme/components";
 import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { UserMenu } from "@/components/account";
@@ -109,23 +111,33 @@ export default function LandingPage() {
     }
   };
 
-  const langCycle: Lang[] = ["zh-CN", "en-US", "de-DE", "ja-JP", "zh-TW"];
-  const langLabels: Record<Lang, string> = {
-    "zh-CN": "简中",
-    "en-US": "EN",
-    "de-DE": "DE",
-    "ja-JP": "日本",
-    "zh-TW": "繁中",
+  const LANG_NATIVE_NAMES: Record<Lang, string> = {
+    "zh-CN": "简体中文",
+    "en-US": "English",
+    "de-DE": "Deutsch",
+    "ja-JP": "日本語",
+    "zh-TW": "繁體中文",
   };
 
-  const toggleLang = () => {
-    const idx = langCycle.indexOf(lang);
-    const newMode = langCycle[(idx + 1) % langCycle.length];
-    setLangMode(newMode);
-    if (isAuthed) {
-      updateProfile.mutate({ settings: { langMode: newMode } });
-    }
-  };
+  const langKeys: Lang[] = ["zh-CN", "en-US", "de-DE", "ja-JP", "zh-TW"];
+
+  const langMenuItems = langKeys.map((key) => ({
+    key,
+    label: (
+      <span className="flex items-center justify-between w-full">
+        <span>{LANG_NATIVE_NAMES[key]}</span>
+        {key === lang && (
+          <Check className="w-3.5 h-3.5 ml-4 text-blue-500 dark:text-blue-400" />
+        )}
+      </span>
+    ),
+    onClick: () => {
+      setLangMode(key);
+      if (isAuthed) {
+        updateProfile.mutate({ settings: { langMode: key } });
+      }
+    },
+  }));
 
   return (
     <div className="min-h-screen bg-[var(--bg-elevated)] text-[var(--text-primary)]">
@@ -134,7 +146,7 @@ export default function LandingPage() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/75 dark:bg-zinc-900/75 border-b border-zinc-200/60 dark:border-zinc-800/60"
+        className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/75 dark:bg-zinc-900/75 border-b border-zinc-200/60 dark:border-zinc-800/60 pt-[env(safe-area-inset-top,0px)]"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -154,23 +166,19 @@ export default function LandingPage() {
             </motion.button>
 
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleLang}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors"
-                title={t("common.language")}
+              <Dropdown
+                menu={{ items: langMenuItems }}
+                trigger={["click"]}
+                placement="bottom-end"
               >
-                <GlobeIcon />
-                <span>
-                  {
-                    langLabels[
-                      langCycle[
-                        (langCycle.indexOf(lang) + 1) % langCycle.length
-                      ]
-                    ]
-                  }
-                </span>
-              </button>
+                <button
+                  type="button"
+                  className="flex items-center px-2.5 py-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white cursor-pointer transition-colors"
+                  title={t("common.language")}
+                >
+                  <GlobeIcon />
+                </button>
+              </Dropdown>
 
               <button
                 type="button"
@@ -286,7 +294,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-12">
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-12 pb-[max(3rem,env(safe-area-inset-bottom,0px))]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm text-zinc-500 dark:text-zinc-500">
             {t("footer.copyright")}

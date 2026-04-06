@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs, MetaFunction } from "react-router";
+import type { MetaFunction } from "react-router";
 import LandingPage from "@/components/site/landing/LandingPage";
 import {
   langToOgLocale,
@@ -8,11 +8,11 @@ import {
 
 const SITE_URL = import.meta.env.VITE_SITE_URL ?? "https://localhost:5173";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  return { lang: parseLangFromCookie(request.headers.get("Cookie") ?? "") };
+export async function clientLoader() {
+  return { lang: parseLangFromCookie(document.cookie) };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
+export const meta: MetaFunction<typeof clientLoader> = ({ data }) => {
   const lang = data?.lang ?? "zh-CN";
   const title = serverT(lang, "common.meta.homeTitle");
   const description = serverT(lang, "common.meta.homeDescription");

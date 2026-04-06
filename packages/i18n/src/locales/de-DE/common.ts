@@ -20,7 +20,7 @@ const common = {
   language: "Sprache",
   theme: "Design",
   welcome: "Willkommen",
-  homeDesc: "Dies ist ein Gerüstprojekt, Platzhalter für die Startseite.",
+  homeDesc: "Full-Stack Rust + React Boilerplate, sofort einsatzbereit.",
   getStarted: "Loslegen",
   saveSuccess: "Erfolgreich gespeichert",
   saveFailed: "Speichern fehlgeschlagen",

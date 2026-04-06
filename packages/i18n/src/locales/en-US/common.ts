@@ -20,7 +20,7 @@ const common = {
   language: "Language",
   theme: "Theme",
   welcome: "Welcome",
-  homeDesc: "This is a scaffold project, homepage placeholder.",
+  homeDesc: "Full-stack Rust + React boilerplate, ready to use.",
   getStarted: "Get started",
   saveSuccess: "Saved successfully",
   saveFailed: "Failed to save",
@@ -43,7 +43,7 @@ const common = {
     notFoundTitle: "Page Not Found — OhMyWRT Toolbox",
     homeTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
     homeDescription:
-      "A full-stack application template built with TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+      "A full-stack toolbox built with Rust (Axum) + React 19 + PostgreSQL. Auth · Workspaces · i18n · Docker.",
     homeOgTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
   },
   lang: {

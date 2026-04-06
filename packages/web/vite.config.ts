@@ -30,6 +30,15 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "0.0.0.0",
       port: webPort,
+      watch: {
+        // Prevent Vite from caching empty file content when external tools
+        // (CLI editors, git operations) truncate+write files — chokidar would
+        // otherwise pick up the intermediate empty state and cache it.
+        awaitWriteFinish: {
+          stabilityThreshold: 100,
+          pollInterval: 50,
+        },
+      },
       proxy: {
         "/api": {
           target: `http://localhost:${serverPort}`,
