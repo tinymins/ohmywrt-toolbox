@@ -169,115 +169,134 @@ const SortableCard = ({
             : "border-dashed border-gray-300 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-[#111]"
         }`}
       >
-        {/* Row 1: drag + enable + URL + delete */}
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            {...attributes}
-            {...listeners}
-            className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <HolderOutlined />
-          </span>
-          <Tooltip
-            title={
-              item.enabled
-                ? t("proxy.form.subscribeItemEnabled")
-                : t("proxy.form.subscribeItemDisabled")
-            }
-          >
-            <Checkbox
-              checked={item.enabled}
-              onChange={(e) => onUpdate({ enabled: e.target.checked })}
-            />
-          </Tooltip>
-          <Input
-            size="small"
-            placeholder={t("proxy.form.subscribeItemUrl")}
-            value={item.url}
-            onChange={(e) => onUpdate({ url: e.target.value })}
-            status={item.enabled && !item.url?.trim() ? "warning" : undefined}
-            className="flex-1"
-          />
-          <Button
-            variant="text"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={onRemove}
-          />
-        </div>
+        <div className="flex gap-2">
+          {/* Left gutter: drag handle + checkbox */}
+          <div className="flex items-center gap-2 shrink-0 self-start pt-[5px]">
+            <span
+              {...attributes}
+              {...listeners}
+              className="cursor-grab text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <HolderOutlined />
+            </span>
+            <Tooltip
+              title={
+                item.enabled
+                  ? t("proxy.form.subscribeItemEnabled")
+                  : t("proxy.form.subscribeItemDisabled")
+              }
+            >
+              <Checkbox
+                checked={item.enabled}
+                onChange={(e) => onUpdate({ enabled: e.target.checked })}
+              />
+            </Tooltip>
+          </div>
 
-        {/* Row 2: remark + prefix + cache + UA + test */}
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:pl-[22px] md:pr-[32px]">
-          <Input
-            size="small"
-            placeholder={t("proxy.form.subscribeItemRemark")}
-            value={item.remark}
-            onChange={(e) => onUpdate({ remark: e.target.value })}
-            className="md:flex-1"
-          />
-          <div className="flex w-full items-center gap-2 md:w-auto md:shrink-0">
-            <div className="flex-1 md:flex-none md:w-[150px]">
+          {/* Main content — URL/delete and details naturally left/right-align */}
+          <div className="flex-1 min-w-0 space-y-2">
+            {/* Row 1: URL + delete */}
+            <div className="flex items-center gap-2">
               <Input
                 size="small"
-                placeholder={t("proxy.form.subscribeItemPrefix")}
-                value={item.prefix}
-                onChange={(e) => onUpdate({ prefix: e.target.value })}
-                suffix={
-                  <Tooltip title={t("proxy.form.subscribeItemPrefixTip")}>
-                    <span className="text-gray-400 text-xs cursor-help">?</span>
-                  </Tooltip>
+                placeholder={t("proxy.form.subscribeItemUrl")}
+                value={item.url}
+                onChange={(e) => onUpdate({ url: e.target.value })}
+                status={
+                  item.enabled && !item.url?.trim() ? "warning" : undefined
                 }
+                className="flex-1 min-w-0"
+              />
+              <Button
+                variant="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={onRemove}
+                className="shrink-0"
               />
             </div>
-            <Tooltip title={t("proxy.form.cacheTtlTooltip")}>
-              <InputNumber
+
+            {/* Row 2: remark + prefix + cache | UA + test (own line on mobile) */}
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <Input
                 size="small"
-                min={0}
-                max={1440}
-                placeholder={t("proxy.form.subscribeItemCacheTtlPlaceholder")}
-                value={item.cacheTtlMinutes}
-                onChange={(val) =>
-                  onUpdate({ cacheTtlMinutes: val ?? undefined })
-                }
-                addonAfter={t("proxy.form.cacheTtlUnit")}
-                style={{ width: 130 }}
+                placeholder={t("proxy.form.subscribeItemRemark")}
+                value={item.remark}
+                onChange={(e) => onUpdate({ remark: e.target.value })}
+                className="md:flex-1 min-w-0"
               />
-            </Tooltip>
-            <Tooltip title={t("proxy.form.fetchUaTooltip")}>
-              <div className="flex-1 md:flex-none md:w-[200px]">
-                <AutoComplete
-                  size="small"
-                  options={UA_PRESETS}
-                  value={item.fetchUa ?? ""}
-                  onChange={(v) => onUpdate({ fetchUa: v || undefined })}
-                  placeholder={t("proxy.form.fetchUaPlaceholder")}
-                  filterOption={(input, opt) =>
-                    opt.value.toLowerCase().includes(input.toLowerCase()) ||
-                    (typeof opt.label === "string" &&
-                      opt.label.toLowerCase().includes(input.toLowerCase()))
-                  }
-                  allowClear
-                  className="w-full"
-                />
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex-1 md:flex-none md:w-[120px]">
+                  <Input
+                    size="small"
+                    placeholder={t("proxy.form.subscribeItemPrefix")}
+                    value={item.prefix}
+                    onChange={(e) => onUpdate({ prefix: e.target.value })}
+                    suffix={
+                      <Tooltip title={t("proxy.form.subscribeItemPrefixTip")}>
+                        <span className="text-gray-400 text-xs cursor-help">
+                          ?
+                        </span>
+                      </Tooltip>
+                    }
+                  />
+                </div>
+                <Tooltip title={t("proxy.form.cacheTtlTooltip")}>
+                  <InputNumber
+                    size="small"
+                    min={0}
+                    max={1440}
+                    placeholder={t(
+                      "proxy.form.subscribeItemCacheTtlPlaceholder",
+                    )}
+                    value={item.cacheTtlMinutes}
+                    onChange={(val) =>
+                      onUpdate({ cacheTtlMinutes: val ?? undefined })
+                    }
+                    addonAfter={t("proxy.form.cacheTtlUnit")}
+                    style={{ width: 130 }}
+                  />
+                </Tooltip>
               </div>
-            </Tooltip>
-            <Tooltip title={t("proxy.form.testSourceBtn")}>
-              <Button
-                size="small"
-                variant="text"
-                icon={
-                  testLoading ? (
-                    <Loader2 className="animate-spin" size="1em" />
-                  ) : (
-                    <PlayCircleOutlined />
-                  )
-                }
-                onClick={handleTest}
-                disabled={!item.url?.trim() || testLoading}
-                className="cursor-pointer"
-              />
-            </Tooltip>
+              {/* UA + test: own line on mobile, inline on PC */}
+              <div className="flex items-center gap-2 md:flex-1">
+                <Tooltip title={t("proxy.form.fetchUaTooltip")}>
+                  <div className="flex-1">
+                    <AutoComplete
+                      size="small"
+                      options={UA_PRESETS}
+                      value={item.fetchUa ?? ""}
+                      onChange={(v) => onUpdate({ fetchUa: v || undefined })}
+                      placeholder={t("proxy.form.fetchUaPlaceholder")}
+                      filterOption={(input, opt) =>
+                        opt.value.toLowerCase().includes(input.toLowerCase()) ||
+                        (typeof opt.label === "string" &&
+                          opt.label.toLowerCase().includes(input.toLowerCase()))
+                      }
+                      allowClear
+                      className="w-full"
+                    />
+                  </div>
+                </Tooltip>
+                <Tooltip title={t("proxy.form.testSourceBtn")}>
+                  <Button
+                    size="small"
+                    variant="text"
+                    icon={
+                      testLoading ? (
+                        <Loader2 className="animate-spin" size="1em" />
+                      ) : (
+                        <PlayCircleOutlined />
+                      )
+                    }
+                    onClick={handleTest}
+                    disabled={!item.url?.trim() || testLoading}
+                    className="cursor-pointer shrink-0"
+                  />
+                </Tooltip>
+              </div>
+            </div>
           </div>
         </div>
       </div>
