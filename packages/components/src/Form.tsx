@@ -422,6 +422,7 @@ Form.Item = function FormItem({
   initialValue,
   hidden = false,
   shouldUpdate: _shouldUpdate,
+  noStyle = false,
   tooltip,
   className,
   style,
@@ -552,6 +553,11 @@ Form.Item = function FormItem({
       null;
     target?.focus();
   };
+
+  // noStyle: render child directly without wrapper divs
+  if (noStyle) {
+    return <>{child as ReactNode}</>;
+  }
 
   return (
     <div className={cn("w-full", className)} style={style}>

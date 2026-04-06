@@ -359,7 +359,10 @@ export function Modal({
           : "fixed inset-0 flex justify-center transition-colors duration-200",
         isInline
           ? "items-start overflow-y-auto"
-          : size === "inset" || size === "form" || centered
+          : size === "inset" ||
+              size === "form" ||
+              size === "almost-full" ||
+              centered
             ? "items-center overflow-hidden"
             : "items-start overflow-y-auto",
         animClass ? "bg-black/35 backdrop-blur-sm" : "bg-black/0",
@@ -396,6 +399,7 @@ export function Modal({
             ? size !== "full" && "mt-[5%] mb-[5%]"
             : !centered &&
                 size !== "full" &&
+                size !== "almost-full" &&
                 size !== "inset" &&
                 size !== "form" &&
                 "mt-[10vh] mb-[10vh]",

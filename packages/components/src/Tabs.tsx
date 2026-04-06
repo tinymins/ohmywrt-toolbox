@@ -389,21 +389,21 @@ function SegmentTabs({
   className?: string;
 }) {
   const sizeClass = {
-    small: "px-3 py-1 text-xs",
-    middle: "px-4 py-2 text-sm",
-    large: "px-5 py-2.5 text-base",
+    small: "px-1.5 py-1 text-xs",
+    middle: "px-2 py-1.5 text-xs",
+    large: "px-3 py-2 text-sm",
   }[size];
 
   return (
     <div className={className}>
-      <div className="flex gap-1 rounded-lg bg-fill-tertiary p-1 dark:bg-white/[0.06] select-none">
+      <div className="flex gap-0.5 rounded-lg bg-fill-tertiary p-0.5 dark:bg-white/[0.06] select-none">
         {items.map((item) => (
           <button
             key={item.key}
             type="button"
             disabled={item.disabled}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-md font-medium transition-all cursor-pointer",
+              "flex flex-1 min-w-0 items-center justify-center gap-2 rounded-md font-medium transition-all cursor-pointer",
               sizeClass,
               activeKey === item.key
                 ? "bg-white text-fg-primary shadow-sm dark:bg-white/[0.1]"
@@ -413,7 +413,7 @@ function SegmentTabs({
             onClick={() => !item.disabled && handleChange(item.key)}
           >
             {item.icon}
-            {item.label}
+            <span className="truncate">{item.label}</span>
           </button>
         ))}
       </div>

@@ -50,7 +50,7 @@ export interface TableProps<T = Record<string, unknown>> {
   /** Data source */
   dataSource?: T[];
   /** Row key */
-  rowKey?: string | ((record: T) => string);
+  rowKey?: string | ((record: T, index: number) => string);
   /** Loading state */
   loading?: boolean;
   /** Bordered */
@@ -72,6 +72,14 @@ export interface TableProps<T = Record<string, unknown>> {
     onExpand?: (expanded: boolean, record: T) => void;
     childrenColumnName?: string;
     indentSize?: number;
+    /** Render expanded row content */
+    expandedRowRender?: (
+      record: T,
+      index: number,
+      expanded: boolean,
+    ) => ReactNode;
+    /** Control which rows can expand (default: all if expandedRowRender is set) */
+    rowExpandable?: (record: T) => boolean;
   };
   /** Row class name */
   rowClassName?: string | ((record: T, index: number) => string);
@@ -122,10 +130,10 @@ function getNestedValue(obj: Record<string, unknown>, path?: string): unknown {
 
 function getKey<T>(
   record: T,
-  rowKey: string | ((r: T) => string),
+  rowKey: string | ((r: T, index: number) => string),
   idx: number,
 ): string {
-  if (typeof rowKey === "function") return rowKey(record);
+  if (typeof rowKey === "function") return rowKey(record, idx);
   const val = (record as Record<string, unknown>)[rowKey];
   return val != null ? String(val) : String(idx);
 }
@@ -134,7 +142,7 @@ function getKey<T>(
 function renderRows<T>(
   dataSource: T[],
   columns: TableColumn<T>[],
-  rowKey: string | ((r: T) => string),
+  rowKey: string | ((r: T, index: number) => string),
   expandable: TableProps<T>["expandable"],
   expandedKeys: Set<string>,
   toggleExpand: (key: string, record: T, expanded: boolean) => void,
@@ -147,6 +155,7 @@ function renderRows<T>(
 ): ReactNode[] {
   const childrenField = expandable?.childrenColumnName ?? "children";
   const indentSize = expandable?.indentSize ?? 20;
+  const hasExpandRender = !!expandable?.expandedRowRender;
   const rows: ReactNode[] = [];
 
   for (const record of dataSource) {
@@ -157,6 +166,9 @@ function renderRows<T>(
       | undefined;
     const hasKids = Array.isArray(kids) && kids.length > 0;
     const expanded = expandedKeys.has(key);
+    const canExpand = hasExpandRender
+      ? (expandable?.rowExpandable?.(record) ?? true)
+      : hasKids;
     const rowCls =
       typeof rowClassName === "function"
         ? rowClassName(record, idx)
@@ -174,6 +186,26 @@ function renderRows<T>(
         )}
         {...restRowProps}
       >
+        {hasExpandRender && (
+          <td
+            className={cn(
+              sizeClass,
+              "text-center w-10",
+              bordered &&
+                "border-r border-black/[0.06] dark:border-white/[0.08]",
+            )}
+          >
+            {canExpand && (
+              <button
+                type="button"
+                className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                onClick={() => toggleExpand(key, record, !expanded)}
+              >
+                {expanded ? "−" : "+"}
+              </button>
+            )}
+          </td>
+        )}
         {columns.map((col, ci) => {
           const dataIndex = col.dataIndex ?? col.key;
           const value = getNestedValue(
@@ -194,10 +226,8 @@ function renderRows<T>(
                 col.ellipsis && "truncate max-w-0",
                 bordered &&
                   "border-r border-black/[0.06] dark:border-white/[0.08] last:border-r-0",
-                col.fixed === "left" &&
-                  "sticky left-0 bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)] z-10",
-                col.fixed === "right" &&
-                  "sticky right-0 bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)] z-10",
+                col.fixed === "left" && "sticky left-0 z-10",
+                col.fixed === "right" && "sticky right-0 z-10",
                 col.className,
               )}
               style={{ width: col.width, minWidth: col.minWidth }}
@@ -205,7 +235,10 @@ function renderRows<T>(
               <span
                 className="flex items-center gap-1 w-full"
                 style={{
-                  paddingLeft: ci === 0 ? level * indentSize : undefined,
+                  paddingLeft:
+                    ci === 0 && !hasExpandRender
+                      ? level * indentSize
+                      : undefined,
                   justifyContent:
                     col.align === "center"
                       ? "center"
@@ -214,7 +247,7 @@ function renderRows<T>(
                         : undefined,
                 }}
               >
-                {ci === 0 && hasKids ? (
+                {ci === 0 && !hasExpandRender && hasKids ? (
                   <button
                     type="button"
                     className="shrink-0 text-[var(--text-muted)] hover:text-[var(--text-secondary)] w-4"
@@ -222,7 +255,7 @@ function renderRows<T>(
                   >
                     {expanded ? "▾" : "▸"}
                   </button>
-                ) : ci === 0 && level > 0 ? (
+                ) : ci === 0 && !hasExpandRender && level > 0 ? (
                   <span className="w-4 shrink-0" />
                 ) : null}
                 <span
@@ -241,7 +274,29 @@ function renderRows<T>(
       </tr>,
     );
 
-    if (hasKids && expanded) {
+    // Expanded row content (expandedRowRender)
+    if (hasExpandRender && expanded && canExpand) {
+      rows.push(
+        <tr
+          key={`${key}-expand`}
+          className="bg-black/[0.015] dark:bg-white/[0.015]"
+        >
+          <td
+            colSpan={columns.length + 1}
+            className={cn(
+              "px-4 py-2",
+              bordered &&
+                "border-b border-black/[0.06] dark:border-white/[0.08]",
+            )}
+          >
+            {expandable.expandedRowRender?.(record, idx, expanded)}
+          </td>
+        </tr>,
+      );
+    }
+
+    // Tree children
+    if (!hasExpandRender && hasKids && expanded) {
       rows.push(
         ...renderRows(
           kids ?? [],
@@ -353,6 +408,19 @@ export function Table<T = Record<string, unknown>>({
     return sortState.dir === "desc" ? arr.reverse() : arr;
   }, [dataSource, sortState]);
 
+  // Client-side pagination
+  const paginationConfig = typeof pagination === "object" ? pagination : null;
+  const [paginationState, setPaginationState] = useState({
+    current: 1,
+    pageSize: paginationConfig?.defaultPageSize ?? 10,
+  });
+  const paginatedData = useMemo(() => {
+    if (!paginationConfig) return sortedData;
+    const { current, pageSize } = paginationState;
+    const start = (current - 1) * pageSize;
+    return sortedData.slice(start, start + pageSize);
+  }, [sortedData, paginationConfig, paginationState]);
+
   // Virtual scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -379,22 +447,23 @@ export function Table<T = Record<string, unknown>>({
     [],
   );
 
+  const effectiveData = paginationConfig ? paginatedData : sortedData;
   const effectiveContainerH = containerH || 600;
   const visibleCount = Math.ceil(effectiveContainerH / rowHeight);
   const startIdx = virtual
     ? Math.max(0, Math.floor(scrollTop / rowHeight) - OVERSCAN)
     : 0;
   const endIdx = virtual
-    ? Math.min(sortedData.length - 1, startIdx + visibleCount + OVERSCAN * 2)
-    : sortedData.length - 1;
+    ? Math.min(effectiveData.length - 1, startIdx + visibleCount + OVERSCAN * 2)
+    : effectiveData.length - 1;
   const virtualTopH = startIdx * rowHeight;
   const virtualBottomH = Math.max(
     0,
-    (sortedData.length - endIdx - 1) * rowHeight,
+    (effectiveData.length - endIdx - 1) * rowHeight,
   );
   const renderData = virtual
-    ? sortedData.slice(startIdx, endIdx + 1)
-    : sortedData;
+    ? effectiveData.slice(startIdx, endIdx + 1)
+    : effectiveData;
 
   // Row selection helpers
   const selectedSet = new Set(rowSelection?.selectedRowKeys ?? []);
@@ -524,6 +593,7 @@ export function Table<T = Record<string, unknown>>({
         ref={scrollContainerRef}
         className={cn(
           "overflow-auto rounded-lg border border-black/[0.06] dark:border-white/[0.08]",
+          "backdrop-blur bg-white/[0.03] dark:bg-white/[0.02]",
         )}
         style={{
           ...(virtual && scroll?.y
@@ -540,6 +610,16 @@ export function Table<T = Record<string, unknown>>({
         >
           <thead>
             <tr className="bg-black/[0.02] dark:bg-white/[0.04]">
+              {expandable?.expandedRowRender && (
+                <th
+                  className={cn(
+                    sizeClass,
+                    "text-center font-medium text-[var(--text-secondary)] whitespace-nowrap border-b border-black/[0.06] dark:border-white/[0.08] w-10",
+                    bordered &&
+                      "border-r border-black/[0.06] dark:border-white/[0.08]",
+                  )}
+                />
+              )}
               {effectiveColumns.map((col, ci) => {
                 const sortKey = col.key ?? col.dataIndex ?? String(ci);
                 const isSortable = typeof col.sorter === "function";
@@ -557,18 +637,12 @@ export function Table<T = Record<string, unknown>>({
                       col.align === "right" && "text-right",
                       virtual &&
                         "sticky top-0 z-[1] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
-                      !virtual &&
-                        col.fixed === "left" &&
-                        "sticky left-0 z-10 bg-black/[0.02] dark:bg-white/[0.04]",
+                      !virtual && col.fixed === "left" && "sticky left-0 z-10",
                       !virtual &&
                         col.fixed === "right" &&
-                        "sticky right-0 z-10 bg-black/[0.02] dark:bg-white/[0.04]",
-                      virtual &&
-                        col.fixed === "left" &&
-                        "left-0 z-[2] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
-                      virtual &&
-                        col.fixed === "right" &&
-                        "right-0 z-[2] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
+                        "sticky right-0 z-10",
+                      virtual && col.fixed === "left" && "left-0 z-[2]",
+                      virtual && col.fixed === "right" && "right-0 z-[2]",
                       bordered &&
                         "border-r border-black/[0.06] dark:border-white/[0.08] last:border-r-0",
                     )}
@@ -630,7 +704,12 @@ export function Table<T = Record<string, unknown>>({
           <tbody className="bg-transparent">
             {loading ? (
               <tr>
-                <td colSpan={effectiveColumns.length}>
+                <td
+                  colSpan={
+                    effectiveColumns.length +
+                    (expandable?.expandedRowRender ? 1 : 0)
+                  }
+                >
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
                   </div>
@@ -638,7 +717,12 @@ export function Table<T = Record<string, unknown>>({
               </tr>
             ) : dataSource.length === 0 ? (
               <tr>
-                <td colSpan={effectiveColumns.length}>
+                <td
+                  colSpan={
+                    effectiveColumns.length +
+                    (expandable?.expandedRowRender ? 1 : 0)
+                  }
+                >
                   {locale?.emptyText ?? <Empty />}
                 </td>
               </tr>
@@ -684,7 +768,11 @@ export function Table<T = Record<string, unknown>>({
         <div className="mt-4 flex justify-end">
           <Pagination
             {...pagination}
+            total={pagination.total ?? sortedData.length}
+            current={paginationState.current}
+            pageSize={paginationState.pageSize}
             onChange={(page, pageSize) => {
+              setPaginationState({ current: page, pageSize });
               pagination.onChange?.(page, pageSize);
               onChange?.({ current: page, pageSize });
             }}
