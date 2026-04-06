@@ -261,7 +261,7 @@ export default function ProxySubscribeList() {
                 title: t("proxy.columns.actions"),
                 align: "center",
                 width: 200,
-
+                fixed: "right",
                 render: (_, record) => (
                   <div className="flex gap-4 items-center justify-center">
                     <Tooltip title={t("proxy.links.title")}>

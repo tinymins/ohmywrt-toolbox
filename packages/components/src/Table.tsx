@@ -180,7 +180,7 @@ function renderRows<T>(
       <tr
         key={key}
         className={cn(
-          "border-b border-black/[0.04] dark:border-white/[0.04] hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors",
+          "bg-white dark:bg-zinc-950 border-b border-black/[0.04] dark:border-white/[0.04] hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors",
           rowCls,
           rowPropClassName,
         )}
@@ -226,10 +226,8 @@ function renderRows<T>(
                 col.ellipsis && "truncate max-w-0",
                 bordered &&
                   "border-r border-black/[0.06] dark:border-white/[0.08] last:border-r-0",
-                col.fixed === "left" &&
-                  "sticky left-0 bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)] z-10",
-                col.fixed === "right" &&
-                  "sticky right-0 bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)] z-10",
+                col.fixed === "left" && "sticky left-0 bg-inherit z-10",
+                col.fixed === "right" && "sticky right-0 bg-inherit z-10",
                 col.className,
               )}
               style={{ width: col.width, minWidth: col.minWidth }}
@@ -610,7 +608,7 @@ export function Table<T = Record<string, unknown>>({
           style={{ minWidth: scroll?.x }}
         >
           <thead>
-            <tr className="bg-black/[0.02] dark:bg-white/[0.04]">
+            <tr className="bg-gray-50 dark:bg-zinc-900">
               {expandable?.expandedRowRender && (
                 <th
                   className={cn(
@@ -640,16 +638,16 @@ export function Table<T = Record<string, unknown>>({
                         "sticky top-0 z-[1] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
                       !virtual &&
                         col.fixed === "left" &&
-                        "sticky left-0 z-10 bg-black/[0.02] dark:bg-white/[0.04]",
+                        "sticky left-0 z-10 bg-inherit",
                       !virtual &&
                         col.fixed === "right" &&
-                        "sticky right-0 z-10 bg-black/[0.02] dark:bg-white/[0.04]",
+                        "sticky right-0 z-10 bg-inherit",
                       virtual &&
                         col.fixed === "left" &&
-                        "left-0 z-[2] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
+                        "left-0 z-[2] bg-inherit",
                       virtual &&
                         col.fixed === "right" &&
-                        "right-0 z-[2] bg-[rgba(252,252,255,0.96)] dark:bg-[rgba(14,14,24,0.96)]",
+                        "right-0 z-[2] bg-inherit",
                       bordered &&
                         "border-r border-black/[0.06] dark:border-white/[0.08] last:border-r-0",
                     )}
