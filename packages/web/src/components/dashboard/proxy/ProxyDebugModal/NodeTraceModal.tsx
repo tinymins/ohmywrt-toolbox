@@ -26,11 +26,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
 import { useIsMobile } from "@/hooks";
-import {
-  InteractiveJsonViewer,
-  ProvenanceTable,
-  SyntaxJsonViewer,
-} from "./InteractiveJsonViewer";
+import { ProvenanceTable, SyntaxJsonViewer } from "./InteractiveJsonViewer";
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -359,36 +355,35 @@ const ConvertTraceContent = ({
       )}
       <Collapse
         size="small"
-        defaultActiveKey={["provenance"]}
+        defaultActiveKey={["outbound"]}
         items={[
-          {
-            key: "provenance",
-            label: t("proxy.debug.traceProvenanceTable"),
-            children:
-              Object.keys(fieldOrigins).length > 0 ? (
-                <ProvenanceTable
-                  data={step.data.singboxOutbound as Record<string, unknown>}
-                  fieldOrigins={fieldOrigins}
-                  maxHeight={500}
-                />
-              ) : (
-                <SyntaxJsonViewer
-                  data={step.data.singboxOutbound}
-                  maxHeight={400}
-                />
-              ),
-          },
           {
             key: "outbound",
             label: t("proxy.debug.traceSingboxOutbound"),
             children: (
-              <InteractiveJsonViewer
-                data={step.data.singboxOutbound as Record<string, unknown>}
-                fieldOrigins={fieldOrigins}
+              <SyntaxJsonViewer
+                data={step.data.singboxOutbound}
                 maxHeight={400}
               />
             ),
           },
+          ...(Object.keys(fieldOrigins).length > 0
+            ? [
+                {
+                  key: "provenance",
+                  label: t("proxy.debug.traceProvenanceTable"),
+                  children: (
+                    <ProvenanceTable
+                      data={
+                        step.data.singboxOutbound as Record<string, unknown>
+                      }
+                      fieldOrigins={fieldOrigins}
+                      maxHeight={500}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
     </div>
