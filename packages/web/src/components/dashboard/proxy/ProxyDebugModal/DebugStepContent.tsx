@@ -542,8 +542,8 @@ export const MergeStepContent = ({
                   const tagColor = hasWarning
                     ? "gold"
                     : hasIgnored
-                      ? "#3a96dd"
-                      : "#13a10e";
+                      ? "blue"
+                      : "green";
                   const tooltipTitle = hasWarning
                     ? t("proxy.debug.entropyWarningTip")
                     : hasIgnored
