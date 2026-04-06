@@ -241,6 +241,33 @@ sing-box 输出的 ANSI 颜色转义码会在返回前端前自动清除。
 
 v12 与 v11 的主要差异在 DNS 配置结构和规则集引用方式。
 
+### Clash YAML 规则 → Sing-box JSON 转换
+
+Sing-box 的 `rule_set` 不能直接读取 Clash YAML 格式的规则文件，因此 Sing-box 配置中的每个远程规则集 URL 指向本服务器的转换端点，由服务器实时拉取原始 YAML、解析后返回 Sing-box JSON source 格式。
+
+**转换流程**：
+1. Sing-box 客户端请求 `/api/proxy/sing-box/convert/rule?url=<原始YAML地址>`
+2. 服务器拉取原始 Clash YAML 规则文件
+3. 解析 `payload` 中的条目（DOMAIN、DOMAIN-SUFFIX、IP-CIDR 等）
+4. 转换为 Sing-box JSON source 格式返回
+
+**支持的 Clash 规则类型映射**：
+
+| Clash 类型 | Sing-box 字段 |
+|-----------|--------------|
+| DOMAIN / HOST / + | domain |
+| DOMAIN-SUFFIX / HOST-SUFFIX | domain_suffix |
+| DOMAIN-KEYWORD / HOST-KEYWORD | domain_keyword |
+| DOMAIN-REGEX | domain_regex |
+| IP-CIDR / IP-CIDR6 | ip_cidr |
+| SRC-IP-CIDR | source_ip_cidr |
+| DST-PORT | port |
+| SRC-PORT | source_port |
+| PROCESS-NAME | process_name |
+| PROCESS-PATH | process_path |
+
+**版本差异**：v11 输出 `version: 1`，v12 输出 `version: 3`。
+
 ## API 端点
 
 ### 认证端点（需登录）
@@ -269,6 +296,8 @@ v12 与 v11 的主要差异在 DNS 配置结构和规则集引用方式。
 | GET | /api/public/proxy/{uuid}/clash-meta | Clash-Meta YAML |
 | GET | /api/public/proxy/{uuid}/sing-box | Sing-box v11 JSON |
 | GET | /api/public/proxy/{uuid}/sing-box/12 | Sing-box v12 JSON |
+| GET | /api/proxy/sing-box/convert/rule?url= | Clash YAML 规则 → Sing-box JSON (v11) |
+| GET | /api/proxy/sing-box/convert/rule/12?url= | Clash YAML 规则 → Sing-box JSON (v12) |
 
 ## 缓存策略
 

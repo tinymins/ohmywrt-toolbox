@@ -112,7 +112,7 @@ pub fn convert_clash_proxy_to_singbox_with_diff(
 | TLS | `tls`, `servername`, `sni`, `alpn`, `skip-cert-verify`, `client-fingerprint`, `reality-opts` |
 | 传输层 | `network`, `http-opts`, `h2-opts`, `ws-opts`, `grpc-opts` |
 | 多路复用 | `smux`, `multiplex`（仅 TCP 类协议：vmess/vless/trojan） |
-| 通用 | `udp` |
+| 通用 | `udp`, `tfo`, `mptcp` |
 
 ### 各类型特有字段
 
@@ -173,6 +173,12 @@ let mux = proxy.extra.get("smux")
 **问题**：Trojan 节点配置了 WebSocket 传输层（`ws-opts`），但转换器未调用 `build_transport()`。
 
 **修复**：在 `convert_trojan()` 中添加 `build_transport()` 调用。
+
+### 案例 5：TCP Fast Open / MPTCP（Dial Fields）
+
+**问题**：Clash 使用 `tfo: true`（TCP Fast Open）和 `mptcp: true`（Multi-Path TCP），这是适用于所有 TCP 代理类型的通用字段。Sing-box 1.12 的 Dial Fields 支持 `tcp_fast_open` 和 `tcp_multi_path`，但转换器未处理这两个字段，导致全部节点报丢失警告。
+
+**修复**：在 `convert_clash_proxy_to_singbox()` 中，在类型特定转换完成后统一应用 `tfo` → `tcp_fast_open` 和 `mptcp` → `tcp_multi_path` 映射。
 
 ## 在调试工具中的展现
 
