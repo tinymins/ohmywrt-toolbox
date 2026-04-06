@@ -129,7 +129,7 @@ pub struct ClashProxy {
 | VLESS | uuid, flow, transport, tls, multiplex |
 | Shadowsocks | method, password, plugin, plugin_opts |
 | Trojan | password, tls (强制启用), transport, multiplex |
-| Hysteria2 | password, hop_ports, up_mbps, down_mbps, multiplex |
+| Hysteria2 | password, hop_ports, up_mbps, down_mbps |
 | Hysteria | auth_str, obfs, bandwidth |
 | TUIC | uuid, password, heartbeat, congestion_control |
 | HTTP | username, password, tls |
@@ -141,6 +141,54 @@ pub struct ClashProxy {
 - **`build_tls()`**：TLS 配置（servername, alpn, skip-cert-verify, uTLS fingerprint, REALITY）
 - **`build_transport()`**：传输层（HTTP, WebSocket, HTTP/2, gRPC）
 - **`build_multiplex()`**：多路复用（Clash 的 `smux`/`multiplex` → Sing-box 的 `multiplex`）
+
+## 配置校验（Validator）
+
+调试流程中最终配置输出后、完成前的校验步骤，验证转换器生成的配置文件是否合法可用。
+
+### 校验策略
+
+| 格式 | 校验方式 | 工具 |
+|------|----------|------|
+| sing-box | 二进制校验 `sing-box check -c` | sing-box v1.11.x |
+| sing-box-v12 | 二进制校验（v1.12+） | sing-box v1.12.x+ |
+| clash / clash-meta | YAML 语法 + 必需字段检查 | Rust serde_yaml |
+
+- **sing-box 格式**：将配置写入临时文件，调用 `sing-box check -c /tmp/file.json` 验证
+- **Clash 格式**：解析 YAML 语法 + 检查 `proxies`/`proxy-groups`/`rules` 字段是否存在
+- 未安装二进制时返回 `skipped`，不阻断调试流程
+
+### 安全隔离（纵深防御）
+
+```bash
+timeout 5s unshare --net -- sing-box check -c /tmp/validate_xxx.json
+```
+
+| 措施 | 防范 |
+|------|------|
+| `unshare --net` | 网络命名空间隔离，即使 RCE 也无法发起网络连接 |
+| `timeout 5s` | 防止挂死、死循环 |
+| 临时文件 RAII | 用后即删，无法读写业务数据 |
+| Docker 容器边界 | 生产环境隔离，DB 在另一个容器 |
+| 版本锁定 | Dockerfile 固定版本 v1.11.0 |
+
+如果 `unshare` 不可用（权限不足），降级为 `timeout 5s sing-box check`。
+
+### SSE 事件格式
+
+```json
+// 校验通过
+{ "type": "validate", "data": { "valid": true, "method": "sing-box-binary" } }
+// 校验失败（红色警告）
+{ "type": "validate", "data": { "valid": false, "method": "sing-box-binary", "errors": ["..."] } }
+// 跳过（二进制未安装）
+{ "type": "validate", "data": { "skipped": true, "reason": "sing-box binary not found" } }
+```
+
+### 实现文件
+
+- `packages/server/src/handlers/proxy/validator.rs` — 校验器核心逻辑
+- `packages/web/src/components/dashboard/proxy/ProxyDebugModal/DebugStepContent.tsx` — 前端渲染
 
 ## 输出格式
 
