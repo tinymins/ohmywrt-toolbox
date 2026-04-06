@@ -177,9 +177,9 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       case "manual-servers":
         return t("proxy.debug.manualServers");
       case "source-start":
-        return `${t("proxy.debug.remoteSources")} #${step.data.sourceIndex + 1}`;
+        return `${t("proxy.debug.remoteSources")} #${step.data.sourceIndex}`;
       case "source-result":
-        return `${t("proxy.debug.remoteSources")} #${step.data.sourceIndex + 1}`;
+        return `${t("proxy.debug.remoteSources")} #${step.data.sourceIndex}`;
       case "merge":
         return t("proxy.debug.nodeMerge");
       case "output":
