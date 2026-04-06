@@ -637,8 +637,8 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
                   nodeWarnings?.has(tracingNodeName)
                     ? "gold"
                     : nodeIgnored?.has(tracingNodeName)
-                      ? "purple"
-                      : "blue"
+                      ? "#3a96dd"
+                      : "#13a10e"
                 }
               >
                 {tracingNodeName}
