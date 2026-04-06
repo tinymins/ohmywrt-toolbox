@@ -3,9 +3,9 @@ const dashboard = {
   unknownPage: "不明なページ",
   menu: {
     overview: "概要",
+    proxy: "プロキシ購読",
     toolsGroup: {
       _: "ツール",
-      proxy: "プロキシ購読",
       network: "ネットワーク",
     },
     settingsGroup: {

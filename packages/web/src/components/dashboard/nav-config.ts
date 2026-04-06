@@ -31,17 +31,17 @@ export const menuConfig: MenuItemConfig[] = [
     icon: "dashboard",
   },
   {
+    key: "proxy",
+    labelKey: "proxy",
+    routeSuffix: "/proxy",
+    icon: "globe",
+  },
+  {
     key: "toolsGroup",
     labelKey: "toolsGroup",
     routeSuffix: null,
     icon: "wrench",
     children: [
-      {
-        key: "proxy",
-        labelKey: "toolsGroup.proxy",
-        routeSuffix: "/proxy",
-        icon: "globe",
-      },
       {
         key: "network",
         labelKey: "toolsGroup.network",

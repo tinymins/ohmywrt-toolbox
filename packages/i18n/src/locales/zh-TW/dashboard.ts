@@ -3,9 +3,9 @@ const dashboard = {
   unknownPage: "未知頁面",
   menu: {
     overview: "概覽",
+    proxy: "代理訂閱",
     toolsGroup: {
       _: "工具",
-      proxy: "代理訂閱",
       network: "網路工具",
     },
     settingsGroup: {

@@ -3,9 +3,9 @@ const dashboard = {
   unknownPage: "Unknown page",
   menu: {
     overview: "Overview",
+    proxy: "Proxy Subscriptions",
     toolsGroup: {
       _: "Tools",
-      proxy: "Proxy Subscriptions",
       network: "Network Tools",
     },
     settingsGroup: {
