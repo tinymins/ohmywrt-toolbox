@@ -361,10 +361,11 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
         "tls": tls,
     });
 
-    // Port hopping: Clash Meta uses "ports" (e.g. "20000-40000")
-    // Sing-box uses "server_ports" (array of port range strings)
+    // Port hopping: Clash Meta uses "ports" with dash (e.g. "20000-40000")
+    // Sing-box uses "server_ports" with colon (e.g. ["20000:40000"])
     if let Some(ports) = proxy.str_field("ports") {
-        out["server_ports"] = json!([ports]);
+        let sb_ports = ports.replace('-', ":");
+        out["server_ports"] = json!([sb_ports]);
     }
 
     // Bandwidth hints: Clash uses "up"/"down" (e.g. "200 Mbps"),
