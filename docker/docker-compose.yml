@@ -34,6 +34,8 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-rs_fullstack_db}
     volumes:
       - ./${DATA_LOCAL_PATH:-data}/server:/app/data
+    security_opt:
+      - seccomp=seccomp.json
     depends_on:
       db:
         condition: service_healthy

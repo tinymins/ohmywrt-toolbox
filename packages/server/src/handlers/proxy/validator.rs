@@ -125,9 +125,10 @@ fn strip_ansi(s: &str) -> String {
 
 /// Validate a sing-box JSON config using the real binary.
 ///
-/// Security: runs with `unshare --net` (network namespace isolation)
-/// and `timeout 5s` to prevent hangs. Falls back to direct execution
-/// only if `ALLOW_INSECURE_VALIDATION=true` and unshare is unavailable.
+/// Security: runs with `unshare --user --net` (user + network namespace isolation,
+/// no capabilities required) or `unshare --net` (needs CAP_SYS_ADMIN) with
+/// `timeout 5s` to prevent hangs. Falls back to direct execution only if
+/// `ALLOW_INSECURE_VALIDATION=true` and both unshare variants are unavailable.
 pub async fn validate_singbox_config(config_json: &str, format: &str) -> ValidationResult {
     let allow_insecure = std::env::var("ALLOW_INSECURE_VALIDATION")
         .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
@@ -155,14 +156,37 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
     };
     let tmp_path = tmp.path().to_string_lossy().to_string();
 
-    // Try with unshare --net for network isolation, fall back to direct if
-    // ALLOW_INSECURE_VALIDATION=true and unshare is unavailable or lacks permissions.
+    // Try with unshare for network isolation.
+    // Prefer --user --net (unprivileged via user namespace, works in Docker with
+    // seccomp allowing unshare syscall). Fall back to --net only (needs CAP_SYS_ADMIN).
+    // If both fail, fall back to direct exec only when ALLOW_INSECURE_VALIDATION=true.
     let output = if which_exists("unshare") {
+        // Try --user --net first (no capabilities needed, just seccomp allowlist)
         let result = Command::new("timeout")
-            .args(["5s", "unshare", "--net", "--", &bin, "check", "-c", &tmp_path])
+            .args([
+                "5s", "unshare", "--user", "--net", "--", &bin, "check", "-c", &tmp_path,
+            ])
             .output()
             .await;
-        // Check if unshare itself failed (permission denied)
+        let result = match &result {
+            Ok(out) if !out.status.success() => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                if stderr.contains("Operation not permitted")
+                    || stderr.contains("Permission denied")
+                    || stderr.contains("unshare failed")
+                {
+                    // Try --net only (needs CAP_SYS_ADMIN)
+                    Command::new("timeout")
+                        .args(["5s", "unshare", "--net", "--", &bin, "check", "-c", &tmp_path])
+                        .output()
+                        .await
+                } else {
+                    result
+                }
+            }
+            _ => result,
+        };
+        // Check if both unshare variants failed
         match &result {
             Ok(out) if !out.status.success() => {
                 let stderr = String::from_utf8_lossy(&out.stderr);
@@ -171,15 +195,15 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
                     || stderr.contains("unshare failed")
                 {
                     if allow_insecure {
-                        warn!("unshare --net not permitted, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
+                        warn!("unshare not permitted, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
                         Command::new("timeout")
                             .args(["5s", &bin, "check", "-c", &tmp_path])
                             .output()
                             .await
                     } else {
-                        warn!("unshare --net not permitted and ALLOW_INSECURE_VALIDATION is not enabled");
+                        warn!("unshare not permitted and ALLOW_INSECURE_VALIDATION is not enabled");
                         return ValidationResult::skipped(
-                            "sandbox unavailable: unshare --net not permitted (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
+                            "sandbox unavailable: unshare not permitted (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
                         );
                     }
                 } else {
