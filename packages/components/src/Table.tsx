@@ -562,7 +562,7 @@ export function Table<T = Record<string, unknown>>({
         ref={scrollContainerRef}
         className={cn(
           "overflow-auto rounded-lg border border-black/[0.06] dark:border-white/[0.08]",
-          "backdrop-blur-xl bg-white/[0.03] dark:bg-white/[0.02]",
+          "backdrop-blur bg-white/[0.03] dark:bg-white/[0.02]",
         )}
         style={{
           ...(virtual && scroll?.y
