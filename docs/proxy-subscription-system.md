@@ -1,0 +1,218 @@
+# 代理订阅管理系统
+
+OhMyWRT Toolbox 的核心业务功能：聚合多个代理源，转换为多种输出格式，通过公开 URL 分享。
+
+## 整体流程
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                       用户配置                                    │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────┐              │
+│  │ 订阅源 URLs │  │ 手动节点JSONC │  │ 规则/分组   │              │
+│  └──────┬──────┘  └──────┬───────┘  └─────┬──────┘              │
+│         │                │                │                      │
+│         ▼                ▼                ▼                      │
+│  ┌────────────────────────────────────────────────────────┐      │
+│  │               fetch_proxies() 引擎                      │      │
+│  │  1. 解析手动节点 (JSONC)                                 │      │
+│  │  2. 逐源获取 (HTTP + 缓存 + 重试)                       │      │
+│  │  3. 解析 (base64 URI / YAML 自动检测)                    │      │
+│  │  4. 前缀标准化 + 过滤                                    │      │
+│  │  5. 图标追加                                             │      │
+│  └────────────────────┬───────────────────────────────────┘      │
+│                       │                                          │
+│                       ▼                                          │
+│  ┌────────────────────────────────────────────────────────┐      │
+│  │              格式转换 + 配置构建                          │      │
+│  │                                                        │      │
+│  │  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐  │      │
+│  │  │ Clash YAML  │  │ Clash-Meta   │  │  Sing-box    │  │      │
+│  │  │ (直接输出)   │  │  YAML(增强)  │  │ JSON(转换)   │  │      │
+│  │  └─────────────┘  └──────────────┘  └──────────────┘  │      │
+│  └────────────────────┬───────────────────────────────────┘      │
+│                       │                                          │
+│                       ▼                                          │
+│  ┌────────────────────────────────────────────────────────┐      │
+│  │           公开访问端点 + 访问日志                         │      │
+│  │  GET /api/public/proxy/{uuid}/{format}                 │      │
+│  └────────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+## 数据模型
+
+### ProxySubscribe（主实体）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | UUID | 主键 |
+| userId | UUID FK | 所有者 |
+| url | String UNIQUE | 公开访问的 UUID 标识 |
+| remark | String | 备注名 |
+| subscribeItems | JSONB | 订阅源列表（URL + 逐源 UA 配置） |
+| servers | Text | 手动节点（JSONC 格式） |
+| ruleList | JSONB | 规则提供商列表（25 类） |
+| group | JSONB | 代理分组配置（24 组） |
+| filter | JSONB | 排除过滤器 |
+| customConfig | Text | 额外 Clash 配置段 |
+| dnsConfig | JSONB | Sing-box DNS 配置 |
+| useSystem* | Boolean×5 | 是否使用系统默认配置 |
+| authorizedUserIds | JSONB | 授权共管用户列表 |
+| cacheTtlMinutes | Int | 缓存有效期（分钟） |
+| cachedNodeCount | Int | 最近缓存的节点数 |
+
+### ProxyAccessLog（访问日志）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| subscribeId | UUID FK | 关联订阅 |
+| accessType | String | 访问格式 (clash/sing-box/...) |
+| ip | String | 访问者 IP |
+| userAgent | String | 客户端 UA |
+| nodeCount | Int | 本次返回的节点数 |
+| createdAt | DateTime | 访问时间 |
+
+## 订阅源获取流程
+
+```
+fetch_and_parse(url, ua, ttl)
+  │
+  ├─ 1. 检查 TTL 缓存（url+ua 为 key）
+  │     命中且未过期 → 直接返回 (cached: true)
+  │
+  ├─ 2. HTTP GET（最多 3 次重试）
+  │     成功 + 节点数 > 0 → 写入缓存，返回
+  │     成功 + 节点数 = 0 → 重试
+  │     网络错误 → 重试
+  │
+  ├─ 3. 全部失败 → 检查兜底缓存（忽略 TTL）
+  │     有兜底 → 返回过期缓存 (cached: true)
+  │     无兜底 → 返回 None
+  │
+  └─ 缓存 Key: "{url}\0{ua}"（同一 URL 不同 UA 独立缓存）
+```
+
+**设计意图**：订阅源服务商经常临时不可用，兜底缓存确保不会因上游故障导致终端设备断网。
+
+## 解析器（Parser）
+
+自动检测两种格式：
+
+### Base64 URI 格式
+支持协议：`vless://`, `vmess://`, `ss://`, `trojan://`, `ssr://`, `hysteria://`, `hysteria2://`, `hy2://`, `anytls://`
+
+每个 URI 解析为 `ClashProxy` 结构体，字段映射到 Clash 格式的等价表示。
+
+### YAML 格式（Clash 配置）
+直接反序列化 `proxies` 数组，每个节点的已知字段（name, type, server, port）提取为结构体字段，其余全部捕获到 `extra: Map<String, Value>` 中。
+
+```rust
+pub struct ClashProxy {
+    pub name: String,
+    pub proxy_type: String,  // vmess, vless, ss, trojan, ...
+    pub server: String,
+    pub port: u16,
+    #[serde(flatten)]
+    pub extra: serde_json::Map<String, Value>,  // 所有其他字段
+}
+```
+
+> `#[serde(flatten)]` 是熵损检测的基础——它捕获了所有未知字段，使得后续可以追踪哪些被消费、哪些被遗漏。
+
+## 格式转换器（Converter）
+
+### 支持的代理类型
+
+| 类型 | Clash → Sing-box 映射 |
+|------|----------------------|
+| VMess | uuid, security, alter_id, transport, tls, multiplex |
+| VLESS | uuid, flow, transport, tls, multiplex |
+| Shadowsocks | method, password, plugin, plugin_opts |
+| Trojan | password, tls (强制启用), transport, multiplex |
+| Hysteria2 | password, hop_ports, up_mbps, down_mbps, multiplex |
+| Hysteria | auth_str, obfs, bandwidth |
+| TUIC | uuid, password, heartbeat, congestion_control |
+| HTTP | username, password, tls |
+| SOCKS5 | username, password, udp |
+| AnyTLS | password, client-fingerprint |
+
+### 公共构建器
+
+- **`build_tls()`**：TLS 配置（servername, alpn, skip-cert-verify, uTLS fingerprint, REALITY）
+- **`build_transport()`**：传输层（HTTP, WebSocket, HTTP/2, gRPC）
+- **`build_multiplex()`**：多路复用（Clash 的 `smux`/`multiplex` → Sing-box 的 `multiplex`）
+
+## 输出格式
+
+### Clash / Clash-Meta（YAML）
+直接输出 Clash 格式节点 + 代理分组 + 规则提供商 + DNS 配置。Clash-Meta 额外支持 Meta 特性。
+
+### Sing-box v11 / v12（JSON）
+完整的 Sing-box 配置，包含：
+- **outbounds**：转换后的代理节点 + 分组选择器
+- **route.rule_set**：远程规则集（指向 PUBLIC_SERVER_URL 的转换端点）
+- **dns**：FakeIP + 分流 DNS
+- **inbounds**：direct, tproxy (可选)
+- **experimental**：Clash API (可选)
+
+v12 与 v11 的主要差异在 DNS 配置结构和规则集引用方式。
+
+## API 端点
+
+### 认证端点（需登录）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/proxy/subscribes | 列出所有订阅 |
+| POST | /api/proxy/subscribes | 创建订阅 |
+| GET | /api/proxy/subscribes/{id} | 获取单个 |
+| PATCH | /api/proxy/subscribes/{id} | 更新订阅 |
+| DELETE | /api/proxy/subscribes/{id} | 删除订阅 |
+| GET | /api/proxy/subscribes/{id}/stats | 访问统计 |
+| GET | /api/proxy/subscribes/{id}/preview-nodes | 节点预览 |
+| GET | /api/proxy/subscribes/{id}/trace-node | 单节点追踪 |
+| POST | /api/proxy/debug | 调试流（SSE） |
+| POST | /api/proxy/test-source | 测试订阅源 |
+| POST | /api/proxy/clear-cache | 清除缓存 |
+| GET | /api/proxy/defaults | 系统默认配置 |
+| GET | /api/proxy/user-stats | 用户统计 |
+
+### 公开端点（无需认证）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/public/proxy/{uuid}/clash | Clash YAML |
+| GET | /api/public/proxy/{uuid}/clash-meta | Clash-Meta YAML |
+| GET | /api/public/proxy/{uuid}/sing-box | Sing-box v11 JSON |
+| GET | /api/public/proxy/{uuid}/sing-box/12 | Sing-box v12 JSON |
+
+## 缓存策略
+
+- **存储**：进程内存 HashMap（进程生命周期）
+- **Key**：`"{url}\0{ua}"` — 相同 URL 不同 UA 独立缓存
+- **TTL**：每个订阅可配置（`cacheTtlMinutes`）
+- **兜底**：TTL 过期后仍保留最后一次成功数据，在获取失败时作为降级返回
+
+## 系统默认配置
+
+### 规则提供商（25 类）
+Apple, Microsoft, Google, YouTube, TikTok, Netflix, Steam, Discord, Telegram, ChatGPT, AI, GitHub, Reddit, Crypto, Adobe, 广告拦截 等。
+
+### 代理分组（24 组）
+🔰 国外流量, 🏳️‍🌈 Google, ✈️ Telegram, 🎬 YouTube/TikTok/Netflix, 🎮 Steam/Discord, 🤖 ChatGPT/AI, 🐙 GitHub, 🪙 Crypto 等。
+
+### 默认过滤器
+排除包含"官网""客服""qq群"的节点名称。
+
+## 前端组件
+
+| 组件 | 职责 |
+|------|------|
+| ProxySubscribeList | 订阅列表（表格 + CRUD） |
+| ProxySubscribeModal | 创建/编辑订阅表单 |
+| ProxyPreviewModal | 节点预览表格 |
+| ProxyDebugModal | 实时调试（SSE 流） |
+| ProxyStatsModal | 访问统计 |
+| ProxyLinksModal | 公开链接展示 |
+| SubscribeItemsEditor | 订阅源 URL + UA 编辑器 |
+| DnsConfigEditor | DNS 配置编辑器 |

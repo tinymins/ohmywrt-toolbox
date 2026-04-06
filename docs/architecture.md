@@ -1,6 +1,16 @@
 # System Architecture Overview
 
-ACME Stack 是一个全栈 Web 应用脚手架，采用 pnpm monorepo 管理，Rust 后端 + React 前端，端到端类型安全。
+OhMyWRT Toolbox 是一个代理订阅管理平台，采用 pnpm monorepo 管理，Rust 后端 + React 前端，端到端类型安全。
+
+## 业务功能文档
+
+| 文档 | 说明 |
+|------|------|
+| [代理订阅管理系统](proxy-subscription-system.md) | 核心业务：订阅聚合、格式转换、公开分享 |
+| [节点数据丢失追踪](entropy-loss-detection.md) | 转换过程中的字段丢失检测机制 |
+| [认证与用户系统](auth-and-user-system.md) | Session 认证、角色体系、用户管理 |
+| [工作空间与多租户](workspace-system.md) | 工作空间隔离、成员管理、单工作空间模式 |
+| [环境变量架构](env-architecture.md) | 分层 `.env` 加载、变量分类、Docker 环境 |
 
 ## 架构图
 
@@ -32,7 +42,7 @@ ACME Stack 是一个全栈 Web 应用脚手架，采用 pnpm monorepo 管理，R
 项目使用 **pnpm workspaces + Turborepo** 管理多包依赖和构建顺序。
 
 ```
-react-nestjs-ai-boilerplate/
+ohmywrt-toolbox/
 ├── packages/
 │   ├── server/          # Rust 后端（Axum + Sea-ORM）
 │   ├── wasm/            # WebAssembly 模块
