@@ -94,7 +94,7 @@ export function Collapse({
             <button
               type="button"
               className={cn(
-                "flex w-full items-center gap-2 transition-colors",
+                "flex w-full items-center gap-2 cursor-pointer transition-colors",
                 padClass,
                 ghost
                   ? "hover:bg-black/[0.03] dark:hover:bg-white/[0.04]"
