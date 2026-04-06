@@ -71,7 +71,10 @@ export default {
     authorizedUsersPlaceholder: "输入用户ID",
     authorizedUsersOwnerOnly: "仅所有者可修改授权用户",
     cacheTtlTooltip: "缓存过期时间",
-    cacheTtlUnit: "分钟",
+    cacheTtlUnit: "分鐘",
+    fetchUaTooltip:
+      "自訂 User-Agent，不同訂閱源可能需要不同的 UA 偽裝才能正常取得節點",
+    fetchUaPlaceholder: "UA 偽裝（預設 clash.meta）",
     jsonFormatError: "JSON格式错误",
     dnsConfigLabel: "DNS 配置",
     dnsTabShared: "共享配置",

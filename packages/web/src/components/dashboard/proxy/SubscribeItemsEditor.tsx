@@ -39,6 +39,7 @@ const emptyItem = (): SubscribeItem => ({
   prefix: "",
   remark: "",
   cacheTtlMinutes: undefined,
+  fetchUa: undefined,
 });
 
 /** 单个订阅源卡片（可排序） */
@@ -117,7 +118,7 @@ const SortableCard = ({
         />
       </div>
 
-      {/* 第二行：备注 + 前缀 + 缓存（桌面端左右留白对齐上方 URL，移动端备注独立一行） */}
+      {/* 第二行：备注 + 前缀 + 缓存 + UA */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:pl-[22px] md:pr-[32px]">
         <Input
           size="small"
@@ -153,6 +154,20 @@ const SortableCard = ({
               addonAfter={t("proxy.form.cacheTtlUnit")}
               style={{ width: 130 }}
             />
+          </Tooltip>
+          <Tooltip title={t("proxy.form.fetchUaTooltip")}>
+            <div className="md:w-[180px]">
+              <Input
+                size="small"
+                placeholder={t("proxy.form.fetchUaPlaceholder")}
+                value={item.fetchUa ?? ""}
+                onChange={(e) =>
+                  onUpdate({
+                    fetchUa: e.target.value || undefined,
+                  })
+                }
+              />
+            </div>
           </Tooltip>
         </div>
       </div>

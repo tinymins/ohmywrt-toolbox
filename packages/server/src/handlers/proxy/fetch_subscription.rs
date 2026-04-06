@@ -21,16 +21,18 @@ pub struct FetchResult {
 
 /// Fetch and parse a subscription URL with retry + cache fallback.
 ///
+/// - `ua`: User-Agent to use for HTTP requests and cache key
 /// - `max_attempts`: total attempts including the first (default 3)
 /// - Returns `None` when all attempts produce 0 nodes AND no fallback exists.
 pub async fn fetch_and_parse(
     client: &reqwest::Client,
     url: &str,
+    ua: &str,
     cache_ttl_minutes: i32,
     max_attempts: u32,
 ) -> Option<FetchResult> {
     // 1. Try in-memory cache (TTL-aware)
-    if let Some(cached_text) = cache::get(url, cache_ttl_minutes) {
+    if let Some(cached_text) = cache::get(url, ua, cache_ttl_minutes) {
         let proxies = parse_subscription(&cached_text);
         if !proxies.is_empty() {
             return Some(FetchResult {
@@ -45,7 +47,7 @@ pub async fn fetch_and_parse(
 
     // 2. Fetch with retry
     for attempt in 1..=max_attempts {
-        match client.get(url).send().await {
+        match client.get(url).header("User-Agent", ua).send().await {
             Ok(resp) => {
                 let status = resp.status().as_u16();
                 match resp.text().await {
@@ -53,7 +55,7 @@ pub async fn fetch_and_parse(
                         let proxies = parse_subscription(&text);
                         if !proxies.is_empty() {
                             // Success → unconditionally write to cache
-                            cache::set(url, text.clone(), status);
+                            cache::set(url, ua, text.clone(), status);
                             return Some(FetchResult {
                                 text,
                                 proxies,
@@ -91,7 +93,7 @@ pub async fn fetch_and_parse(
     }
 
     // 3. All attempts failed → fallback to cache ignoring TTL
-    if let Some(fallback_text) = cache::get_fallback(url) {
+    if let Some(fallback_text) = cache::get_fallback(url, ua) {
         let proxies = parse_subscription(&fallback_text);
         if !proxies.is_empty() {
             warn!(

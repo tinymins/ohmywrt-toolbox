@@ -7,7 +7,8 @@
 ///
 /// When an upstream provider is temporarily unavailable (all fetch attempts
 /// return 0 nodes), `get_fallback` provides the last known good data.
-/// Cache is shared across subscriptions for the same URL.
+/// Cache is keyed by (URL, UA) pair — same URL with different User-Agents
+/// can return different content from providers.
 /// Cleared automatically on process restart.
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -25,15 +26,22 @@ struct CacheEntry {
 static CACHE: Lazy<Mutex<HashMap<String, CacheEntry>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
+/// Build a cache key from URL and User-Agent.
+/// Same URL with different UAs can return different content from providers.
+fn cache_key(url: &str, ua: &str) -> String {
+    format!("{}\0{}", url, ua)
+}
+
 /// TTL-aware cache read.
 /// Returns the cached text if within TTL; `None` if expired or absent.
 /// Does NOT delete expired entries (needed for `get_fallback`).
-pub fn get(url: &str, ttl_minutes: i32) -> Option<String> {
+pub fn get(url: &str, ua: &str, ttl_minutes: i32) -> Option<String> {
     if ttl_minutes <= 0 {
         return None;
     }
+    let key = cache_key(url, ua);
     let lock = CACHE.lock().ok()?;
-    let entry = lock.get(url)?;
+    let entry = lock.get(&key)?;
     let elapsed = entry.cached_at.elapsed();
     if elapsed.as_secs() < (ttl_minutes as u64) * 60 {
         Some(entry.text.clone())
@@ -43,16 +51,17 @@ pub fn get(url: &str, ttl_minutes: i32) -> Option<String> {
 }
 
 /// Fallback read that ignores TTL (returns most recent write regardless of age).
-pub fn get_fallback(url: &str) -> Option<String> {
+pub fn get_fallback(url: &str, ua: &str) -> Option<String> {
+    let key = cache_key(url, ua);
     let lock = CACHE.lock().ok()?;
-    lock.get(url).map(|e| e.text.clone())
+    lock.get(&key).map(|e| e.text.clone())
 }
 
 /// Unconditionally write/update a cache entry (updates both TTL cache and fallback data).
-pub fn set(url: &str, text: String, status: u16) {
+pub fn set(url: &str, ua: &str, text: String, status: u16) {
     if let Ok(mut lock) = CACHE.lock() {
         lock.insert(
-            url.to_string(),
+            cache_key(url, ua),
             CacheEntry {
                 text,
                 status,

@@ -72,6 +72,9 @@ export default {
     authorizedUsersOwnerOnly: "仅所有者可修改授权用户",
     cacheTtlTooltip: "缓存过期时间",
     cacheTtlUnit: "分钟",
+    fetchUaTooltip:
+      "自定义 User-Agent，不同订阅源可能需要不同的 UA 伪装才能正常获取节点",
+    fetchUaPlaceholder: "UA 伪装（默认 clash.meta）",
     jsonFormatError: "JSON格式错误",
     dnsConfigLabel: "DNS 配置",
     dnsTabShared: "共享配置",

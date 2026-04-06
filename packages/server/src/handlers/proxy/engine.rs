@@ -17,6 +17,14 @@ use super::{
 /// Using clash.meta — widely supported by providers (ClashforWindows is deprecated).
 pub(super) const DEFAULT_FETCH_UA: &str = "clash.meta";
 
+/// Resolve effective UA: use per-item value if non-empty, otherwise default.
+pub(super) fn resolve_ua(fetch_ua: Option<&str>) -> String {
+    match fetch_ua {
+        Some(ua) if !ua.trim().is_empty() => ua.trim().to_string(),
+        _ => DEFAULT_FETCH_UA.to_string(),
+    }
+}
+
 // ─── JSONC helpers ───
 
 /// Strip `//` line comments and `/* ... */` block comments from JSONC text.
@@ -286,13 +294,15 @@ pub async fn fetch_proxies_preview(
         enabled: Option<bool>,
         #[serde(default)]
         cache_ttl_minutes: Option<i32>,
+        #[serde(default)]
+        fetch_ua: Option<String>,
     }
 
     let items: Vec<SubItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
         parse_subscribe_url(url).into_iter().map(|u| SubItem {
-            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None, fetch_ua: None,
         }).collect()
     } else {
         Vec::new()
@@ -308,7 +318,6 @@ pub async fn fetch_proxies_preview(
 
     // 4. Fetch each enabled item
     let client = reqwest::Client::builder()
-        .user_agent(DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default();
@@ -317,8 +326,9 @@ pub async fn fetch_proxies_preview(
         if item.enabled == Some(false) { continue; }
         let source_index = idx + 1;
         let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
+        let ua = resolve_ua(item.fetch_ua.as_deref());
 
-        let result = fetch_subscription::fetch_and_parse(&client, &item.url, cache_ttl, 3).await;
+        let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
         let parsed = match result {
             Some(r) => r.proxies,
             None => {
@@ -391,13 +401,15 @@ pub async fn fetch_proxies(
         enabled: Option<bool>,
         #[serde(default)]
         cache_ttl_minutes: Option<i32>,
+        #[serde(default)]
+        fetch_ua: Option<String>,
     }
 
     let items: Vec<SubscribeItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
         parse_subscribe_url(url).into_iter().map(|u| SubscribeItem {
-            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None, fetch_ua: None,
         }).collect()
     } else {
         Vec::new()
@@ -420,7 +432,6 @@ pub async fn fetch_proxies(
 
     // 4. Fetch each enabled item
     let client = reqwest::Client::builder()
-        .user_agent(DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default();
@@ -431,8 +442,9 @@ pub async fn fetch_proxies(
         }
 
         let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
+        let ua = resolve_ua(item.fetch_ua.as_deref());
 
-        let result = fetch_subscription::fetch_and_parse(&client, &item.url, cache_ttl, 3).await;
+        let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
         let mut parsed = match result {
             Some(r) => r.proxies,
             None => {

@@ -74,6 +74,9 @@ export default {
     authorizedUsersOwnerOnly: "Only the owner can modify authorized users",
     cacheTtlTooltip: "Cache expiration time",
     cacheTtlUnit: "minutes",
+    fetchUaTooltip:
+      "Benutzerdefinierter User-Agent. Verschiedene Abonnementanbieter benötigen möglicherweise unterschiedliche UA",
+    fetchUaPlaceholder: "UA-Tarnung (Standard: clash.meta)",
     jsonFormatError: "JSON format error",
     dnsConfigLabel: "DNS Config",
     dnsTabShared: "Shared Config",

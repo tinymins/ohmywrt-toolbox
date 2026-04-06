@@ -111,6 +111,8 @@ export const SubscribeItemSchema = z.object({
   remark: z.string(),
   /** 缓存时间（分钟），0 或 undefined 表示不缓存 */
   cacheTtlMinutes: z.number().min(0).optional(),
+  /** 自定义 User-Agent（留空使用默认值 clash.meta） */
+  fetchUa: z.string().optional(),
 });
 
 export type SubscribeItem = z.infer<typeof SubscribeItemSchema>;

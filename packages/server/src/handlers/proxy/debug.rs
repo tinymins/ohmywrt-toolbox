@@ -34,6 +34,8 @@ struct SubItem {
     enabled: Option<bool>,
     #[serde(default)]
     cache_ttl_minutes: Option<i32>,
+    #[serde(default)]
+    fetch_ua: Option<String>,
 }
 
 fn parse_subscribe_items(sub: &proxy_subscribes::Model) -> Vec<SubItem> {
@@ -41,7 +43,7 @@ fn parse_subscribe_items(sub: &proxy_subscribes::Model) -> Vec<SubItem> {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
         engine::parse_subscribe_url(url).into_iter().map(|u| SubItem {
-            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None,
+            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None, fetch_ua: None,
         }).collect()
     } else {
         Vec::new()
@@ -122,7 +124,6 @@ fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> V
 
 fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .user_agent(engine::DEFAULT_FETCH_UA)
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .unwrap_or_default()
@@ -459,6 +460,7 @@ async fn run_debug_stream(
             continue;
         }
         let source_index = idx + 1;
+        let ua = engine::resolve_ua(item.fetch_ua.as_deref());
 
         // source-start
         if !send_event(
@@ -468,6 +470,7 @@ async fn run_debug_stream(
                 "data": {
                     "sourceIndex": source_index,
                     "url": item.url,
+                    "ua": ua,
                 }
             }),
         )
@@ -482,13 +485,13 @@ async fn run_debug_stream(
             .or(sub.cache_ttl_minutes)
             .unwrap_or(60);
 
-        let cached_text = cache::get(&item.url, cache_ttl);
+        let cached_text = cache::get(&item.url, &ua, cache_ttl);
         let is_cached = cached_text.is_some();
 
         let (text, http_status, http_headers, fetch_error) = if let Some(cached) = cached_text {
             (cached, None, Map::new(), None)
         } else {
-            match client.get(&item.url).send().await {
+            match client.get(&item.url).header("User-Agent", &ua).send().await {
                 Ok(resp) => {
                     let status = resp.status().as_u16();
                     let headers: Map<String, Value> = resp
@@ -528,7 +531,7 @@ async fn run_debug_stream(
         // Write to cache only after successful parse with >0 nodes (avoids caching failures)
         if !is_cached && !parsed.is_empty() {
             if let Some(status) = http_status {
-                cache::set(&item.url, text.clone(), status);
+                cache::set(&item.url, &ua, text.clone(), status);
             }
         }
 
