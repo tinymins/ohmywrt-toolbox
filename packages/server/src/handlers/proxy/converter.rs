@@ -362,8 +362,9 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
     });
 
     // Port hopping: Clash Meta uses "ports" (e.g. "20000-40000")
+    // Sing-box uses "server_ports" (array of port range strings)
     if let Some(ports) = proxy.str_field("ports") {
-        out["hop_ports"] = json!(ports);
+        out["server_ports"] = json!([ports]);
     }
 
     // Bandwidth hints: Clash uses "up"/"down" (e.g. "200 Mbps"),
@@ -612,6 +613,7 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
                 "alpn",
                 "ports",
                 "mport",
+                "hop-interval",
                 "up",
                 "down",
             ]);

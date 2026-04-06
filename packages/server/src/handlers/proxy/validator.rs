@@ -129,12 +129,33 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
     };
     let tmp_path = tmp.path().to_string_lossy().to_string();
 
-    // Try with unshare --net for network isolation, fall back to direct
+    // Try with unshare --net for network isolation, fall back to direct if
+    // unshare is unavailable or lacks permissions (Operation not permitted).
     let output = if which_exists("unshare") {
-        Command::new("timeout")
+        let result = Command::new("timeout")
             .args(["5s", "unshare", "--net", "--", &bin, "check", "-c", &tmp_path])
             .output()
-            .await
+            .await;
+        // Check if unshare itself failed (permission denied)
+        match &result {
+            Ok(out) if !out.status.success() => {
+                let stderr = String::from_utf8_lossy(&out.stderr);
+                if stderr.contains("Operation not permitted")
+                    || stderr.contains("Permission denied")
+                    || stderr.contains("unshare failed")
+                {
+                    // Retry without unshare
+                    warn!("unshare --net not permitted, falling back to direct execution");
+                    Command::new("timeout")
+                        .args(["5s", &bin, "check", "-c", &tmp_path])
+                        .output()
+                        .await
+                } else {
+                    result
+                }
+            }
+            _ => result,
+        }
     } else {
         Command::new("timeout")
             .args(["5s", &bin, "check", "-c", &tmp_path])
