@@ -1,10 +1,4 @@
-import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  Collapse,
-  Descriptions,
-  Tag,
-} from "@acme/components";
+import { Collapse, Tag } from "@acme/components";
 import type { ProxyDebugStep } from "@acme/types";
 import { useTranslation } from "react-i18next";
 
@@ -128,61 +122,23 @@ export const RuleSetsStepContent = ({ step }: { step: RuleSetsStep }) => {
 
   return (
     <div className="flex flex-col gap-2">
-      <Descriptions
-        size="small"
-        column={3}
-        bordered
-        items={[
-          {
-            label: t("proxy.debug.ruleSetCount"),
-            children: <Tag color="purple">{data.totalCount}</Tag>,
-          },
-          {
-            label: t("proxy.debug.ruleSetTotalRules"),
-            children: <Tag color="cyan">{data.totalRules}</Tag>,
-          },
-          {
-            label: t("proxy.debug.ruleSetErrors"),
-            children:
-              data.errorCount > 0 ? (
-                <Tag color="error">
-                  <CloseCircleOutlined className="mr-1" />
-                  {data.errorCount}
-                </Tag>
-              ) : (
-                <Tag color="green">
-                  <CheckCircleOutlined className="mr-1" />0
-                </Tag>
-              ),
-          },
-        ]}
-      />
-
       <Collapse
         size="small"
-        items={Array.from(grouped.entries()).map(([groupName, items]) => {
-          const groupRuleCount = items.reduce(
-            (sum, item) => sum + item.ruleCount,
-            0,
-          );
-          const groupErrorCount = items.filter(
-            (item) => item.status === "error",
-          ).length;
-
-          return {
-            key: groupName,
+        items={[
+          {
+            key: "rule-sets-detail",
             label: (
               <div className="flex gap-2 items-center flex-wrap">
-                <span>{groupName}</span>
+                <span>{t("proxy.debug.ruleSets")}</span>
                 <Tag className="!text-xs">
-                  {items.length} {t("proxy.debug.ruleSetSetsUnit")}
+                  {data.totalCount} {t("proxy.debug.ruleSetSetsUnit")}
                 </Tag>
                 <Tag color="cyan" className="!text-xs">
-                  {groupRuleCount} {t("proxy.debug.ruleSetRulesUnit")}
+                  {data.totalRules} {t("proxy.debug.ruleSetRulesUnit")}
                 </Tag>
-                {groupErrorCount > 0 && (
+                {data.errorCount > 0 && (
                   <Tag color="error" className="!text-xs">
-                    {groupErrorCount} {t("proxy.debug.error")}
+                    {data.errorCount} {t("proxy.debug.error")}
                   </Tag>
                 )}
               </div>
@@ -190,15 +146,51 @@ export const RuleSetsStepContent = ({ step }: { step: RuleSetsStep }) => {
             children: (
               <Collapse
                 size="small"
-                items={items.map((item) => ({
-                  key: item.tag,
-                  label: <RuleSetItemLabel item={item} />,
-                  children: <RuleSetItemContent item={item} />,
-                }))}
+                items={Array.from(grouped.entries()).map(
+                  ([groupName, items]) => {
+                    const groupRuleCount = items.reduce(
+                      (sum, item) => sum + item.ruleCount,
+                      0,
+                    );
+                    const groupErrorCount = items.filter(
+                      (item) => item.status === "error",
+                    ).length;
+
+                    return {
+                      key: groupName,
+                      label: (
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <span>{groupName}</span>
+                          <Tag className="!text-xs">
+                            {items.length} {t("proxy.debug.ruleSetSetsUnit")}
+                          </Tag>
+                          <Tag color="cyan" className="!text-xs">
+                            {groupRuleCount} {t("proxy.debug.ruleSetRulesUnit")}
+                          </Tag>
+                          {groupErrorCount > 0 && (
+                            <Tag color="error" className="!text-xs">
+                              {groupErrorCount} {t("proxy.debug.error")}
+                            </Tag>
+                          )}
+                        </div>
+                      ),
+                      children: (
+                        <Collapse
+                          size="small"
+                          items={items.map((item) => ({
+                            key: item.tag,
+                            label: <RuleSetItemLabel item={item} />,
+                            children: <RuleSetItemContent item={item} />,
+                          }))}
+                        />
+                      ),
+                    };
+                  },
+                )}
               />
             ),
-          };
-        })}
+          },
+        ]}
       />
     </div>
   );
