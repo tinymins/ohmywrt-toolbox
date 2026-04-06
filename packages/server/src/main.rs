@@ -36,7 +36,13 @@ fn main() {
 }
 
 async fn async_main() {
+    // 1. Load packages/server/.env (tech-stack config: LOG_LEVEL etc.)
     dotenvy::dotenv().ok();
+    // 2. Load root .env (business config: DATABASE_URL, PUBLIC_SERVER_URL etc.)
+    //    dotenvy won't overwrite vars already set, so inner .env takes precedence.
+    let workspace_root = env!("APPS_WORKSPACE_ROOT");
+    let root_env = std::path::Path::new(workspace_root).join(".env");
+    dotenvy::from_path(&root_env).ok();
 
     // Priority: RUST_LOG > LOG_LEVEL > default (info)
     let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
