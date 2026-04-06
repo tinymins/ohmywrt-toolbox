@@ -33,6 +33,7 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       DATA_LOCAL_PATH: ./${DATA_LOCAL_PATH:-data}
       PUBLIC_SERVER_URL: ${PUBLIC_SERVER_URL:-}
+      SINGLE_WORKSPACE_MODE_OVERRIDE: ${SINGLE_WORKSPACE_MODE_OVERRIDE:-}
     volumes:
       - ./${DATA_LOCAL_PATH:-data}/server:/app/data
     depends_on:
