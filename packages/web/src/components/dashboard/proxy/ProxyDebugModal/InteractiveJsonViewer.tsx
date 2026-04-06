@@ -1,6 +1,109 @@
 import type { FieldOrigin } from "@acme/types";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+
+// ─── Key color by transform type (risk-ordered: green=safe → red=risky) ───
+
+const KEY_COLORS: Record<string, string> = {
+  direct: "text-green-700 dark:text-green-400",
+  rename: "text-sky-700 dark:text-sky-400",
+  convert: "text-violet-700 dark:text-violet-400",
+  extract: "text-amber-700 dark:text-amber-400",
+  fallback: "text-orange-600 dark:text-orange-400",
+  container: "text-slate-500 dark:text-slate-400",
+  generated: "text-red-600 dark:text-red-400",
+};
+
+const DEFAULT_KEY_COLOR = "text-gray-700 dark:text-gray-300";
+
+function resolveOrigin(
+  path: string,
+  fieldOrigins?: Record<string, FieldOrigin>,
+): FieldOrigin | undefined {
+  if (!fieldOrigins) return undefined;
+  const direct = fieldOrigins[path];
+  if (direct) return direct;
+  // Array element inherits parent
+  const parent = path.replace(/\[\d+\]$/, "");
+  return parent !== path ? fieldOrigins[parent] : undefined;
+}
+
+function keyColorClass(
+  path: string,
+  fieldOrigins?: Record<string, FieldOrigin>,
+): string {
+  const origin = resolveOrigin(path, fieldOrigins);
+  if (!origin) return DEFAULT_KEY_COLOR;
+  return KEY_COLORS[origin.transform] ?? DEFAULT_KEY_COLOR;
+}
+
+// ─── Tooltip ───
+
+interface TooltipState {
+  text: string;
+  x: number;
+  y: number;
+}
+
+function useKeyTooltip(fieldOrigins?: Record<string, FieldOrigin>) {
+  const { t } = useTranslation();
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const show = useCallback(
+    (path: string, e: React.MouseEvent) => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+      const origin = resolveOrigin(path, fieldOrigins);
+      if (!origin) return;
+
+      const stepLabel = t(`proxy.debug.originStep.${origin.step}`);
+      const transformLabel = t(
+        `proxy.debug.originTransform.${origin.transform}`,
+      );
+      const icon = STEP_ICONS[origin.step] ?? "❓";
+      let text = `${transformLabel} · ${icon} ${stepLabel}`;
+      if (origin.sourceKey) text += ` ← ${origin.sourceKey}`;
+      if (
+        origin.reason &&
+        origin.reason !== "converter_internal" &&
+        origin.transform === "generated"
+      ) {
+        const reasonText = t(
+          `proxy.debug.originReason.${origin.reason}`,
+          origin.reason,
+        );
+        text += ` · ${reasonText}`;
+      }
+
+      const rect = containerRef.current?.getBoundingClientRect();
+      const x = e.clientX - (rect?.left ?? 0);
+      const y = e.clientY - (rect?.top ?? 0);
+      setTooltip({ text, x, y });
+    },
+    [fieldOrigins, t],
+  );
+
+  const hide = useCallback(() => {
+    hideTimer.current = setTimeout(() => setTooltip(null), 150);
+  }, []);
+
+  return { tooltip, show, hide, containerRef };
+}
+
+function Tooltip({ state }: { state: TooltipState | null }) {
+  if (!state) return null;
+  return (
+    <div
+      className="absolute z-50 max-w-xs px-2 py-1 text-[10px] leading-tight font-sans rounded shadow-lg bg-gray-800 text-gray-100 dark:bg-gray-200 dark:text-gray-900 pointer-events-none whitespace-nowrap"
+      style={{ left: state.x, top: state.y - 28 }}
+    >
+      {state.text}
+    </div>
+  );
+}
+
+// ─── Exports ───
 
 interface InteractiveJsonViewerProps {
   data: Record<string, unknown>;
@@ -15,28 +118,60 @@ export function InteractiveJsonViewer({
   maxHeight,
 }: InteractiveJsonViewerProps) {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const { tooltip, show, hide, containerRef } = useKeyTooltip(fieldOrigins);
 
   const origin = selectedPath ? fieldOrigins?.[selectedPath] : undefined;
 
   return (
     <div className="flex flex-col gap-2">
-      <div
-        className="!p-3 !text-xs !bg-gray-50 dark:!bg-gray-900 !rounded-md !overflow-auto !font-mono leading-5"
-        style={{ maxHeight: maxHeight ?? 400 }}
-      >
-        <JsonNode
-          value={data}
-          path=""
-          selectedPath={selectedPath}
-          onSelect={setSelectedPath}
-          indent={0}
-          isLast
-        />
+      <div ref={containerRef} className="relative">
+        <div
+          className="!p-3 !text-xs !bg-gray-50 dark:!bg-gray-900 !rounded-md !overflow-auto !font-mono leading-5"
+          style={{ maxHeight: maxHeight ?? 400 }}
+        >
+          <JsonNode
+            value={data}
+            path=""
+            selectedPath={selectedPath}
+            onSelect={setSelectedPath}
+            fieldOrigins={fieldOrigins}
+            onHoverKey={show}
+            onLeaveKey={hide}
+            indent={0}
+            isLast
+          />
+        </div>
+        <Tooltip state={tooltip} />
       </div>
       <FieldOriginPanel
         path={selectedPath}
         origin={origin}
         fieldOrigins={fieldOrigins}
+      />
+    </div>
+  );
+}
+
+/** Read-only JSON syntax highlighter (no provenance, no click) */
+export function SyntaxJsonViewer({
+  data,
+  maxHeight,
+}: {
+  data: unknown;
+  maxHeight?: number;
+}) {
+  return (
+    <div
+      className="!p-3 !text-xs !bg-gray-50 dark:!bg-gray-900 !rounded-md !overflow-auto !font-mono leading-5"
+      style={{ maxHeight: maxHeight ?? 400 }}
+    >
+      <JsonNode
+        value={data}
+        path=""
+        selectedPath={null}
+        onSelect={() => {}}
+        indent={0}
+        isLast
       />
     </div>
   );
@@ -49,6 +184,9 @@ function JsonNode({
   path,
   selectedPath,
   onSelect,
+  fieldOrigins,
+  onHoverKey,
+  onLeaveKey,
   indent,
   isLast,
 }: {
@@ -56,6 +194,9 @@ function JsonNode({
   path: string;
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  fieldOrigins?: Record<string, FieldOrigin>;
+  onHoverKey?: (path: string, e: React.MouseEvent) => void;
+  onLeaveKey?: () => void;
   indent: number;
   isLast: boolean;
 }) {
@@ -101,6 +242,9 @@ function JsonNode({
               path={`${path}[${i}]`}
               selectedPath={selectedPath}
               onSelect={onSelect}
+              fieldOrigins={fieldOrigins}
+              onHoverKey={onHoverKey}
+              onLeaveKey={onLeaveKey}
               indent={indent + 1}
               isLast={i === value.length - 1}
             />
@@ -131,13 +275,16 @@ function JsonNode({
           const isChildSelected =
             selectedPath?.startsWith(`${childPath}.`) ||
             selectedPath?.startsWith(`${childPath}[`);
+          const color = fieldOrigins
+            ? keyColorClass(childPath, fieldOrigins)
+            : DEFAULT_KEY_COLOR;
 
           return (
             <div key={key} style={{ paddingLeft: 16 }}>
               <span
-                className={`cursor-pointer rounded px-0.5 -mx-0.5 transition-colors ${
+                className={`cursor-pointer rounded px-0.5 -mx-0.5 transition-colors ${color} ${
                   isSelected
-                    ? "bg-yellow-200 dark:bg-yellow-800/60 text-yellow-900 dark:text-yellow-100"
+                    ? "!bg-yellow-200 dark:!bg-yellow-800/60 ring-1 ring-yellow-400 dark:ring-yellow-600"
                     : isChildSelected
                       ? "bg-yellow-50 dark:bg-yellow-900/20"
                       : "hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -146,6 +293,8 @@ function JsonNode({
                   e.stopPropagation();
                   onSelect(childPath);
                 }}
+                onMouseEnter={(e) => onHoverKey?.(childPath, e)}
+                onMouseLeave={() => onLeaveKey?.()}
               >
                 &quot;{key}&quot;
               </span>
@@ -155,6 +304,9 @@ function JsonNode({
                 path={childPath}
                 selectedPath={selectedPath}
                 onSelect={onSelect}
+                fieldOrigins={fieldOrigins}
+                onHoverKey={onHoverKey}
+                onLeaveKey={onLeaveKey}
                 indent={indent + 1}
                 isLast={i === entries.length - 1}
               />

@@ -25,7 +25,10 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
-import { InteractiveJsonViewer } from "./InteractiveJsonViewer";
+import {
+  InteractiveJsonViewer,
+  SyntaxJsonViewer,
+} from "./InteractiveJsonViewer";
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -42,6 +45,16 @@ const CodeBlock = ({
     {content}
   </pre>
 );
+
+/** Try to render as syntax-highlighted JSON, fall back to plain CodeBlock */
+const OutputJsonBlock = ({ content }: { content: string }) => {
+  try {
+    const parsed = JSON.parse(content);
+    return <SyntaxJsonViewer data={parsed} maxHeight={400} />;
+  } catch {
+    return <CodeBlock content={content} maxHeight={400} />;
+  }
+};
 
 /** 追踪步骤: 来源 */
 const SourceTraceContent = ({
@@ -98,10 +111,7 @@ const SourceTraceContent = ({
                   key: "raw",
                   label: t("proxy.debug.traceRawData"),
                   children: (
-                    <CodeBlock
-                      content={JSON.stringify(data.rawData, null, 2)}
-                      maxHeight={300}
-                    />
+                    <SyntaxJsonViewer data={data.rawData} maxHeight={300} />
                   ),
                 },
               ]),
@@ -128,10 +138,7 @@ const ParseTraceContent = ({
           key: "clash",
           label: t("proxy.debug.traceClashProxy"),
           children: (
-            <CodeBlock
-              content={JSON.stringify(step.data.clashProxy, null, 2)}
-              maxHeight={300}
-            />
+            <SyntaxJsonViewer data={step.data.clashProxy} maxHeight={300} />
           ),
         },
       ]}
@@ -385,9 +392,7 @@ const OutputTraceContent = ({
         {
           key: "fragment",
           label: t("proxy.debug.traceConfigFragment"),
-          children: (
-            <CodeBlock content={step.data.configFragment} maxHeight={400} />
-          ),
+          children: <OutputJsonBlock content={step.data.configFragment} />,
         },
       ]}
     />
