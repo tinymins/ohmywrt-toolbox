@@ -3,10 +3,9 @@ use tracing::warn;
 
 use crate::db::entities::proxy_subscribes;
 
-use super::cache;
 use super::converter::convert_clash_proxy_to_singbox;
+use super::fetch_subscription;
 use super::icons::append_icon;
-use super::parser::parse_subscription;
 use super::types::ClashProxy;
 use super::{
     DEFAULT_CUSTOM_CONFIG_JSON, DEFAULT_FILTER_JSON,
@@ -318,32 +317,21 @@ pub async fn fetch_proxies_preview(
         let source_index = idx + 1;
         let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
 
-        let text = if let Some(cached) = cache::get(&item.url, cache_ttl) {
-            cached
-        } else {
-            match client.get(&item.url).send().await {
-                Ok(resp) => {
-                    let status = resp.status().as_u16();
-                    match resp.text().await {
-                        Ok(text) => {
-                            if cache_ttl > 0 { cache::set(&item.url, text.clone(), status); }
-                            text
-                        }
-                        Err(e) => { warn!("Failed to read response from {}: {}", item.url, e); continue; }
-                    }
-                }
-                Err(e) => { warn!("Failed to fetch subscription {}: {}", item.url, e); continue; }
+        let result = fetch_subscription::fetch_and_parse(&client, &item.url, cache_ttl, 3).await;
+        let parsed = match result {
+            Some(r) => r.proxies,
+            None => {
+                warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+                continue;
             }
         };
 
-        let mut parsed = parse_subscription(&text);
         let normalized_prefix = normalize_prefix(&item.prefix);
-        if !normalized_prefix.is_empty() {
-            for p in &mut parsed { p.name = format!("{}{}", normalized_prefix, p.name); }
-        }
-
         for p in parsed {
             let mut p = p;
+            if !normalized_prefix.is_empty() {
+                p.name = format!("{}{}", normalized_prefix, p.name);
+            }
             p.name = append_icon(&p.name);
             let matched_filter = filter.iter().find(|f| p.name.contains(f.as_str())).cloned();
             let raw = serde_json::to_value(&p).unwrap_or_default();
@@ -443,34 +431,14 @@ pub async fn fetch_proxies(
 
         let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
 
-        // Check cache
-        let text = if let Some(cached) = cache::get(&item.url, cache_ttl) {
-            cached
-        } else {
-            match client.get(&item.url).send().await {
-                Ok(resp) => {
-                    let status = resp.status().as_u16();
-                    match resp.text().await {
-                        Ok(text) => {
-                            if cache_ttl > 0 {
-                                cache::set(&item.url, text.clone(), status);
-                            }
-                            text
-                        }
-                        Err(e) => {
-                            warn!("Failed to read response from {}: {}", item.url, e);
-                            continue;
-                        }
-                    }
-                }
-                Err(e) => {
-                    warn!("Failed to fetch subscription {}: {}", item.url, e);
-                    continue;
-                }
+        let result = fetch_subscription::fetch_and_parse(&client, &item.url, cache_ttl, 3).await;
+        let mut parsed = match result {
+            Some(r) => r.proxies,
+            None => {
+                warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+                continue;
             }
         };
-
-        let mut parsed = parse_subscription(&text);
 
         // Prepend prefix (normalized)
         let normalized_prefix = normalize_prefix(&item.prefix);

@@ -2,6 +2,7 @@ pub mod cache;
 pub mod converter;
 pub mod debug;
 pub mod engine;
+pub mod fetch_subscription;
 pub mod icons;
 pub mod parser;
 pub mod types;

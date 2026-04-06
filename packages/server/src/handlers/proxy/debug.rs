@@ -502,9 +502,7 @@ async fn run_debug_stream(
                         .collect();
                     match resp.text().await {
                         Ok(text) => {
-                            if cache_ttl > 0 {
-                                cache::set(&item.url, text.clone(), status);
-                            }
+                            // Cache write moved after parsing (only when >0 nodes)
                             (text, Some(status), headers, None)
                         }
                         Err(e) => (String::new(), Some(status), headers, Some(e.to_string())),
@@ -526,6 +524,13 @@ async fn run_debug_stream(
         } else {
             parse_subscription(&text)
         };
+
+        // Write to cache only after successful parse with >0 nodes (avoids caching failures)
+        if !is_cached && !parsed.is_empty() {
+            if let Some(status) = http_status {
+                cache::set(&item.url, text.clone(), status);
+            }
+        }
 
         let normalized_prefix = normalize_prefix(&item.prefix);
         if !normalized_prefix.is_empty() {
