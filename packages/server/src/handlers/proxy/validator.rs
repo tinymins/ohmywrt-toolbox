@@ -127,8 +127,11 @@ fn strip_ansi(s: &str) -> String {
 ///
 /// Security: runs with `unshare --net` (network namespace isolation)
 /// and `timeout 5s` to prevent hangs. Falls back to direct execution
-/// if unshare is unavailable.
+/// only if `ALLOW_INSECURE_VALIDATION=true` and unshare is unavailable.
 pub async fn validate_singbox_config(config_json: &str, format: &str) -> ValidationResult {
+    let allow_insecure = std::env::var("ALLOW_INSECURE_VALIDATION")
+        .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
+        .unwrap_or(false);
     let bin = match find_singbox_bin(format) {
         Some(b) => b,
         None => {
@@ -153,7 +156,7 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
     let tmp_path = tmp.path().to_string_lossy().to_string();
 
     // Try with unshare --net for network isolation, fall back to direct if
-    // unshare is unavailable or lacks permissions (Operation not permitted).
+    // ALLOW_INSECURE_VALIDATION=true and unshare is unavailable or lacks permissions.
     let output = if which_exists("unshare") {
         let result = Command::new("timeout")
             .args(["5s", "unshare", "--net", "--", &bin, "check", "-c", &tmp_path])
@@ -167,23 +170,34 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
                     || stderr.contains("Permission denied")
                     || stderr.contains("unshare failed")
                 {
-                    // Retry without unshare
-                    warn!("unshare --net not permitted, falling back to direct execution");
-                    Command::new("timeout")
-                        .args(["5s", &bin, "check", "-c", &tmp_path])
-                        .output()
-                        .await
+                    if allow_insecure {
+                        warn!("unshare --net not permitted, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
+                        Command::new("timeout")
+                            .args(["5s", &bin, "check", "-c", &tmp_path])
+                            .output()
+                            .await
+                    } else {
+                        warn!("unshare --net not permitted and ALLOW_INSECURE_VALIDATION is not enabled");
+                        return ValidationResult::skipped(
+                            "sandbox unavailable: unshare --net not permitted (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
+                        );
+                    }
                 } else {
                     result
                 }
             }
             _ => result,
         }
-    } else {
+    } else if allow_insecure {
+        warn!("unshare not found, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
         Command::new("timeout")
             .args(["5s", &bin, "check", "-c", &tmp_path])
             .output()
             .await
+    } else {
+        return ValidationResult::skipped(
+            "sandbox unavailable: unshare not found (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
+        );
     };
 
     // tmp file is dropped (deleted) here automatically
