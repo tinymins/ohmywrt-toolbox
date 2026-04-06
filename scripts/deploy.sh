@@ -96,7 +96,6 @@ check_required_var "DEPLOY_LOCAL_TMP"
 check_required_var "DEPLOY_REMOTE_TMP"
 check_required_var "DEPLOY_REMOTE_DIR"
 check_required_var "DEPLOY_IMAGE_FILE"
-check_required_var "DEPLOY_PORT"
 
 # 使用环境变量
 SERVER="$DEPLOY_SERVER"
@@ -104,7 +103,10 @@ LOCAL_TMP="$DEPLOY_LOCAL_TMP"
 REMOTE_TMP="$DEPLOY_REMOTE_TMP"
 REMOTE_DIR="$DEPLOY_REMOTE_DIR"
 IMAGE_FILE="$DEPLOY_IMAGE_FILE"
-PORT="$DEPLOY_PORT"
+
+# 生产环境配置文件（docker/.env）
+DOCKER_ENV="${PROJECT_ROOT}/docker/.env"
+DOCKER_ENV_EXAMPLE="${PROJECT_ROOT}/docker/.env.example"
 
 cd "$PROJECT_ROOT"
 log_info "工作目录: $PROJECT_ROOT"
@@ -178,21 +180,19 @@ upload_configs() {
         scp docker/docker-compose.debug.yml "${SERVER}:${REMOTE_DIR}/"
     fi
 
-    # 检查 .env 是否存在，不存在则上传 docker/.env.example
-    if ! ssh "$SERVER" "test -f ${REMOTE_DIR}/.env"; then
-        if [ -f "docker/.env.example" ]; then
-            log_info "上传 docker/.env.example 为 .env..."
-            scp docker/.env.example "${SERVER}:${REMOTE_DIR}/.env"
-        else
-            log_warn ".env.example 不存在，请手动创建 .env 文件"
-        fi
-    else
-        log_info ".env 已存在，跳过上传"
+    # 上传生产环境 .env
+    if [ ! -f "$DOCKER_ENV" ]; then
+        log_error "生产环境配置文件不存在: docker/.env"
+        log_info ""
+        log_info "请先创建生产环境配置:"
+        log_info "  cp docker/.env.example docker/.env"
+        log_info ""
+        log_info "然后根据你的环境修改 docker/.env 中的配置"
+        exit 1
     fi
 
-    # 同步端口配置到服务器 .env
-    log_info "同步端口配置: WEB_PORT=${PORT}"
-    ssh "$SERVER" "sed -i 's/^WEB_PORT=.*/WEB_PORT=${PORT}/' ${REMOTE_DIR}/.env || echo 'WEB_PORT=${PORT}' >> ${REMOTE_DIR}/.env"
+    log_info "上传 docker/.env 到服务器..."
+    scp "$DOCKER_ENV" "${SERVER}:${REMOTE_DIR}/.env"
 
     log_success "配置文件检查完成"
 }
@@ -318,10 +318,12 @@ full_deploy() {
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
 
+    local deploy_port=$(grep -E '^WEB_PORT=' "$DOCKER_ENV" 2>/dev/null | cut -d'=' -f2- || echo "8080")
+
     log_success "========== 部署完成 =========="
     log_info "总耗时: ${duration} 秒"
     log_info ""
-    log_info "服务地址: http://${SERVER}:${PORT}"
+    log_info "服务地址: http://${SERVER}:${deploy_port}"
     log_info ""
     log_info "如需执行数据库迁移，运行: $0 -m"
 }
