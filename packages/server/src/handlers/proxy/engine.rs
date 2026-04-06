@@ -14,7 +14,8 @@ use super::{
 
 /// Default User-Agent for fetching subscription URLs.
 /// Many providers block requests without a recognized proxy client UA.
-pub(super) const DEFAULT_FETCH_UA: &str = "ClashforWindows/0.20.39";
+/// Using clash.meta — widely supported by providers (ClashforWindows is deprecated).
+pub(super) const DEFAULT_FETCH_UA: &str = "clash.meta";
 
 // ─── JSONC helpers ───
 
