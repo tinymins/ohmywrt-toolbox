@@ -212,6 +212,8 @@ export default {
     entropyWarningShort: "Warnungen",
     entropyWarningTip:
       "Dieser Knoten hat Konfigurationsfelder während der Formatkonvertierung verloren. Klicken Sie zum Verfolgen.",
+    ignoredFieldsTip:
+      "Dieser Knoten hat Felder, die absichtlich ignoriert wurden (nicht anwendbar auf das Zielformat). Klicken Sie zum Verfolgen.",
     lostFieldsLabel: "Bei der Konvertierung verlorene Felder:",
     ignoredFieldsLabel:
       "Absichtlich ignorierte Felder (nicht auf Zielformat anwendbar):",

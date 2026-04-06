@@ -210,6 +210,8 @@ export default {
     entropyWarningShort: "warnings",
     entropyWarningTip:
       "This node has configuration fields lost during format conversion. Click to trace details.",
+    ignoredFieldsTip:
+      "This node has fields intentionally ignored (not applicable to target format). Click to trace details.",
     lostFieldsLabel: "Fields lost during conversion:",
     ignoredFieldsLabel:
       "Fields intentionally ignored (inapplicable to target format):",

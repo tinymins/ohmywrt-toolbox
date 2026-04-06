@@ -618,18 +618,18 @@ async fn run_debug_stream(
 
     // Step: merge — with per-node entropy-loss warnings for sing-box
     let final_node_names: Vec<String> = all_proxies.iter().map(|p| p.name.clone()).collect();
-    let node_warnings: Vec<String> = if format == "sing-box" || format == "sing-box-v12" {
-        all_proxies
-            .iter()
-            .filter(|p| {
-                let (_, lost, _ignored) = convert_clash_proxy_to_singbox_with_diff(p);
-                !lost.is_empty()
-            })
-            .map(|p| p.name.clone())
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let mut node_warnings: Vec<String> = Vec::new();
+    let mut node_ignored: Vec<String> = Vec::new();
+    if format == "sing-box" || format == "sing-box-v12" {
+        for p in &all_proxies {
+            let (_, lost, ignored) = convert_clash_proxy_to_singbox_with_diff(p);
+            if !lost.is_empty() {
+                node_warnings.push(p.name.clone());
+            } else if !ignored.is_empty() {
+                node_ignored.push(p.name.clone());
+            }
+        }
+    }
     if !send_event(
         tx,
         json!({
@@ -640,6 +640,7 @@ async fn run_debug_stream(
                 "totalFiltered": total_filtered,
                 "finalNodeNames": final_node_names,
                 "nodeWarnings": node_warnings,
+                "nodeIgnored": node_ignored,
             }
         }),
     )

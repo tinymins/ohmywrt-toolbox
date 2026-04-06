@@ -484,13 +484,15 @@ export const MergeStepContent = ({
   const { t } = useTranslation();
   const { data } = step;
   const warningSet = new Set(data.nodeWarnings ?? []);
+  const ignoredSet = new Set(data.nodeIgnored ?? []);
   const warningCount = warningSet.size;
+  const ignoredCount = ignoredSet.size;
 
   return (
     <div className="flex flex-col gap-2">
       <Descriptions
         size="small"
-        column={warningCount > 0 ? 4 : 3}
+        column={warningCount > 0 || ignoredCount > 0 ? 4 : 3}
         bordered
         items={[
           {
@@ -536,18 +538,22 @@ export const MergeStepContent = ({
               <div className="flex flex-wrap gap-1">
                 {data.finalNodeNames.map((name: string, _i: number) => {
                   const hasWarning = warningSet.has(name);
+                  const hasIgnored = ignoredSet.has(name);
+                  const tagColor = hasWarning
+                    ? "gold"
+                    : hasIgnored
+                      ? "cyan"
+                      : "green";
+                  const tooltipTitle = hasWarning
+                    ? t("proxy.debug.entropyWarningTip")
+                    : hasIgnored
+                      ? t("proxy.debug.ignoredFieldsTip")
+                      : t("proxy.debug.traceNode");
                   return onTraceNode ? (
-                    <Tooltip
-                      key={name}
-                      title={
-                        hasWarning
-                          ? t("proxy.debug.entropyWarningTip")
-                          : t("proxy.debug.traceNode")
-                      }
-                    >
+                    <Tooltip key={name} title={tooltipTitle}>
                       <Tag
                         className="cursor-pointer"
-                        color={hasWarning ? "gold" : "blue"}
+                        color={tagColor}
                         onClick={() => onTraceNode(name)}
                       >
                         <AimOutlined className="mr-1" />
@@ -555,7 +561,7 @@ export const MergeStepContent = ({
                       </Tag>
                     </Tooltip>
                   ) : (
-                    <Tag key={name} color={hasWarning ? "gold" : undefined}>
+                    <Tag key={name} color={tagColor}>
                       {name}
                     </Tag>
                   );

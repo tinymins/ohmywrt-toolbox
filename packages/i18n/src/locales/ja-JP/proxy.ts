@@ -211,6 +211,8 @@ export default {
     entropyWarningShort: "警告",
     entropyWarningTip:
       "このノードはフォーマット変換中に設定フィールドが失われました。クリックして詳細を確認してください。",
+    ignoredFieldsTip:
+      "このノードにはターゲット形式に適用されないため意図的に無視されたフィールドがあります。クリックして詳細を確認してください。",
     lostFieldsLabel: "変換中に失われたフィールド:",
     ignoredFieldsLabel:
       "対象フォーマットに適用されないため意図的に無視されたフィールド:",

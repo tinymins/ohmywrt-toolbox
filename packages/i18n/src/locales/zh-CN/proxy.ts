@@ -208,6 +208,8 @@ export default {
     entropyWarning: "信息丢失",
     entropyWarningShort: "警告",
     entropyWarningTip: "该节点在格式转换中存在配置信息丢失，点击追踪查看详情",
+    ignoredFieldsTip:
+      "该节点有部分字段因目标格式不适用已忽略，点击追踪查看详情",
     lostFieldsLabel: "以下配置字段在转换中丢失:",
     ignoredFieldsLabel: "以下字段因目标格式不适用已忽略（非数据丢失）:",
     validate: "配置校验",

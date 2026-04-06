@@ -376,6 +376,8 @@ export const ProxyDebugMergeStepSchema = z.object({
     finalNodeNames: z.array(z.string()),
     /** 存在信息丢失的节点名称列表（仅 sing-box 格式） */
     nodeWarnings: z.array(z.string()).optional(),
+    /** 存在忽略字段（非丢失）的节点名称列表（仅 sing-box 格式） */
+    nodeIgnored: z.array(z.string()).optional(),
   }),
 });
 
