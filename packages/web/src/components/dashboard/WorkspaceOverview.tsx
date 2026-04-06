@@ -90,7 +90,7 @@ export default function WorkspaceOverview() {
   const basePath = `/dashboard/${workspaceSlug ?? workspace.slug}`;
 
   return (
-    <div className="p-6 sm:p-8 max-w-6xl">
+    <div className="p-6 sm:p-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
