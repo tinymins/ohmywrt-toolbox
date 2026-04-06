@@ -28,6 +28,7 @@ import { proxyApi } from "@/generated/rust-api";
 import { useIsMobile } from "@/hooks";
 import {
   InteractiveJsonViewer,
+  ProvenanceTable,
   SyntaxJsonViewer,
 } from "./InteractiveJsonViewer";
 
@@ -358,8 +359,25 @@ const ConvertTraceContent = ({
       )}
       <Collapse
         size="small"
-        defaultActiveKey={["outbound"]}
+        defaultActiveKey={["provenance"]}
         items={[
+          {
+            key: "provenance",
+            label: t("proxy.debug.traceProvenanceTable"),
+            children:
+              Object.keys(fieldOrigins).length > 0 ? (
+                <ProvenanceTable
+                  data={step.data.singboxOutbound as Record<string, unknown>}
+                  fieldOrigins={fieldOrigins}
+                  maxHeight={500}
+                />
+              ) : (
+                <SyntaxJsonViewer
+                  data={step.data.singboxOutbound}
+                  maxHeight={400}
+                />
+              ),
+          },
           {
             key: "outbound",
             label: t("proxy.debug.traceSingboxOutbound"),
