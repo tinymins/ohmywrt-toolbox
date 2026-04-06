@@ -39,10 +39,11 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Download vendor binaries (sing-box, mihomo) for config validation
+# Vendor download script + entrypoint (vendors downloaded at startup, not build time,
+# because the volume mount overwrites /app/data)
 COPY scripts/download-vendors.sh scripts/
-RUN DATA_LOCAL_PATH=/app/data sh scripts/download-vendors.sh && \
-    rm -rf /var/lib/apt/lists/*
+COPY packages/server/docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Prisma schema + config (for db push migrations)
 COPY prisma ./prisma
@@ -58,4 +59,5 @@ COPY --from=web-builder /app/packages/web/build/client /app/web
 ENV STATIC_DIR=/app/web
 EXPOSE 5678
 
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["ohmywrt-toolbox-server"]
