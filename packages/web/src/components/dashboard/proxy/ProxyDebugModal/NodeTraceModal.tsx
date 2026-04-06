@@ -550,10 +550,12 @@ interface NodeTraceModalProps {
   subscribeId: string;
   format: ProxyDebugFormat;
   allNodeNames: { name: string; filtered: boolean }[];
+  nodeWarnings?: Set<string>;
+  nodeIgnored?: Set<string>;
 }
 
 const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
-  ({ subscribeId, format, allNodeNames }, ref) => {
+  ({ subscribeId, format, allNodeNames, nodeWarnings, nodeIgnored }, ref) => {
     const { t } = useTranslation();
     const [visible, setVisible] = useState(false);
     const [tracingNodeName, setTracingNodeName] = useState<string | null>(null);
@@ -629,7 +631,19 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
             />
             <AimOutlined className="text-blue-500" />
             <span>{t("proxy.debug.traceTitle")}</span>
-            {tracingNodeName && <Tag color="blue">{tracingNodeName}</Tag>}
+            {tracingNodeName && (
+              <Tag
+                color={
+                  nodeWarnings?.has(tracingNodeName)
+                    ? "gold"
+                    : nodeIgnored?.has(tracingNodeName)
+                      ? "purple"
+                      : "blue"
+                }
+              >
+                {tracingNodeName}
+              </Tag>
+            )}
             {isFiltered && (
               <Tag color="orange">{t("proxy.debug.traceFilteredLabel")}</Tag>
             )}

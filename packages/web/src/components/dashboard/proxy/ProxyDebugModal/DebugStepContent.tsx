@@ -542,8 +542,8 @@ export const MergeStepContent = ({
                   const tagColor = hasWarning
                     ? "gold"
                     : hasIgnored
-                      ? "cyan"
-                      : "green";
+                      ? "purple"
+                      : "blue";
                   const tooltipTitle = hasWarning
                     ? t("proxy.debug.entropyWarningTip")
                     : hasIgnored
@@ -669,9 +669,9 @@ export const ValidateStepContent = ({
   if (data.valid) {
     return (
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-green-500">
+        <div className="flex items-center gap-2 text-green-500 text-sm">
           <CheckCircleOutlined />
-          <span className="font-medium">{t("proxy.debug.validatePassed")}</span>
+          <span>{t("proxy.debug.validatePassed")}</span>
           {data.method && (
             <Tag color="green">{getValidateMethodLabel(data.method, t)}</Tag>
           )}

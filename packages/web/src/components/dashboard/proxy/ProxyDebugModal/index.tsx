@@ -136,6 +136,21 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     return names;
   }, [steps, done]);
 
+  /** 从 merge 步骤提取节点状态集合 */
+  const { nodeWarningSet, nodeIgnoredSet } = useMemo(() => {
+    const mergeStep = steps.find((s) => s.type === "merge");
+    if (!mergeStep || mergeStep.type !== "merge") {
+      return {
+        nodeWarningSet: new Set<string>(),
+        nodeIgnoredSet: new Set<string>(),
+      };
+    }
+    return {
+      nodeWarningSet: new Set(mergeStep.data.nodeWarnings ?? []),
+      nodeIgnoredSet: new Set(mergeStep.data.nodeIgnored ?? []),
+    };
+  }, [steps]);
+
   /** 处理追踪节点 */
   const handleTraceNode = useCallback((nodeName: string) => {
     traceModalRef.current?.open(nodeName);
@@ -384,6 +399,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
             subscribeId={subscribeId}
             format={format}
             allNodeNames={allNodeNames}
+            nodeWarnings={nodeWarningSet}
+            nodeIgnored={nodeIgnoredSet}
           />
         </>
       )}
