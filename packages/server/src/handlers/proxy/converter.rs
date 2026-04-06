@@ -6,7 +6,7 @@ use super::types::ClashProxy;
 
 /// Convert a Clash proxy to a Sing-box outbound JSON value.
 pub fn convert_clash_proxy_to_singbox(proxy: &ClashProxy) -> Option<Value> {
-    match proxy.proxy_type.as_str() {
+    let mut out = match proxy.proxy_type.as_str() {
         "vmess" => Some(convert_vmess(proxy)),
         "vless" => Some(convert_vless(proxy)),
         "ss" => Some(convert_ss(proxy)),
@@ -18,7 +18,17 @@ pub fn convert_clash_proxy_to_singbox(proxy: &ClashProxy) -> Option<Value> {
         "socks5" => Some(convert_socks5(proxy)),
         "anytls" => Some(convert_anytls(proxy)),
         _ => None,
+    }?;
+
+    // Dial fields applicable to all proxy types
+    if proxy.bool_field("tfo") == Some(true) {
+        out["tcp_fast_open"] = json!(true);
     }
+    if proxy.bool_field("mptcp") == Some(true) {
+        out["tcp_multi_path"] = json!(true);
+    }
+
+    Some(out)
 }
 
 // ─── Transport ───
@@ -576,6 +586,9 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
     // "udp" — Sing-box enables UDP by default; udp:false → network:tcp.
     // Universally implicit across all proxy types.
     keys.insert("udp");
+    // Dial fields — applicable to all TCP-based proxy types
+    keys.insert("tfo");
+    keys.insert("mptcp");
 
     match proxy_type {
         "vmess" => {
