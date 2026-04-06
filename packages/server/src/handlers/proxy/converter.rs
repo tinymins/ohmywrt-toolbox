@@ -183,12 +183,7 @@ fn build_multiplex(proxy: &ClashProxy) -> Option<Value> {
         "protocol": protocol,
         "max_connections": max_connections,
         "min_streams": min_streams,
-        "padding": padding,
-        "brutal": {
-            "enabled": true,
-            "up_mbps": 1000,
-            "down_mbps": 1000
-        }
+        "padding": padding
     }))
 }
 
