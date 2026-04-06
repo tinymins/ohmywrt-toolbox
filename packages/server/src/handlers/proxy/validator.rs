@@ -100,6 +100,29 @@ fn which_exists(cmd: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Strip ANSI escape sequences from a string.
+fn strip_ansi(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // Skip ESC [ ... m sequences
+            if chars.peek() == Some(&'[') {
+                chars.next(); // consume '['
+                while let Some(&next) = chars.peek() {
+                    chars.next();
+                    if next.is_ascii_alphabetic() {
+                        break;
+                    }
+                }
+            }
+        } else {
+            result.push(c);
+        }
+    }
+    result
+}
+
 /// Validate a sing-box JSON config using the real binary.
 ///
 /// Security: runs with `unshare --net` (network namespace isolation)
@@ -169,7 +192,7 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
         Ok(out) => {
             let stderr = String::from_utf8_lossy(&out.stderr).to_string();
             let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-            let combined = format!("{}{}", stdout, stderr);
+            let combined = strip_ansi(&format!("{}{}", stdout, stderr));
 
             let mut warnings = Vec::new();
             let mut errors = Vec::new();
