@@ -321,7 +321,7 @@ export function Modal({
   if (!visible && destroyOnClose) return null;
   if (!visible) return null;
 
-  const config = SIZE_CONFIG[size];
+  const config = SIZE_CONFIG[size] ?? SIZE_CONFIG.default;
   const resolvedWidth = widthProp ?? config.width;
   const resolvedDialogStyle =
     widthProp && size !== "default"

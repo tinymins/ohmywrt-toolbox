@@ -287,7 +287,7 @@ const SortableCard = ({
         open={showTestModal}
         onCancel={() => setShowTestModal(false)}
         title={t("proxy.form.testSourceTitle")}
-        size="medium"
+        size="large"
         footer={
           <Button onClick={() => setShowTestModal(false)}>
             {t("proxy.form.close")}
