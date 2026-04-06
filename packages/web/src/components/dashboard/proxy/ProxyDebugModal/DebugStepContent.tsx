@@ -367,7 +367,7 @@ export const SourceResultStepContent = ({
                       columns={[
                         {
                           title: t("proxy.preview.nodeName"),
-                          dataIndex: ["node", "name"] as any,
+                          dataIndex: ["node", "name"],
                           ellipsis: true,
                         },
                         {

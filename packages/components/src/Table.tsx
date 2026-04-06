@@ -16,8 +16,8 @@ import { cn } from "./utils";
 export interface TableColumn<T = Record<string, unknown>> {
   /** Column title */
   title?: ReactNode;
-  /** Data key */
-  dataIndex?: string;
+  /** Data key (string for flat, string[] for nested paths) */
+  dataIndex?: string | string[];
   /** Unique key */
   key?: string;
   /** Render function */
@@ -117,9 +117,26 @@ export interface TableProps<T = Record<string, unknown>> {
   sortDisabled?: boolean;
 }
 /** Get value from a record by dot path */
-function getNestedValue(obj: Record<string, unknown>, path?: string): unknown {
+/** Resolve a stable string key from a column's key/dataIndex. */
+function colKey(
+  col: { key?: string; dataIndex?: string | string[] },
+  fallback: number | string,
+): string | number {
+  if (col.key) return col.key;
+  if (col.dataIndex)
+    return Array.isArray(col.dataIndex)
+      ? col.dataIndex.join(".")
+      : col.dataIndex;
+  return fallback;
+}
+
+function getNestedValue(
+  obj: Record<string, unknown>,
+  path?: string | string[],
+): unknown {
   if (!path) return undefined;
-  return path.split(".").reduce<unknown>((o, k) => {
+  const keys = Array.isArray(path) ? path : path.split(".");
+  return keys.reduce<unknown>((o, k) => {
     if (o && typeof o === "object") return (o as Record<string, unknown>)[k];
     return undefined;
   }, obj);
@@ -210,7 +227,7 @@ function renderRows<T>(
             : (value as ReactNode);
           return (
             <td
-              key={col.key ?? col.dataIndex ?? ci}
+              key={colKey(col, ci)}
               className={cn(
                 sizeClass,
                 col.align === "center" && "text-center",
@@ -590,12 +607,12 @@ export function Table<T = Record<string, unknown>>({
                 />
               )}
               {effectiveColumns.map((col, ci) => {
-                const sortKey = col.key ?? col.dataIndex ?? String(ci);
+                const sortKey = String(colKey(col, ci));
                 const isSortable = typeof col.sorter === "function";
                 const isActiveSorted = isSortable && sortState?.key === sortKey;
                 return (
                   <th
-                    key={col.key ?? col.dataIndex ?? ci}
+                    key={colKey(col, ci)}
                     className={cn(
                       sizeClass,
                       "text-left font-medium text-[var(--text-secondary)] whitespace-nowrap border-b border-black/[0.06] dark:border-white/[0.08]",
