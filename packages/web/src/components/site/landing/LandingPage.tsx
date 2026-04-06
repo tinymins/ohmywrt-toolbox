@@ -92,7 +92,7 @@ export default function LandingPage() {
   const { t } = useTranslation();
   const { theme, themeMode, setThemeMode } = useTheme();
   const { user, isAuthed, updateUser, logout } = useAuth();
-  const { lang, setLangMode } = useLang();
+  const { langMode, setLangMode } = useLang();
 
   const updateProfile = userApi.updateProfile.useMutation({
     onSuccess: updateUser,
@@ -121,23 +121,42 @@ export default function LandingPage() {
 
   const langKeys: Lang[] = ["zh-CN", "en-US", "de-DE", "ja-JP", "zh-TW"];
 
-  const langMenuItems = langKeys.map((key) => ({
-    key,
-    label: (
-      <span className="flex items-center justify-between w-full">
-        <span>{LANG_NATIVE_NAMES[key]}</span>
-        {key === lang && (
-          <Check className="w-3.5 h-3.5 ml-4 text-blue-500 dark:text-blue-400" />
-        )}
-      </span>
-    ),
-    onClick: () => {
-      setLangMode(key);
-      if (isAuthed) {
-        updateProfile.mutate({ settings: { langMode: key } });
-      }
+  const langMenuItems = [
+    {
+      key: "auto",
+      label: (
+        <span className="flex items-center justify-between w-full">
+          <span>{t("common.auto")}</span>
+          {langMode === "auto" && (
+            <Check className="w-3.5 h-3.5 ml-4 text-blue-500 dark:text-blue-400" />
+          )}
+        </span>
+      ),
+      onClick: () => {
+        setLangMode("auto");
+        if (isAuthed) {
+          updateProfile.mutate({ settings: { langMode: "auto" } });
+        }
+      },
     },
-  }));
+    ...langKeys.map((key) => ({
+      key,
+      label: (
+        <span className="flex items-center justify-between w-full">
+          <span>{LANG_NATIVE_NAMES[key]}</span>
+          {langMode === key && (
+            <Check className="w-3.5 h-3.5 ml-4 text-blue-500 dark:text-blue-400" />
+          )}
+        </span>
+      ),
+      onClick: () => {
+        setLangMode(key);
+        if (isAuthed) {
+          updateProfile.mutate({ settings: { langMode: key } });
+        }
+      },
+    })),
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--bg-elevated)] text-[var(--text-primary)]">
