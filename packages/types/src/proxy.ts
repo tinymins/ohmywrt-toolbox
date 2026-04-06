@@ -565,6 +565,24 @@ export const ProxyNodeTraceGroupAssignStepSchema = z.object({
   }),
 });
 
+/** 字段溯源信息 */
+export const FieldOriginSchema = z.object({
+  /** 源字段名（Clash 侧），null 表示生成字段 */
+  sourceKey: z.string().nullable(),
+  /** 源字段值 */
+  sourceValue: z.unknown().optional(),
+  /** 转换步骤: core | tls | transport | multiplex | dial | type | unknown */
+  step: z.string(),
+  /** 变换类型: direct | rename | convert | extract | generated | fallback | container */
+  transform: z.string(),
+  /** 生成字段的原因代码 */
+  reason: z.string().optional(),
+  /** 容器节点的源字段列表 */
+  sources: z.array(z.string()).optional(),
+});
+
+export type FieldOrigin = z.infer<typeof FieldOriginSchema>;
+
 /** 追踪步骤: 格式转换（仅 Sing-box） */
 export const ProxyNodeTraceConvertStepSchema = z.object({
   type: z.literal("convert"),
@@ -575,6 +593,8 @@ export const ProxyNodeTraceConvertStepSchema = z.object({
     lostFields: z.array(z.string()).optional(),
     /** 转换中有意忽略的字段（目标格式不适用，非数据丢失） */
     ignoredFields: z.array(z.string()).optional(),
+    /** 字段溯源映射: dot-path → 溯源信息 */
+    fieldOrigins: z.record(z.string(), FieldOriginSchema).optional(),
   }),
 });
 

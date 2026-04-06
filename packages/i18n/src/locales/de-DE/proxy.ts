@@ -233,5 +233,41 @@ export default {
     ruleSetBuiltinHint:
       "Integrierter Regelsatz, Binärformat, wird automatisch vom Client heruntergeladen",
     ruleSetEffectiveUrl: "Effektive URL",
+    originClickHint:
+      "Klicken Sie auf einen Feldnamen, um seine Herkunft anzuzeigen",
+    originNoData: "— Keine Herkunftsdaten",
+    originInherited: "geerbt von",
+    originSourceKey: "Quellfeld",
+    originContainerSources: "Zusammengesetzt aus Feldern",
+    originTransform: {
+      direct: "Direkt",
+      rename: "Umbenannt",
+      convert: "Konvertiert",
+      extract: "Extrahiert",
+      generated: "Generiert",
+      fallback: "Fallback",
+      container: "Konfigurationsblock",
+    },
+    originStep: {
+      core: "Kernfelder",
+      tls: "TLS-Konfiguration",
+      transport: "Transport",
+      multiplex: "Multiplex",
+      dial: "Wähloptionen",
+      type: "Protokollspezifisch",
+      unknown: "Konverter-intern",
+    },
+    originReason: {
+      trojan_requires_tls: "Trojan-Protokoll erfordert standardmäßig TLS",
+      hysteria2_requires_tls: "Hysteria2-Protokoll erfordert standardmäßig TLS",
+      hysteria_requires_tls: "Hysteria-Protokoll erfordert standardmäßig TLS",
+      tuic_requires_tls: "TUIC-Protokoll erfordert standardmäßig TLS",
+      anytls_requires_tls: "AnyTLS-Protokoll erfordert standardmäßig TLS",
+      fingerprint_enables_utls:
+        "uTLS automatisch aktiviert bei vorhandenem client-fingerprint",
+      reality_opts_present:
+        "Reality automatisch aktiviert bei konfiguriertem reality-opts",
+      converter_internal: "Intern vom Konverter generiert",
+    },
   },
 };

@@ -25,6 +25,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { proxyApi } from "@/generated/rust-api";
+import { InteractiveJsonViewer } from "./InteractiveJsonViewer";
 
 /** 渲染 JSON 或 YAML 格式的代码块 */
 const CodeBlock = ({
@@ -314,6 +315,10 @@ const ConvertTraceContent = ({
   const { t } = useTranslation();
   const lostFields = step.data.lostFields ?? [];
   const ignoredFields = step.data.ignoredFields ?? [];
+  const fieldOrigins = (step.data.fieldOrigins ?? {}) as Record<
+    string,
+    import("@acme/types").FieldOrigin
+  >;
 
   return (
     <div className="flex flex-col gap-2">
@@ -351,8 +356,9 @@ const ConvertTraceContent = ({
             key: "outbound",
             label: t("proxy.debug.traceSingboxOutbound"),
             children: (
-              <CodeBlock
-                content={JSON.stringify(step.data.singboxOutbound, null, 2)}
+              <InteractiveJsonViewer
+                data={step.data.singboxOutbound as Record<string, unknown>}
+                fieldOrigins={fieldOrigins}
                 maxHeight={400}
               />
             ),

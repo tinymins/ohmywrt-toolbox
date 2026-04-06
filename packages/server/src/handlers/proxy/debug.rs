@@ -15,6 +15,7 @@ use super::engine::{
     self, parse_jsonc, resolve_dns_config, safe_parse_jsonc,
 };
 use super::icons::append_icon;
+use super::origins::build_field_origins;
 use super::parser::{is_base64_subscription, parse_subscription};
 use super::types::ClashProxy;
 use super::validator;
@@ -269,13 +270,15 @@ pub async fn trace_node_logic(
     if format == "sing-box" || format == "sing-box-v12" {
         if let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
             let (outbound, lost_fields, ignored_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
-            if let Some(ob) = outbound {
+            if let Some(ref ob) = outbound {
+                let field_origins = build_field_origins(proxy, ob);
                 steps.push(json!({
                     "type": "convert",
                     "data": {
                         "singboxOutbound": ob,
                         "lostFields": lost_fields,
                         "ignoredFields": ignored_fields,
+                        "fieldOrigins": field_origins,
                     }
                 }));
             }

@@ -4,6 +4,7 @@ pub mod debug;
 pub mod engine;
 pub mod fetch_subscription;
 pub mod icons;
+pub mod origins;
 pub mod parser;
 pub mod types;
 pub mod validator;
