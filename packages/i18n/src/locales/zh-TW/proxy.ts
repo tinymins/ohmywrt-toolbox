@@ -204,6 +204,10 @@ export default {
     traceConfigFragment: "配置片段",
     traceOutput: "输出",
     traceManual: "手动",
-    traceSkipped: "已跳过",
+    traceSkipped: "已跳過",
+    entropyWarning: "資訊丟失",
+    entropyWarningShort: "警告",
+    entropyWarningTip: "該節點在格式轉換中存在配置資訊丟失，點擊追蹤查看詳情",
+    lostFieldsLabel: "以下配置欄位在轉換中丟失:",
   },
 };

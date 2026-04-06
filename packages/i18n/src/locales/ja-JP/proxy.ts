@@ -207,5 +207,10 @@ export default {
     traceOutput: "Output",
     traceManual: "Manual",
     traceSkipped: "Skipped",
+    entropyWarning: "情報損失",
+    entropyWarningShort: "警告",
+    entropyWarningTip:
+      "このノードはフォーマット変換中に設定フィールドが失われました。クリックして詳細を確認してください。",
+    lostFieldsLabel: "変換中に失われたフィールド:",
   },
 };

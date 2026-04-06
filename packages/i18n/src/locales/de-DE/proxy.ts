@@ -208,5 +208,10 @@ export default {
     traceOutput: "Output",
     traceManual: "Manual",
     traceSkipped: "Skipped",
+    entropyWarning: "Datenverlust",
+    entropyWarningShort: "Warnungen",
+    entropyWarningTip:
+      "Dieser Knoten hat Konfigurationsfelder während der Formatkonvertierung verloren. Klicken Sie zum Verfolgen.",
+    lostFieldsLabel: "Bei der Konvertierung verlorene Felder:",
   },
 };

@@ -482,12 +482,14 @@ export const MergeStepContent = ({
 }) => {
   const { t } = useTranslation();
   const { data } = step;
+  const warningSet = new Set(data.nodeWarnings ?? []);
+  const warningCount = warningSet.size;
 
   return (
     <div className="flex flex-col gap-2">
       <Descriptions
         size="small"
-        column={3}
+        column={warningCount > 0 ? 4 : 3}
         bordered
         items={[
           {
@@ -502,10 +504,14 @@ export const MergeStepContent = ({
             label: t("proxy.debug.filteredCount"),
             children: <Tag color="orange">{data.totalFiltered}</Tag>,
           },
-          {
-            label: t("proxy.debug.nodeStats"),
-            children: <>{data.finalNodeNames.length} nodes</>,
-          },
+          ...(warningCount > 0
+            ? [
+                {
+                  label: t("proxy.debug.entropyWarning"),
+                  children: <Tag color="gold">{warningCount}</Tag>,
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -518,16 +524,29 @@ export const MergeStepContent = ({
               <div className="flex gap-2 items-center">
                 <span>{t("proxy.debug.nodeStats")}</span>
                 <Tag>{data.finalNodeNames.length}</Tag>
+                {warningCount > 0 && (
+                  <Tag color="gold">
+                    {warningCount} {t("proxy.debug.entropyWarningShort")}
+                  </Tag>
+                )}
               </div>
             ),
             children: (
               <div className="flex flex-wrap gap-1">
-                {data.finalNodeNames.map((name: string, _i: number) =>
-                  onTraceNode ? (
-                    <Tooltip key={name} title={t("proxy.debug.traceNode")}>
+                {data.finalNodeNames.map((name: string, _i: number) => {
+                  const hasWarning = warningSet.has(name);
+                  return onTraceNode ? (
+                    <Tooltip
+                      key={name}
+                      title={
+                        hasWarning
+                          ? t("proxy.debug.entropyWarningTip")
+                          : t("proxy.debug.traceNode")
+                      }
+                    >
                       <Tag
                         className="cursor-pointer"
-                        color="blue"
+                        color={hasWarning ? "gold" : "blue"}
                         onClick={() => onTraceNode(name)}
                       >
                         <AimOutlined className="mr-1" />
@@ -535,9 +554,11 @@ export const MergeStepContent = ({
                       </Tag>
                     </Tooltip>
                   ) : (
-                    <Tag key={name}>{name}</Tag>
-                  ),
-                )}
+                    <Tag key={name} color={hasWarning ? "gold" : undefined}>
+                      {name}
+                    </Tag>
+                  );
+                })}
               </div>
             ),
           },

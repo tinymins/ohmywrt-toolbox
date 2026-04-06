@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use serde_json::{json, Map, Value};
 
 use super::types::ClashProxy;
@@ -469,4 +471,119 @@ fn convert_anytls(proxy: &ClashProxy) -> Value {
         "password": proxy.str_field("password").unwrap_or(""),
         "tls": tls,
     })
+}
+
+// ─── Field tracking for entropy-loss detection ───
+
+/// Returns the set of `extra` keys that the converter for this proxy type
+/// is known to consume. Any keys NOT in this set are "lost" during conversion.
+fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
+    // Keys consumed by convert_transport()
+    let transport: &[&str] = &["http-opts", "h2-opts", "ws-opts", "grpc-opts"];
+    // Keys consumed by build_tls()
+    let tls: &[&str] = &[
+        "tls",
+        "servername",
+        "sni",
+        "alpn",
+        "skip-cert-verify",
+        "client-fingerprint",
+        "reality-opts",
+    ];
+    let multiplex: &[&str] = &["multiplex"];
+
+    let mut keys = HashSet::new();
+
+    match proxy_type {
+        "vmess" => {
+            keys.extend(transport);
+            keys.extend(tls);
+            keys.extend(multiplex);
+            keys.extend(["uuid", "cipher", "alterId"]);
+        }
+        "vless" => {
+            keys.extend(transport);
+            keys.extend(tls);
+            keys.extend(multiplex);
+            keys.extend(["uuid", "flow"]);
+        }
+        "ss" => {
+            keys.extend(["cipher", "password", "udp", "plugin", "plugin-opts"]);
+        }
+        "trojan" => {
+            keys.extend(tls);
+            keys.extend(multiplex);
+            keys.extend(["password", "udp"]);
+        }
+        "hysteria2" => {
+            keys.extend(["sni", "skip-cert-verify", "password", "alpn"]);
+        }
+        "hysteria" => {
+            keys.extend([
+                "sni",
+                "alpn",
+                "skip-cert-verify",
+                "up",
+                "down",
+                "obfs",
+                "auth-str",
+            ]);
+        }
+        "tuic" => {
+            keys.extend([
+                "sni",
+                "skip-cert-verify",
+                "alpn",
+                "uuid",
+                "password",
+                "heartbeat-interval",
+                "reduce-rtt",
+                "udp-relay-mode",
+                "congestion-controller",
+                "udp-over-stream",
+            ]);
+        }
+        "http" => {
+            keys.extend(["username", "password", "tls", "skip-cert-verify", "sni"]);
+        }
+        "socks5" => {
+            keys.extend(["udp", "username", "password"]);
+        }
+        "anytls" => {
+            keys.extend([
+                "sni",
+                "skip-cert-verify",
+                "alpn",
+                "client-fingerprint",
+                "password",
+            ]);
+        }
+        _ => {}
+    }
+
+    keys
+}
+
+/// Convert a Clash proxy to Sing-box outbound, also returning any extra keys
+/// from the input that were NOT consumed by the converter (information loss).
+pub fn convert_clash_proxy_to_singbox_with_diff(
+    proxy: &ClashProxy,
+) -> (Option<Value>, Vec<String>) {
+    let outbound = convert_clash_proxy_to_singbox(proxy);
+
+    if outbound.is_none() {
+        // Completely unsupported type — all extra fields lost
+        let lost: Vec<String> = proxy.extra.keys().cloned().collect();
+        return (None, lost);
+    }
+
+    let consumed = known_consumed_keys(&proxy.proxy_type);
+    let lost: Vec<String> = proxy
+        .extra
+        .keys()
+        .filter(|k| !consumed.contains(k.as_str()))
+        .cloned()
+        .collect();
+
+    (outbound, lost)
 }

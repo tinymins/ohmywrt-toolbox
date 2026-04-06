@@ -10,7 +10,7 @@ use tokio_stream::wrappers::ReceiverStream;
 use crate::db::entities::proxy_subscribes;
 
 use super::cache;
-use super::converter::convert_clash_proxy_to_singbox;
+use super::converter::{convert_clash_proxy_to_singbox, convert_clash_proxy_to_singbox_with_diff};
 use super::engine::{
     self, parse_jsonc, resolve_dns_config, safe_parse_jsonc,
 };
@@ -264,13 +264,17 @@ pub async fn trace_node_logic(
         "data": { "assignedGroups": assigned_groups }
     }));
 
-    // Step 7: convert (sing-box only)
+    // Step 7: convert (sing-box only) — with entropy-loss detection
     if format == "sing-box" || format == "sing-box-v12" {
         if let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
-            if let Some(outbound) = convert_clash_proxy_to_singbox(proxy) {
+            let (outbound, lost_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
+            if let Some(ob) = outbound {
                 steps.push(json!({
                     "type": "convert",
-                    "data": { "singboxOutbound": outbound }
+                    "data": {
+                        "singboxOutbound": ob,
+                        "lostFields": lost_fields,
+                    }
                 }));
             }
         }
@@ -610,8 +614,20 @@ async fn run_debug_stream(
         }
     }
 
-    // Step: merge
+    // Step: merge — with per-node entropy-loss warnings for sing-box
     let final_node_names: Vec<String> = all_proxies.iter().map(|p| p.name.clone()).collect();
+    let node_warnings: Vec<String> = if format == "sing-box" || format == "sing-box-v12" {
+        all_proxies
+            .iter()
+            .filter(|p| {
+                let (_, lost) = convert_clash_proxy_to_singbox_with_diff(p);
+                !lost.is_empty()
+            })
+            .map(|p| p.name.clone())
+            .collect()
+    } else {
+        Vec::new()
+    };
     if !send_event(
         tx,
         json!({
@@ -621,6 +637,7 @@ async fn run_debug_stream(
                 "totalNodesAfterFilter": all_proxies.len(),
                 "totalFiltered": total_filtered,
                 "finalNodeNames": final_node_names,
+                "nodeWarnings": node_warnings,
             }
         }),
     )

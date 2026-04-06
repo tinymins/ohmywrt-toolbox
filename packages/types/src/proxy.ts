@@ -374,6 +374,8 @@ export const ProxyDebugMergeStepSchema = z.object({
     totalNodesAfterFilter: z.number(),
     totalFiltered: z.number(),
     finalNodeNames: z.array(z.string()),
+    /** 存在信息丢失的节点名称列表（仅 sing-box 格式） */
+    nodeWarnings: z.array(z.string()).optional(),
   }),
 });
 
@@ -506,6 +508,8 @@ export const ProxyNodeTraceConvertStepSchema = z.object({
   data: z.object({
     /** 转换后的 Sing-box outbound 对象 */
     singboxOutbound: z.record(z.string(), z.unknown()),
+    /** 转换过程中丢失的配置字段名列表 */
+    lostFields: z.array(z.string()).optional(),
   }),
 });
 

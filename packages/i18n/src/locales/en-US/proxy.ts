@@ -206,5 +206,10 @@ export default {
     traceOutput: "Output",
     traceManual: "Manual",
     traceSkipped: "Skipped",
+    entropyWarning: "Info Loss",
+    entropyWarningShort: "warnings",
+    entropyWarningTip:
+      "This node has configuration fields lost during format conversion. Click to trace details.",
+    lostFieldsLabel: "Fields lost during conversion:",
   },
 };

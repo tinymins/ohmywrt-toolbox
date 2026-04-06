@@ -205,5 +205,9 @@ export default {
     traceOutput: "输出",
     traceManual: "手动",
     traceSkipped: "已跳过",
+    entropyWarning: "信息丢失",
+    entropyWarningShort: "警告",
+    entropyWarningTip: "该节点在格式转换中存在配置信息丢失，点击追踪查看详情",
+    lostFieldsLabel: "以下配置字段在转换中丢失:",
   },
 };

@@ -8,6 +8,7 @@ import {
   Collapse,
   Descriptions,
   Empty,
+  ExclamationCircleOutlined,
   MinusCircleOutlined,
   Modal,
   Spin,
@@ -310,24 +311,40 @@ const ConvertTraceContent = ({
   step: Extract<ProxyNodeTraceStep, { type: "convert" }>;
 }) => {
   const { t } = useTranslation();
+  const lostFields = step.data.lostFields ?? [];
 
   return (
-    <Collapse
-      size="small"
-      defaultActiveKey={["outbound"]}
-      items={[
-        {
-          key: "outbound",
-          label: t("proxy.debug.traceSingboxOutbound"),
-          children: (
-            <CodeBlock
-              content={JSON.stringify(step.data.singboxOutbound, null, 2)}
-              maxHeight={400}
-            />
-          ),
-        },
-      ]}
-    />
+    <div className="flex flex-col gap-2">
+      {lostFields.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 px-3 py-2 rounded-md bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs">
+          <ExclamationCircleOutlined className="shrink-0" />
+          <span className="font-semibold mr-1">
+            {t("proxy.debug.lostFieldsLabel")}
+          </span>
+          {lostFields.map((field) => (
+            <Tag key={field} color="gold" className="!text-xs">
+              {field}
+            </Tag>
+          ))}
+        </div>
+      )}
+      <Collapse
+        size="small"
+        defaultActiveKey={["outbound"]}
+        items={[
+          {
+            key: "outbound",
+            label: t("proxy.debug.traceSingboxOutbound"),
+            children: (
+              <CodeBlock
+                content={JSON.stringify(step.data.singboxOutbound, null, 2)}
+                maxHeight={400}
+              />
+            ),
+          },
+        ]}
+      />
+    </div>
   );
 };
 
@@ -438,11 +455,17 @@ const TraceStepsContent = ({
     <div className="space-y-0">
       {displaySteps.map(({ stepType, actualStep, isSkipped }, index) => {
         const isLast = index === displaySteps.length - 1;
+        const hasConvertWarning =
+          stepType === "convert" &&
+          actualStep?.type === "convert" &&
+          (actualStep.data.lostFields?.length ?? 0) > 0;
         const icon = isSkipped ? (
           <MinusCircleOutlined className="text-gray-400" />
         ) : actualStep ? (
           stepType === "filter" && isFiltered ? (
             <CloseCircleOutlined className="text-red-500" />
+          ) : hasConvertWarning ? (
+            <ExclamationCircleOutlined />
           ) : (
             <CheckCircleOutlined />
           )
@@ -452,14 +475,16 @@ const TraceStepsContent = ({
           : actualStep
             ? stepType === "filter" && isFiltered
               ? "#ef4444"
-              : "#22c55e"
+              : hasConvertWarning
+                ? "#f59e0b"
+                : "#22c55e"
             : "#9ca3af";
 
         return (
           <div key={stepType} className="flex gap-3">
             <div className="flex flex-col items-center">
               <div
-                className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-current text-sm shrink-0"
+                className="flex items-center justify-center w-6 h-6 text-lg shrink-0"
                 style={{ color }}
               >
                 {icon}
