@@ -345,15 +345,15 @@ const STEP_ICONS: Record<string, string> = {
 const TRANSFORM_COLORS: Record<string, string> = {
   direct:
     "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  rename: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  rename: "bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300",
   convert:
-    "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  extract: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
-  generated:
+    "bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-300",
+  extract:
     "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   fallback:
     "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  container: "bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300",
+  container: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  generated: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 function FieldOriginPanel({
