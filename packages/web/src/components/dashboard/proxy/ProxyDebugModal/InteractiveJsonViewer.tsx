@@ -10,7 +10,7 @@ const KEY_COLORS: Record<string, string> = {
   convert: "text-violet-700 dark:text-violet-400",
   extract: "text-amber-700 dark:text-amber-400",
   fallback: "text-orange-600 dark:text-orange-400",
-  container: "text-slate-500 dark:text-slate-400",
+  container: "text-teal-600 dark:text-teal-400",
   generated: "text-red-600 dark:text-red-400",
 };
 
@@ -99,7 +99,7 @@ function Tooltip({ state }: { state: TooltipState | null }) {
   return (
     <div
       className="absolute z-50 max-w-xs px-2 py-1 text-[10px] leading-tight font-sans rounded shadow-lg bg-gray-800 text-gray-100 dark:bg-gray-200 dark:text-gray-900 pointer-events-none whitespace-nowrap"
-      style={{ left: state.x, top: state.y - 20 }}
+      style={{ left: state.x, top: state.y - 28 }}
     >
       {state.text}
     </div>
