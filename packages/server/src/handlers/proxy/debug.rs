@@ -268,13 +268,14 @@ pub async fn trace_node_logic(
     // Step 7: convert (sing-box only) — with entropy-loss detection
     if format == "sing-box" || format == "sing-box-v12" {
         if let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
-            let (outbound, lost_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
+            let (outbound, lost_fields, ignored_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
             if let Some(ob) = outbound {
                 steps.push(json!({
                     "type": "convert",
                     "data": {
                         "singboxOutbound": ob,
                         "lostFields": lost_fields,
+                        "ignoredFields": ignored_fields,
                     }
                 }));
             }
@@ -621,7 +622,7 @@ async fn run_debug_stream(
         all_proxies
             .iter()
             .filter(|p| {
-                let (_, lost) = convert_clash_proxy_to_singbox_with_diff(p);
+                let (_, lost, _ignored) = convert_clash_proxy_to_singbox_with_diff(p);
                 !lost.is_empty()
             })
             .map(|p| p.name.clone())

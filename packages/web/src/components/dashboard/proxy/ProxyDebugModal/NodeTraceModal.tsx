@@ -9,6 +9,7 @@ import {
   Descriptions,
   Empty,
   ExclamationCircleOutlined,
+  InfoCircleOutlined,
   MinusCircleOutlined,
   Modal,
   Spin,
@@ -312,6 +313,7 @@ const ConvertTraceContent = ({
 }) => {
   const { t } = useTranslation();
   const lostFields = step.data.lostFields ?? [];
+  const ignoredFields = step.data.ignoredFields ?? [];
 
   return (
     <div className="flex flex-col gap-2">
@@ -323,6 +325,19 @@ const ConvertTraceContent = ({
           </span>
           {lostFields.map((field) => (
             <Tag key={field} color="gold" className="!text-xs">
+              {field}
+            </Tag>
+          ))}
+        </div>
+      )}
+      {ignoredFields.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 px-3 py-2 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs">
+          <InfoCircleOutlined className="shrink-0" />
+          <span className="font-semibold mr-1">
+            {t("proxy.debug.ignoredFieldsLabel")}
+          </span>
+          {ignoredFields.map((field) => (
+            <Tag key={field} color="blue" className="!text-xs">
               {field}
             </Tag>
           ))}
@@ -459,6 +474,11 @@ const TraceStepsContent = ({
           stepType === "convert" &&
           actualStep?.type === "convert" &&
           (actualStep.data.lostFields?.length ?? 0) > 0;
+        const hasConvertInfo =
+          stepType === "convert" &&
+          actualStep?.type === "convert" &&
+          !hasConvertWarning &&
+          (actualStep.data.ignoredFields?.length ?? 0) > 0;
         const icon = isSkipped ? (
           <MinusCircleOutlined className="text-gray-400" />
         ) : actualStep ? (
@@ -466,6 +486,8 @@ const TraceStepsContent = ({
             <CloseCircleOutlined className="text-red-500" />
           ) : hasConvertWarning ? (
             <ExclamationCircleOutlined />
+          ) : hasConvertInfo ? (
+            <InfoCircleOutlined />
           ) : (
             <CheckCircleOutlined />
           )
@@ -477,7 +499,9 @@ const TraceStepsContent = ({
               ? "#ef4444"
               : hasConvertWarning
                 ? "#f59e0b"
-                : "#22c55e"
+                : hasConvertInfo
+                  ? "#3b82f6"
+                  : "#22c55e"
             : "#9ca3af";
 
         return (

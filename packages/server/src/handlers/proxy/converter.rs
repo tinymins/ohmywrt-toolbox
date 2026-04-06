@@ -383,8 +383,8 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
 
     // NOTE: hysteria2 uses QUIC-based native multiplexing — sing-box does NOT
     // support the smux `multiplex` field on hysteria2 outbounds.  Any smux/multiplex
-    // config in the Clash source is silently ignored (kept in known_consumed_keys
-    // to suppress entropy-loss warnings, since the field is inapplicable, not lost).
+    // config in the Clash source is intentionally ignored and reported as an
+    // informational note (blue) via known_ignored_keys(), not as data loss.
 
     out
 }
@@ -603,10 +603,6 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
             keys.extend(["password"]);
         }
         "hysteria2" => {
-            // smux/multiplex is inapplicable to hysteria2 (QUIC-native muxing),
-            // but we list it here to suppress false-positive entropy-loss warnings
-            // when the source Clash config contains these fields.
-            keys.extend(multiplex);
             keys.extend([
                 "sni",
                 "skip-cert-verify",
@@ -665,26 +661,54 @@ fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str> {
     keys
 }
 
-/// Convert a Clash proxy to Sing-box outbound, also returning any extra keys
-/// from the input that were NOT consumed by the converter (information loss).
+/// Keys that are intentionally ignored during conversion because they are
+/// inapplicable to the target format, not because of data loss.
+/// These are reported as informational notes (blue) rather than warnings (amber).
+fn known_ignored_keys(proxy_type: &str) -> HashSet<&'static str> {
+    let multiplex: &[&str] = &["multiplex", "smux"];
+    let mut keys = HashSet::new();
+
+    match proxy_type {
+        "hysteria2" | "hysteria" | "tuic" => {
+            // QUIC-based protocols use native multiplexing — sing-box does NOT
+            // support the smux/multiplex field on these outbounds.
+            keys.extend(multiplex);
+        }
+        _ => {}
+    }
+
+    keys
+}
+
+/// Convert a Clash proxy to Sing-box outbound, returning:
+/// - the outbound JSON (or None if unsupported type)
+/// - lost_fields: extra keys NOT consumed — real data loss (amber warning)
+/// - ignored_fields: keys intentionally ignored — inapplicable to target (blue info)
 pub fn convert_clash_proxy_to_singbox_with_diff(
     proxy: &ClashProxy,
-) -> (Option<Value>, Vec<String>) {
+) -> (Option<Value>, Vec<String>, Vec<String>) {
     let outbound = convert_clash_proxy_to_singbox(proxy);
 
     if outbound.is_none() {
-        // Completely unsupported type — all extra fields lost
         let lost: Vec<String> = proxy.extra.keys().cloned().collect();
-        return (None, lost);
+        return (None, lost, Vec::new());
     }
 
     let consumed = known_consumed_keys(&proxy.proxy_type);
-    let lost: Vec<String> = proxy
-        .extra
-        .keys()
-        .filter(|k| !consumed.contains(k.as_str()))
-        .cloned()
-        .collect();
+    let ignored_set = known_ignored_keys(&proxy.proxy_type);
 
-    (outbound, lost)
+    let mut lost = Vec::new();
+    let mut ignored = Vec::new();
+    for k in proxy.extra.keys() {
+        if consumed.contains(k.as_str()) {
+            continue;
+        }
+        if ignored_set.contains(k.as_str()) {
+            ignored.push(k.clone());
+        } else {
+            lost.push(k.clone());
+        }
+    }
+
+    (outbound, lost, ignored)
 }

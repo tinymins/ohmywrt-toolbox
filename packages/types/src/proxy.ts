@@ -528,8 +528,10 @@ export const ProxyNodeTraceConvertStepSchema = z.object({
   data: z.object({
     /** 转换后的 Sing-box outbound 对象 */
     singboxOutbound: z.record(z.string(), z.unknown()),
-    /** 转换过程中丢失的配置字段名列表 */
+    /** 转换过程中丢失的配置字段名列表（真实数据丢失） */
     lostFields: z.array(z.string()).optional(),
+    /** 转换中有意忽略的字段（目标格式不适用，非数据丢失） */
+    ignoredFields: z.array(z.string()).optional(),
   }),
 });
 

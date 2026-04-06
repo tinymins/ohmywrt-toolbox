@@ -39,27 +39,21 @@ Clash 节点（源）                    Sing-box 节点（目标）
                     │   └──────────────────┘   │
                     └───────────┬─────────────┘
                                 │
-                    ┌───────────▼─────────────┐
-                    │ known_consumed_keys()    │
-                    │ 该类型转换器能处理的字段   │
-                    │ ┌──────────────────┐     │
-                    │ │ password    ✓    │     │
-                    │ │ sni         ✓    │     │
-                    │ │ smux        ✓    │     │
-                    │ │ alpn        ✓    │     │
-                    │ └──────────────────┘     │
-                    └───────────┬─────────────┘
-                                │
-                    ┌───────────▼─────────────┐
-                    │      差集计算            │
-                    │                         │
-                    │  extra.keys()           │
-                    │  - consumed_keys        │
-                    │  = lost_fields          │
-                    │                         │
-                    │  → ["custom-field"]     │
-                    └─────────────────────────┘
+              ┌─────────────────┼─────────────────┐
+              │                 │                  │
+   ┌──────────▼──────────┐ ┌───▼──────────┐ ┌─────▼──────────┐
+   │ known_consumed_keys  │ │ known_ignored │ │ 未命中任何集合  │
+   │ 转换器能处理的字段    │ │ _keys()      │ │                │
+   │ ✓ password           │ │ 有意忽略的字段 │ │ → lost_fields  │
+   │ ✓ sni                │ │ ℹ smux (hy2) │ │ ⚠ custom-field │
+   │ ✓ alpn               │ └──────────────┘ └────────────────┘
+   └─────────────────────┘
 ```
+
+字段分为三类：
+- **consumed**（已消费）：转换器正确处理，不报告
+- **ignored**（有意忽略）：目标格式不适用，蓝色信息提示（如 hysteria2 的 smux）
+- **lost**（丢失）：未被处理的未知字段，琥珀色警告
 
 ### 核心函数
 
@@ -67,10 +61,13 @@ Clash 节点（源）                    Sing-box 节点（目标）
 /// 返回指定代理类型的转换器能处理的所有字段名
 fn known_consumed_keys(proxy_type: &str) -> HashSet<&'static str>
 
-/// 执行转换并返回 (转换结果, 丢失字段列表)
+/// 返回指定代理类型中有意忽略的字段名（目标格式不适用）
+fn known_ignored_keys(proxy_type: &str) -> HashSet<&'static str>
+
+/// 执行转换并返回 (转换结果, 丢失字段列表, 有意忽略字段列表)
 pub fn convert_clash_proxy_to_singbox_with_diff(
     proxy: &ClashProxy,
-) -> (Option<Value>, Vec<String>)
+) -> (Option<Value>, Vec<String>, Vec<String>)
 ```
 
 **`convert_clash_proxy_to_singbox_with_diff` 实现逻辑：**
@@ -78,22 +75,29 @@ pub fn convert_clash_proxy_to_singbox_with_diff(
 ```rust
 pub fn convert_clash_proxy_to_singbox_with_diff(
     proxy: &ClashProxy,
-) -> (Option<Value>, Vec<String>) {
+) -> (Option<Value>, Vec<String>, Vec<String>) {
     let outbound = convert_clash_proxy_to_singbox(proxy);
 
-    let lost = if outbound.is_none() {
+    if outbound.is_none() {
         // 转换完全失败 → 所有字段都丢失
-        proxy.extra.keys().cloned().collect()
-    } else {
-        // 计算未被消费的字段
-        let consumed = known_consumed_keys(&proxy.proxy_type);
-        proxy.extra.keys()
-            .filter(|k| !consumed.contains(k.as_str()))
-            .cloned()
-            .collect()
-    };
+        return (None, proxy.extra.keys().cloned().collect(), Vec::new());
+    }
 
-    (outbound, lost)
+    let consumed = known_consumed_keys(&proxy.proxy_type);
+    let ignored_set = known_ignored_keys(&proxy.proxy_type);
+
+    let mut lost = Vec::new();
+    let mut ignored = Vec::new();
+    for k in proxy.extra.keys() {
+        if consumed.contains(k.as_str()) { continue; }
+        if ignored_set.contains(k.as_str()) {
+            ignored.push(k.clone());
+        } else {
+            lost.push(k.clone());
+        }
+    }
+
+    (outbound, lost, ignored)
 }
 ```
 
@@ -107,12 +111,12 @@ pub fn convert_clash_proxy_to_singbox_with_diff(
 |----|------|
 | TLS | `tls`, `servername`, `sni`, `alpn`, `skip-cert-verify`, `client-fingerprint`, `reality-opts` |
 | 传输层 | `network`, `http-opts`, `h2-opts`, `ws-opts`, `grpc-opts` |
-| 多路复用 | `smux`, `multiplex` |
+| 多路复用 | `smux`, `multiplex`（仅 TCP 类协议：vmess/vless/trojan） |
 | 通用 | `udp` |
 
 ### 各类型特有字段
 
-| 类型 | 特有字段 |
+| 类型 | 已消费字段 |
 |------|---------|
 | vmess | `uuid`, `cipher`, `alterId` |
 | vless | `uuid`, `flow` |
@@ -124,6 +128,16 @@ pub fn convert_clash_proxy_to_singbox_with_diff(
 | http | `username`, `password`, `headers` |
 | socks5 | `username`, `password` |
 | anytls | `password` |
+
+### 有意忽略字段（`known_ignored_keys`）
+
+目标格式不适用的字段，不影响转换结果，以蓝色信息提示展示：
+
+| 类型 | 忽略字段 | 原因 |
+|------|---------|------|
+| hysteria2 | `smux`, `multiplex` | QUIC 原生支持多路复用，sing-box 不接受该字段 |
+| hysteria | `smux`, `multiplex` | 同上 |
+| tuic | `smux`, `multiplex` | 同上 |
 
 ## 典型误报案例及修复
 
@@ -184,19 +198,22 @@ let mux = proxy.extra.get("smux")
 
 ### 单节点追踪
 
-追踪单个节点时，**convert** 步骤返回具体的丢失字段：
+追踪单个节点时，**convert** 步骤返回丢失字段和有意忽略字段：
 
 ```json
 {
   "type": "convert",
   "data": {
     "singboxOutbound": { ... },
-    "lostFields": ["custom-field", "unknown-opts"]
+    "lostFields": ["custom-field", "unknown-opts"],
+    "ignoredFields": ["smux"]
   }
 }
 ```
 
-前端在转换步骤处标记黄色警告图标，用户可以看到具体丢了哪些字段。
+前端在转换步骤处：
+- **琥珀色警告**（⚠️）：展示 `lostFields`，表示真实数据丢失
+- **蓝色信息提示**（ℹ️）：展示 `ignoredFields`，表示目标格式不适用的字段被有意忽略
 
 ### 追踪流程（8 步）
 
@@ -207,7 +224,7 @@ let mux = proxy.extra.get("smux")
 4. enrich    → 图标追加、前缀标准化
 5. merge     → 在最终列表中的位置
 6. group     → 被分配到哪些代理分组
-7. convert   → Sing-box 转换结果 + 丢失字段 ← 熵损检测
+7. convert   → Sing-box 转换结果 + 丢失字段 + 忽略字段 ← 熵损检测
 8. output    → 最终输出格式的配置片段
 ```
 
@@ -215,11 +232,13 @@ let mux = proxy.extra.get("smux")
 
 1. **白名单机制**：只有明确声明为"已消费"的字段才被认为是安全的。新增的未知字段默认被视为丢失，宁可误报也不漏报。
 
-2. **非侵入性**：检测逻辑不影响实际转换——即使有字段被报告为丢失，转换结果仍然正常输出。
+2. **三级分类**：字段分为 consumed（已消费）、ignored（有意忽略）、lost（丢失）三级。ignored 字段以蓝色信息提示呈现，避免用户误以为是数据丢失，同时也不完全静默。
 
-3. **格式条件性**：只在 Sing-box 格式下触发检测。Clash 格式是直通的，不存在转换丢失问题。
+3. **非侵入性**：检测逻辑不影响实际转换——即使有字段被报告为丢失或忽略，转换结果仍然正常输出。
 
-4. **分离关注点**：`convert_clash_proxy_to_singbox()` 负责转换，`known_consumed_keys()` 负责声明，`_with_diff()` 负责比对。三者独立维护。
+4. **格式条件性**：只在 Sing-box 格式下触发检测。Clash 格式是直通的，不存在转换丢失问题。
+
+5. **分离关注点**：`convert_clash_proxy_to_singbox()` 负责转换，`known_consumed_keys()` 负责声明已消费，`known_ignored_keys()` 负责声明有意忽略，`_with_diff()` 负责比对。四者独立维护。
 
 ## 维护指南
 
@@ -227,4 +246,5 @@ let mux = proxy.extra.get("smux")
 
 1. **在转换函数中处理新字段**（如 `convert_trojan()` 中添加对新 Clash 字段的映射）
 2. **在 `known_consumed_keys()` 中声明该字段**（否则会产生误报）
-3. **使用调试工具验证**：检查所有订阅的 nodeWarnings 是否为空
+3. **若字段因目标格式限制不可转换**，在 `known_ignored_keys()` 中声明（如 QUIC 协议的 smux）
+4. **使用调试工具验证**：检查所有订阅的 nodeWarnings 是否为空
