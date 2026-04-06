@@ -129,7 +129,7 @@ fn build_tls(proxy: &ClashProxy, force_enabled: bool) -> Option<Value> {
 }
 
 fn build_multiplex(proxy: &ClashProxy) -> Option<Value> {
-    if proxy.extra.get("multiplex").is_some() || proxy.extra.get("smux").is_some() {
+    if proxy.extra.get("multiplex").is_some() {
         Some(json!({
             "enabled": true,
             "protocol": "h2mux",
