@@ -218,9 +218,8 @@ function renderRows<T>(
                 col.ellipsis && "truncate max-w-0",
                 bordered &&
                   "border-r border-black/[0.06] dark:border-white/[0.08] last:border-r-0",
-                col.fixed === "left" && "sticky left-0 z-10 backdrop-blur-2xl",
-                col.fixed === "right" &&
-                  "sticky right-0 z-10 backdrop-blur-2xl",
+                col.fixed === "left" && "sticky left-0 z-10",
+                col.fixed === "right" && "sticky right-0 z-10",
                 col.className,
               )}
               style={{ width: col.width, minWidth: col.minWidth }}
@@ -563,6 +562,7 @@ export function Table<T = Record<string, unknown>>({
         ref={scrollContainerRef}
         className={cn(
           "overflow-auto rounded-lg border border-black/[0.06] dark:border-white/[0.08]",
+          "backdrop-blur-xl bg-white/[0.03] dark:bg-white/[0.02]",
         )}
         style={{
           ...(virtual && scroll?.y
