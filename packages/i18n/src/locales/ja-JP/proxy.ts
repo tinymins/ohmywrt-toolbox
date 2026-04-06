@@ -76,6 +76,14 @@ export default {
     fetchUaTooltip:
       "カスタム User-Agent。異なるサブスクリプションプロバイダーは異なる UA が必要な場合があります",
     fetchUaPlaceholder: "UA 偽装（デフォルト: clash.meta）",
+    testSourceBtn: "このソースをテスト",
+    testSourceTitle: "ソーステスト結果",
+    testSourceSuccess: "{{count}} 個のノードを取得しました",
+    testSourceFail:
+      "ノードが見つかりません。URL または UA 設定を確認してください",
+    testNodeName: "ノード名",
+    testNodeType: "タイプ",
+    close: "閉じる",
     jsonFormatError: "JSON format error",
     dnsConfigLabel: "DNS Config",
     dnsTabShared: "Shared Config",

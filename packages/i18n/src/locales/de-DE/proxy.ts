@@ -77,6 +77,14 @@ export default {
     fetchUaTooltip:
       "Benutzerdefinierter User-Agent. Verschiedene Abonnementanbieter benötigen möglicherweise unterschiedliche UA",
     fetchUaPlaceholder: "UA-Tarnung (Standard: clash.meta)",
+    testSourceBtn: "Diese Quelle testen",
+    testSourceTitle: "Quelltest-Ergebnis",
+    testSourceSuccess: "{{count}} Knoten erfolgreich abgerufen",
+    testSourceFail:
+      "Keine Knoten gefunden. Prüfen Sie URL oder UA-Konfiguration",
+    testNodeName: "Knotenname",
+    testNodeType: "Typ",
+    close: "Schließen",
     jsonFormatError: "JSON format error",
     dnsConfigLabel: "DNS Config",
     dnsTabShared: "Shared Config",

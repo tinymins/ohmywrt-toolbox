@@ -176,4 +176,17 @@ export const proxyApi = {
     method: "POST",
     path: "/api/proxy/clear-cache",
   }),
+  testSource: createMutation<
+    { url: string; ua: string },
+    {
+      status: number;
+      ua: string;
+      nodeCount: number;
+      nodes: { name: string; proxyType: string }[];
+      elapsedMs: number;
+      bodyBytes: number;
+    }
+  >({
+    path: "/api/proxy/test-source",
+  }),
 };

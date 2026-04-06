@@ -34,6 +34,7 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
         .route("/api/proxy/user-stats", get(proxy::get_user_stats))
         .route("/api/proxy/debug", post(proxy::debug_proxy))
         .route("/api/proxy/clear-cache", post(proxy::clear_cache))
+        .route("/api/proxy/test-source", post(proxy::test_source))
         // Public endpoints (no auth) — /{uuid}/{format}
         .route(
             "/api/public/proxy/{uuid}/clash",

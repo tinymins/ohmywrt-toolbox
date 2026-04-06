@@ -737,6 +737,87 @@ pub async fn clear_cache(_auth_user: AuthUser) -> Response {
     .into_response()
 }
 
+/// Test a single subscription source URL with a given UA (bypasses cache).
+pub async fn test_source(
+    _auth_user: AuthUser,
+    Json(body): Json<TestSourceInput>,
+) -> Response {
+    let ua = engine::resolve_ua(Some(&body.ua));
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .unwrap_or_default();
+
+    let start = std::time::Instant::now();
+    let resp = match client
+        .get(&body.url)
+        .header("User-Agent", &ua)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Json(ApiResponse {
+                success: false,
+                data: None::<serde_json::Value>,
+                error: Some(format!("Request failed: {e}")),
+            })
+            .into_response();
+        }
+    };
+
+    let status = resp.status().as_u16();
+    let text = match resp.text().await {
+        Ok(t) => t,
+        Err(e) => {
+            return Json(ApiResponse {
+                success: false,
+                data: None::<serde_json::Value>,
+                error: Some(format!("Failed to read response: {e}")),
+            })
+            .into_response();
+        }
+    };
+
+    let proxies = parser::parse_subscription(&text);
+    let elapsed = start.elapsed().as_millis() as u64;
+
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct NodeBrief {
+        name: String,
+        proxy_type: String,
+    }
+
+    let nodes: Vec<NodeBrief> = proxies
+        .iter()
+        .map(|p| NodeBrief {
+            name: p.name.clone(),
+            proxy_type: p.proxy_type.clone(),
+        })
+        .collect();
+
+    Json(ApiResponse {
+        success: true,
+        data: Some(serde_json::json!({
+            "status": status,
+            "ua": ua,
+            "nodeCount": nodes.len(),
+            "nodes": nodes,
+            "elapsedMs": elapsed,
+            "bodyBytes": text.len(),
+        })),
+        error: None,
+    })
+    .into_response()
+}
+
+#[derive(Deserialize)]
+pub struct TestSourceInput {
+    url: String,
+    ua: String,
+}
+
 // ─── Public proxy handlers (no auth) ───
 
 fn extract_client_ip(headers: &HeaderMap) -> Option<String> {

@@ -76,6 +76,13 @@ export default {
     fetchUaTooltip:
       "Custom User-Agent. Different subscription providers may require different UA to fetch nodes correctly",
     fetchUaPlaceholder: "UA spoof (default: clash.meta)",
+    testSourceBtn: "Test this source",
+    testSourceTitle: "Source Test Result",
+    testSourceSuccess: "Successfully fetched {{count}} nodes",
+    testSourceFail: "No nodes found. Check URL or UA configuration",
+    testNodeName: "Node Name",
+    testNodeType: "Type",
+    close: "Close",
     jsonFormatError: "JSON format error",
     dnsConfigLabel: "DNS Config",
     dnsTabShared: "Shared Config",

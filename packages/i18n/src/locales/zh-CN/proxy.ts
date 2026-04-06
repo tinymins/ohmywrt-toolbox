@@ -75,6 +75,13 @@ export default {
     fetchUaTooltip:
       "自定义 User-Agent，不同订阅源可能需要不同的 UA 伪装才能正常获取节点",
     fetchUaPlaceholder: "UA 伪装（默认 clash.meta）",
+    testSourceBtn: "测试此订阅源",
+    testSourceTitle: "订阅源测试结果",
+    testSourceSuccess: "成功获取 {{count}} 个节点",
+    testSourceFail: "未获取到任何节点，请检查 URL 或 UA 配置",
+    testNodeName: "节点名称",
+    testNodeType: "类型",
+    close: "关闭",
     jsonFormatError: "JSON格式错误",
     dnsConfigLabel: "DNS 配置",
     dnsTabShared: "共享配置",
