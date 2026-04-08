@@ -64,6 +64,8 @@ export default {
     groupPlaceholder: "プロキシグループ JSONC 設定",
     filterLabel: "フィルター (JSONC、コメント対応)",
     filterPlaceholder: "フィルター JSONC 設定",
+    nodeFilterLabel: "ノードフィルター",
+    nodeFilterAddPlaceholder: "フィルターキーワードを入力",
     customConfigLabel: "カスタム設定 (JSONC、コメント対応)",
     customConfigPlaceholder: "カスタム設定 JSONC",
     serversLabel: "手動サーバー",

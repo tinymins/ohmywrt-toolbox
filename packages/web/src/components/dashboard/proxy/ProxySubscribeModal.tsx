@@ -22,6 +22,7 @@ import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
+import TagListEditor from "./TagListEditor";
 
 // 配置 Monaco CDN 源（和 classic 项目一致）
 loader.config({
@@ -163,6 +164,83 @@ const DnsConfigEditorField = ({
   );
 };
 
+/**
+ * Node filter field: bridges JSON string ↔ string[] for TagListEditor.
+ * Uses useSystemFilter to toggle between system default (read-only) and user custom.
+ */
+interface NodeFilterFieldProps {
+  form: ReturnType<typeof Form.useForm>[0];
+  defaultValue: string;
+}
+
+const NodeFilterField = ({ form, defaultValue }: NodeFilterFieldProps) => {
+  const { t } = useTranslation();
+  const useSystem = Form.useWatch("useSystemFilter", form);
+
+  const parseFilterJson = (json: string): string[] => {
+    try {
+      const parsed = parseJsonc(json);
+      return Array.isArray(parsed)
+        ? parsed.filter((s): s is string => typeof s === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  };
+
+  if (useSystem) {
+    return <TagListEditor value={parseFilterJson(defaultValue)} readOnly />;
+  }
+
+  return (
+    <Form.Item name="filter" noStyle>
+      <NodeFilterTagAdapter
+        placeholder={t("proxy.form.nodeFilterAddPlaceholder")}
+      />
+    </Form.Item>
+  );
+};
+
+/**
+ * Adapter: converts Form's string value ↔ TagListEditor's string[] value.
+ */
+interface NodeFilterTagAdapterProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+}
+
+const NodeFilterTagAdapter = ({
+  value,
+  onChange,
+  placeholder,
+}: NodeFilterTagAdapterProps) => {
+  const parseFilterJson = (json: string): string[] => {
+    try {
+      const parsed = parseJsonc(json);
+      return Array.isArray(parsed)
+        ? parsed.filter((s): s is string => typeof s === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const tags = parseFilterJson(value ?? "");
+
+  const handleChange = (newTags: string[]) => {
+    onChange?.(JSON.stringify(newTags));
+  };
+
+  return (
+    <TagListEditor
+      value={tags}
+      onChange={handleChange}
+      placeholder={placeholder}
+    />
+  );
+};
+
 export interface ProxySubscribeModalRef {
   open: (id?: string) => void;
 }
@@ -176,7 +254,6 @@ const TABS = [
   { label: "subscribeUrl", value: "subscribeUrl" },
   { label: "ruleList", value: "ruleList" },
   { label: "group", value: "group" },
-  { label: "filter", value: "filter" },
   { label: "customConfig", value: "customConfig" },
   { label: "dnsConfig", value: "dnsConfig" },
   { label: "servers", value: "servers" },
@@ -361,7 +438,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         const fields = [
           "ruleList",
           "group",
-          "filter",
           "customConfig",
           "dnsConfig",
           "servers",
@@ -414,7 +490,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     const isPending = createMutation.isPending || updateMutation.isPending;
 
     // 配置字段定义（用于统一渲染 useSystem checkbox + editor）
-    type ConfigField = "ruleList" | "group" | "filter" | "customConfig";
+    type ConfigField = "ruleList" | "group" | "customConfig";
     const CONFIG_FIELDS: {
       field: ConfigField;
       useSystemField: string;
@@ -435,13 +511,6 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         tab: "group",
         labelKey: "proxy.form.groupLabel",
         placeholderKey: "proxy.form.groupPlaceholder",
-      },
-      {
-        field: "filter",
-        useSystemField: "useSystemFilter",
-        tab: "filter",
-        labelKey: "proxy.form.filterLabel",
-        placeholderKey: "proxy.form.filterPlaceholder",
       },
       {
         field: "customConfig",
@@ -520,6 +589,26 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               >
                 <SubscribeItemsEditor />
               </Form.Item>
+
+              {/* 节点过滤器 */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-zinc-700">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    {t("proxy.form.nodeFilterLabel")}
+                  </span>
+                  <Form.Item
+                    name="useSystemFilter"
+                    valuePropName="checked"
+                    noStyle
+                  >
+                    <Checkbox>{t("proxy.form.useSystemConfig")}</Checkbox>
+                  </Form.Item>
+                </div>
+                <NodeFilterField
+                  form={form}
+                  defaultValue={defaults?.filter ?? "[]"}
+                />
+              </div>
             </div>
 
             {/* 规则列表 / 分组 / 过滤器 / 自定义配置 */}

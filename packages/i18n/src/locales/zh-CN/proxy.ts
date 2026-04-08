@@ -63,6 +63,8 @@ export default {
     groupPlaceholder: "代理组 JSONC 配置",
     filterLabel: "过滤器 (JSONC，支持注释)",
     filterPlaceholder: "过滤器 JSONC 配置",
+    nodeFilterLabel: "节点过滤器",
+    nodeFilterAddPlaceholder: "输入过滤关键字",
     customConfigLabel: "自定义配置 (JSONC，支持注释)",
     customConfigPlaceholder: "自定义配置 JSONC",
     serversLabel: "手动服务器",

@@ -64,6 +64,8 @@ export default {
     groupPlaceholder: "Proxy-Gruppen JSONC-Konfiguration",
     filterLabel: "Filter (JSONC, Kommentare erlaubt)",
     filterPlaceholder: "Filter JSONC-Konfiguration",
+    nodeFilterLabel: "Knotenfilter",
+    nodeFilterAddPlaceholder: "Filterschlüsselwort eingeben",
     customConfigLabel:
       "Benutzerdefinierte Konfiguration (JSONC, Kommentare erlaubt)",
     customConfigPlaceholder: "Benutzerdefinierte Konfiguration JSONC",

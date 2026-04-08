@@ -1091,8 +1091,6 @@ async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
     let mut source_ip_cidr: Vec<String> = Vec::new();
     let mut port: Vec<u16> = Vec::new();
     let mut source_port: Vec<u16> = Vec::new();
-    let mut process_name: Vec<String> = Vec::new();
-    let mut process_path: Vec<String> = Vec::new();
 
     for item in &arr {
         let line_str = match item.as_str() {
@@ -1128,8 +1126,8 @@ async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
                     source_port.push(p);
                 }
             }
-            "PROCESS-NAME" => process_name.push(value),
-            "PROCESS-PATH" => process_path.push(value),
+            // PROCESS-NAME and PROCESS-PATH are intentionally skipped:
+            // they crash sing-box mobile clients
             _ => {}
         }
     }
@@ -1159,12 +1157,9 @@ async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
     if !source_port.is_empty() {
         rule.insert("source_port".into(), json!(source_port));
     }
-    if !process_name.is_empty() {
-        rule.insert("process_name".into(), json!(process_name));
-    }
-    if !process_path.is_empty() {
-        rule.insert("process_path".into(), json!(process_path));
-    }
+    // NOTE: PROCESS-NAME and PROCESS-PATH rules are intentionally excluded from
+    // sing-box rule-set output because they crash sing-box mobile clients.
+    // These rule types are only meaningful on desktop platforms anyway.
 
     let result = json!({
         "version": rule_set_version,

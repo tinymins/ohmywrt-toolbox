@@ -64,6 +64,8 @@ export default {
     groupPlaceholder: "Proxy groups JSONC configuration",
     filterLabel: "Filters (JSONC, comments supported)",
     filterPlaceholder: "Filters JSONC configuration",
+    nodeFilterLabel: "Node Filter",
+    nodeFilterAddPlaceholder: "Enter filter keyword",
     customConfigLabel: "Custom Config (JSONC, comments supported)",
     customConfigPlaceholder: "Custom config JSONC",
     serversLabel: "Manual Servers",
