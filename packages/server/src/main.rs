@@ -51,7 +51,7 @@ async fn async_main() {
             "trace" | "debug" => {
                 format!("{base},hyper=info,h2=info,tower=info,rustls=info")
             }
-            _ => base.to_string(),
+            _ => base.clone(),
         };
         tracing_subscriber::EnvFilter::new(directives)
     });
@@ -66,7 +66,11 @@ async fn async_main() {
         .init();
 
     let args = Args::parse();
-    eprintln!("{}", build_info::startup_banner());
+    // Startup banner intentionally goes to stderr before logger is ready
+    #[allow(clippy::print_stderr)]
+    {
+        eprintln!("{}", build_info::startup_banner());
+    }
 
     let database_url = env::var("DATABASE_URL")
         .expect("DATABASE_URL is required");
@@ -79,7 +83,7 @@ async fn async_main() {
 
     let data_local_path = env::var("DATA_LOCAL_PATH").unwrap_or_else(|_| ".data".to_string());
     let storage =
-        rs_fullstack_server::services::storage::create_storage_from_env(&data_local_path).await;
+        rs_fullstack_server::services::storage::create_storage_from_env(&data_local_path);
 
     let state = Arc::new(rs_fullstack_server::AppState { db, storage });
 

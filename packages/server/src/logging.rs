@@ -60,7 +60,7 @@ where
             if ansi {
                 let kw_color = sql_keyword_color(&keyword);
                 let elapsed_color = elapsed_secs_color(v.elapsed_secs);
-                write!(writer, "  {kw_color}{:<6}\x1b[0m ", keyword)?;
+                write!(writer, "  {kw_color}{keyword:<6}\x1b[0m ", )?;
                 if let Some(t) = &table {
                     write!(writer, "\x1b[1;37m{t}\x1b[0m ")?;
                 }
@@ -72,7 +72,7 @@ where
                     v.elapsed,
                 )?;
             } else {
-                write!(writer, "  {:<6} ", keyword)?;
+                write!(writer, "  {keyword:<6} ", )?;
                 if let Some(t) = &table {
                     write!(writer, "{t} ")?;
                 }
@@ -104,7 +104,9 @@ where
             writeln!(writer)?;
 
             // 第二行：完整 SQL（缩进 + dim）
-            if !v.db_statement.is_empty() {
+            if v.db_statement.is_empty() {
+                Ok(())
+            } else {
                 let sql = v
                     .db_statement
                     .replace("\\\"", "\"")
@@ -115,8 +117,6 @@ where
                 } else {
                     writeln!(writer, "         {sql_oneline}")
                 }
-            } else {
-                Ok(())
             }
         } else {
             // ── 普通日志：时间戳 + 级别 + 模块 + 消息 ──
@@ -129,9 +129,9 @@ where
 
             let level = *meta.level();
             if ansi {
-                write!(writer, "{}{:>5}\x1b[0m ", level_color(level), level)?;
+                write!(writer, "{}{level:>5}\x1b[0m ", level_color(level))?;
             } else {
-                write!(writer, "{:>5} ", level)?;
+                write!(writer, "{level:>5} ", )?;
             }
 
             // 模块路径（dim）
@@ -209,12 +209,11 @@ fn extract_table_name<'a>(keyword: &str, summary: &'a str) -> Option<&'a str> {
         }
         "SELECT" => {
             // 尝试 FROM table.col
-            if let Some(pos) = words.iter().position(|w| w.eq_ignore_ascii_case("FROM")) {
-                if let Some(raw) = words.get(pos + 1) {
-                    if !raw.starts_with('(') {
-                        return Some(raw.split('.').next().unwrap_or(raw));
-                    }
-                }
+            if let Some(pos) = words.iter().position(|w| w.eq_ignore_ascii_case("FROM"))
+                && let Some(raw) = words.get(pos + 1)
+                && !raw.starts_with('(')
+            {
+                return Some(raw.split('.').next().unwrap_or(raw));
             }
             // 备选：SELECT table.col, ... → 取首列的表前缀
             let first_col = words.get(1)?;
@@ -245,14 +244,14 @@ fn file_location(file: &str) -> (&str, &'static str) {
 
     if let Some(rel) = file.strip_prefix(WS_ROOT).map(|s| s.trim_start_matches('/')) {
         // workspace 路径（其他 crate 编译时嵌入绝对路径）
-        if let Some(after_pkgs) = rel.strip_prefix("packages/") {
-            if let Some(slash) = after_pkgs.find('/') {
-                let pkg = &after_pkgs[..slash];
-                let rest = &after_pkgs[slash + 1..];
-                // 去掉 src/ 前缀（只去顶层的）
-                let rest = rest.strip_prefix("src/").unwrap_or(rest);
-                return (rest, pkg_color(pkg));
-            }
+        if let Some(after_pkgs) = rel.strip_prefix("packages/")
+            && let Some(slash) = after_pkgs.find('/')
+        {
+            let pkg = &after_pkgs[..slash];
+            let rest = &after_pkgs[slash + 1..];
+            // 去掉 src/ 前缀（只去顶层的）
+            let rest = rest.strip_prefix("src/").unwrap_or(rest);
+            return (rest, pkg_color(pkg));
         }
         return (rel, pkg_color("workspace"));
     }
@@ -260,8 +259,8 @@ fn file_location(file: &str) -> (&str, &'static str) {
     if let Some(i) = file.find("/.cargo/registry/src/") {
         // cargo registry 依赖，去掉 .cargo/registry/src/<index-hash>/<crate-ver>/src/
         let after = &file[i + "/.cargo/registry/src/".len()..];
-        let without_index = after.find('/').map(|j| &after[j + 1..]).unwrap_or(after);
-        let in_crate = without_index.find('/').map(|j| &without_index[j + 1..]).unwrap_or(without_index);
+        let without_index = after.find('/').map_or(after, |j| &after[j + 1..]);
+        let in_crate = without_index.find('/').map_or(without_index, |j| &without_index[j + 1..]);
         let path = in_crate.strip_prefix("src/").unwrap_or(in_crate);
         return (path, "\x1b[2m"); // dim — 外部库不重要
     }
@@ -302,7 +301,7 @@ struct SqlxVisitor {
 
 impl Visit for SqlxVisitor {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
-        let s = format!("{:?}", value);
+        let s = format!("{value:?}");
         match field.name() {
             "summary" => self.summary = s.trim_matches('"').to_string(),
             "db.statement" => self.db_statement = s.trim_matches('"').to_string(),

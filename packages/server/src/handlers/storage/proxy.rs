@@ -18,9 +18,8 @@ pub async fn storage_proxy(
         return StatusCode::BAD_REQUEST.into_response();
     }
 
-    let data = match state.storage.download(&key).await {
-        Ok(d) => d,
-        Err(_) => return StatusCode::NOT_FOUND.into_response(),
+    let Ok(data) = state.storage.download(&key).await else {
+        return StatusCode::NOT_FOUND.into_response();
     };
 
     let content_type = mime_guess::from_path(&key)

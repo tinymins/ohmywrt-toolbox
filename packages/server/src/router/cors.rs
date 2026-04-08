@@ -18,9 +18,8 @@ fn default_cors_allowed_origins() -> Vec<HeaderValue> {
 }
 
 fn parse_cors_allowed_origins() -> Vec<HeaderValue> {
-    let configured = match env::var("CORS_ALLOWED_ORIGINS") {
-        Ok(value) => value,
-        Err(_) => return default_cors_allowed_origins(),
+    let Ok(configured) = env::var("CORS_ALLOWED_ORIGINS") else {
+        return default_cors_allowed_origins();
     };
 
     let origins = configured

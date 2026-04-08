@@ -101,7 +101,7 @@ pub fn build_session_response<T: Serialize>(data: T, session_id: &str) -> Respon
     let cookie = format!(
         "SESSION_ID={}; HttpOnly; SameSite=Lax; Path=/; Max-Age={}{}",
         session_id,
-        604800, // 7 days
+        604_800, // 7 days
         if secure { "; Secure" } else { "" }
     );
     let body = Json(ApiResponse {

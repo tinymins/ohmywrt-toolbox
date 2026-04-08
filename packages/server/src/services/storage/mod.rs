@@ -9,7 +9,7 @@ use tracing::info;
 
 /// Create a storage provider from environment configuration.
 /// Currently uses local filesystem via OpenDAL.
-pub async fn create_storage_from_env(data_local_path: &str) -> Arc<dyn StorageProvider> {
+pub fn create_storage_from_env(data_local_path: &str) -> Arc<dyn StorageProvider> {
     let base_path = format!("{data_local_path}/storage");
 
     info!("Storage: using local filesystem via OpenDAL (path={base_path})");

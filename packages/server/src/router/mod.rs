@@ -25,7 +25,7 @@ pub fn build_app(state: Arc<AppState>) -> Router {
 
     // 生产模式：STATIC_DIR 设置时，服务器直接提供前端静态文件（SPA fallback）
     if let Ok(static_dir) = env::var("STATIC_DIR") {
-        let index = format!("{}/index.html", static_dir);
+        let index = format!("{static_dir}/index.html");
         api.fallback_service(ServeDir::new(&static_dir).fallback(ServeFile::new(index)))
     } else {
         api

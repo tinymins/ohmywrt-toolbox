@@ -61,10 +61,9 @@ impl StorageProvider for OpendalStorageProvider {
 
     async fn list(&self, prefix: Option<&str>) -> Result<Vec<StorageObject>, String> {
         let prefix = match prefix {
-            Some(p) if p.is_empty() => String::new(),
+            Some("") | None => String::new(),
             Some(p) if p.ends_with('/') => p.to_string(),
             Some(p) => format!("{p}/"),
-            None => String::new(),
         };
 
         let entries = self
