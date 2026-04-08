@@ -282,7 +282,7 @@ const GroupAssignTraceContent = ({
 
   return (
     <div className="flex flex-wrap gap-1">
-      {data.assignedGroups.map((g: any, _i: number) => (
+      {data.assignedGroups.map((g, _i: number) => (
         <Tag key={g.name} color="purple">
           {g.name} <span className="text-slate-500 text-xs">({g.type})</span>
         </Tag>
@@ -442,10 +442,10 @@ const NodeTracePanel = ({
   }
 
   // 找出存在的步骤类型
-  const existingStepTypes = new Set(data.steps.map((s: any) => s.type));
+  const existingStepTypes = new Set(data.steps.map((s) => s.type));
 
   // 检查节点是否被过滤
-  const filterStep = data.steps.find((s: any) => s.type === "filter") as
+  const filterStep = data.steps.find((s) => s.type === "filter") as
     | Extract<ProxyNodeTraceStep, { type: "filter" }>
     | undefined;
   const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;
@@ -462,7 +462,7 @@ const NodeTracePanel = ({
     }
     return true;
   }).map((stepType) => {
-    const actualStep = data.steps.find((s: any) => s.type === stepType);
+    const actualStep = data.steps.find((s) => s.type === stepType);
     const isSkipped = !existingStepTypes.has(stepType) && isFiltered;
     return { stepType, actualStep, isSkipped };
   });
@@ -472,7 +472,7 @@ const NodeTracePanel = ({
       <div className="flex items-center gap-2 mb-4">
         <AimOutlined className="text-blue-500" />
         <span className="font-semibold">{t("proxy.debug.traceTitle")}</span>
-        <Tag color="blue">{(data as any).nodeName}</Tag>
+        <Tag color="blue">{data.nodeName}</Tag>
         {isFiltered && (
           <Tag color="orange">{t("proxy.debug.traceFilteredLabel")}</Tag>
         )}

@@ -11,7 +11,11 @@ import {
   Tag,
   Tooltip,
 } from "@acme/components";
-import type { ProxyDebugStep } from "@acme/types";
+import type {
+  ProxyDebugFilteredNode,
+  ProxyDebugStep,
+  ProxyPreviewNode,
+} from "@acme/types";
 import { useTranslation } from "react-i18next";
 import { SyntaxJsonViewer } from "./InteractiveJsonViewer";
 
@@ -194,7 +198,9 @@ export const ManualServersStepContent = ({
           size="small"
           pagination={false}
           dataSource={data.nodes}
-          rowKey={(record: any) => String(data.nodes.indexOf(record))}
+          rowKey={(record: ProxyPreviewNode) =>
+            String(data.nodes.indexOf(record))
+          }
           columns={[
             {
               title: t("proxy.preview.nodeName"),
@@ -390,7 +396,7 @@ export const SourceResultStepContent = ({
                       size="small"
                       pagination={false}
                       dataSource={data.filteredNodes}
-                      rowKey={(record: any) =>
+                      rowKey={(record: ProxyDebugFilteredNode) =>
                         String(data.filteredNodes.indexOf(record))
                       }
                       columns={[
@@ -448,7 +454,7 @@ export const SourceResultStepContent = ({
                 pagination={false}
                 scroll={{ y: 300 }}
                 dataSource={data.nodesAfterFilter}
-                rowKey={(record: any) =>
+                rowKey={(record: ProxyPreviewNode) =>
                   String(data.nodesAfterFilter.indexOf(record))
                 }
                 columns={[

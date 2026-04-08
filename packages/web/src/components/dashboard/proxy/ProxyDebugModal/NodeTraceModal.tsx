@@ -302,7 +302,7 @@ const GroupAssignTraceContent = ({
 
   return (
     <div className="flex flex-wrap gap-1">
-      {data.assignedGroups.map((g: any) => (
+      {data.assignedGroups.map((g) => (
         <Tag key={g.name} color="purple">
           {g.name} <span className="text-slate-500 text-xs">({g.type})</span>
         </Tag>
@@ -603,7 +603,11 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
     const { data, isLoading, error } = proxyApi.traceNode.useQuery(
       tracingNodeName
         ? { id: subscribeId, format, nodeName: tracingNodeName }
-        : undefined!,
+        : (undefined as unknown as {
+            id: string;
+            format: string;
+            nodeName: string;
+          }),
       { enabled: !!tracingNodeName },
     );
 
@@ -640,7 +644,7 @@ const NodeTraceModal = forwardRef<NodeTraceModalRef, NodeTraceModalProps>(
         }));
     }, [allNodeNames, searchValue, t]);
 
-    const filterStep = data?.steps?.find((s: any) => s.type === "filter") as
+    const filterStep = data?.steps?.find((s) => s.type === "filter") as
       | Extract<ProxyNodeTraceStep, { type: "filter" }>
       | undefined;
     const isFiltered = filterStep?.type === "filter" && !filterStep.data.passed;

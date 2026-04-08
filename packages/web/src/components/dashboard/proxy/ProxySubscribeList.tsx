@@ -226,7 +226,7 @@ export default function ProxySubscribeList() {
                 title: t("proxy.columns.creator"),
                 width: 100,
                 ellipsis: true,
-                render: (_, record) => (record as any).user?.name ?? "-",
+                render: (_, record) => record.user?.name ?? "-",
               },
               {
                 title: t("proxy.columns.remark"),

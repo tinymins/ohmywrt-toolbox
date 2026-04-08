@@ -191,7 +191,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       case "done":
         return t("proxy.debug.complete");
       default:
-        return (step as any).type;
+        return (step as { type: string }).type;
     }
   };
 

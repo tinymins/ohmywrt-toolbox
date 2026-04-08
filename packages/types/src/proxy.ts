@@ -310,6 +310,10 @@ export const ProxyDebugFilteredNodeSchema = z.object({
   matchedRule: z.string(),
 });
 
+export type ProxyDebugFilteredNode = z.infer<
+  typeof ProxyDebugFilteredNodeSchema
+>;
+
 /** Step: 配置解析完成 */
 export const ProxyDebugConfigStepSchema = z.object({
   type: z.literal("config"),

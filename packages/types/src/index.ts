@@ -45,6 +45,7 @@ export type {
   DnsConfig,
   DnsSharedConfig,
   FieldOrigin,
+  ProxyDebugFilteredNode,
   ProxyDebugFormat,
   ProxyDebugStep,
   ProxyGroup,

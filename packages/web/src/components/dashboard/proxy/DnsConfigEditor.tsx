@@ -1,6 +1,6 @@
 import { Input, InputNumber, Switch, Tabs } from "@acme/components";
 import type { DnsConfig, DnsSharedConfig } from "@acme/types";
-import Editor, { loader } from "@monaco-editor/react";
+import Editor, { loader, type Monaco } from "@monaco-editor/react";
 import { parse as parseJsonc } from "jsonc-parser";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -400,7 +400,7 @@ const JsoncEditor = ({ value, onChange, placeholder }: JsoncEditorProps) => (
         minimap: { enabled: false },
         tabSize: 2,
       }}
-      beforeMount={(monaco: any) => {
+      beforeMount={(monaco: Monaco) => {
         monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
           validate: true,
           allowComments: true,

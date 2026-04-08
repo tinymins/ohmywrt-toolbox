@@ -1,3 +1,7 @@
+import type {
+  ProxyNodeTraceOutput,
+  ProxyPreviewNode,
+} from "@acme/types";
 import {
   createQuery,
   createMutation,
@@ -150,7 +154,7 @@ export const proxyApi = {
   }),
   previewNodes: createQuery<
     { id: string; format: string },
-    { nodes: unknown[]; rawText?: string }
+    { nodes: ProxyPreviewNode[]; rawText?: string }
   >({
     path: "/api/proxy/preview-nodes",
     pathFn: (input) =>
@@ -159,7 +163,7 @@ export const proxyApi = {
   }),
   traceNode: createQuery<
     { id: string; format: string; nodeName: string },
-    { steps: unknown[] }
+    ProxyNodeTraceOutput
   >({
     path: "/api/proxy/trace-node",
     pathFn: (input) =>

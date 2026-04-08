@@ -12,7 +12,7 @@ import type {
   SubscribeItem,
   UpdateProxySubscribeInput,
 } from "@acme/types";
-import Editor, { loader } from "@monaco-editor/react";
+import Editor, { loader, type Monaco } from "@monaco-editor/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
@@ -66,7 +66,7 @@ const JsoncEditor = ({ value, onChange, readOnly }: JsoncEditorProps) => {
           tabSize: 2,
           readOnly: readOnly ?? false,
         }}
-        beforeMount={(monaco: any) => {
+        beforeMount={(monaco: Monaco) => {
           // 配置 JSON 语言允许注释和尾随逗号
           monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
             validate: true,
@@ -212,7 +212,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     const { data: defaults } = proxyApi.getDefaults.useQuery();
 
     const { data: existingData, isLoading: isLoadingData } =
-      proxyApi.getById.useQuery({ id: id! }, { enabled: !!id });
+      proxyApi.getById.useQuery({ id: id as string }, { enabled: !!id });
 
     const createMutation = proxyApi.create.useMutation({
       onSuccess: () => {
