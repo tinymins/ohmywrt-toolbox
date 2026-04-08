@@ -855,6 +855,7 @@ async fn fetch_rule_sets(
     let mut join_set = tokio::task::JoinSet::new();
     for (group, tag, url, effective_url) in tasks {
         let client = client.clone();
+        let filter_process_rules = is_singbox;
         join_set.spawn(async move {
             match client.get(&url).send().await {
                 Ok(resp) => {
@@ -863,7 +864,11 @@ async fn fetch_rule_sets(
                     let body = read_body_limited(resp, MAX_BODY_SIZE).await;
                     match body {
                         Ok(text) if status < 400 => {
-                            let rules = parse_rule_provider_yaml(&text);
+                            let mut rules = parse_rule_provider_yaml(&text);
+                            // For sing-box, filter out PROCESS-NAME/PATH rules
+                            if filter_process_rules {
+                                rules.retain(|r| !is_singbox_excluded_rule(r));
+                            }
                             let rule_count = rules.len();
                             let all_rules: Vec<Value> = rules
                                 .into_iter()
@@ -1023,7 +1028,9 @@ async fn fetch_builtin_rule_sets(client: &reqwest::Client, config_output: &str) 
                 Ok(resp) if resp.status().is_success() => {
                     match read_body_limited(resp, MAX_BUILTIN_BODY_SIZE).await {
                         Ok(text) => {
-                            let rules = parse_singbox_ruleset_json(&text);
+                            let mut rules = parse_singbox_ruleset_json(&text);
+                            // Filter out PROCESS-NAME/PATH rules (they crash sing-box mobile clients)
+                            rules.retain(|r| !is_singbox_excluded_rule(r));
                             let rule_count = rules.len();
                             let all_rules: Vec<Value> =
                                 rules.into_iter().map(|s| json!(s)).collect();
@@ -1093,6 +1100,12 @@ async fn read_body_limited(resp: reqwest::Response, max_size: usize) -> Result<S
     }
     String::from_utf8(bytes.to_vec())
         .map_err(|_| "Response is not valid UTF-8".to_string())
+}
+
+/// Returns true if the rule line is a PROCESS-NAME or PROCESS-PATH rule
+/// that should be excluded from sing-box output (they crash sing-box mobile clients).
+fn is_singbox_excluded_rule(rule: &str) -> bool {
+    rule.starts_with("PROCESS-NAME,") || rule.starts_with("PROCESS-PATH,")
 }
 
 /// Parse a Clash-format rule provider YAML.
