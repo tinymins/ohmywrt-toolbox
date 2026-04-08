@@ -42,7 +42,7 @@ const common = {
     notFoundTitle: "Seite nicht gefunden — OhMyWRT Toolbox",
     homeTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack-Toolbox",
     homeDescription:
-      "Eine Full-Stack-Anwendungsvorlage basierend auf TypeScript. tRPC · React 19 · Hono · Prisma · PostgreSQL.",
+      "Produktionsreifes Monorepo mit Rust (Axum) + React 19 + PostgreSQL. Auth · Workspaces · WASM · Mini Program · i18n · Docker.",
     homeOgTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack-Toolbox",
   },
   lang: {

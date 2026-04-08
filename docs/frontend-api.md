@@ -266,7 +266,7 @@ server: {
   port: webPort,  // 默认 5173
   proxy: {
     "/api": {
-      target: `http://localhost:${serverPort}`,  // 默认 4000
+      target: `http://localhost:${serverPort}`,  // 默认 5678
       changeOrigin: true,
     },
     "/upload": {
@@ -281,7 +281,7 @@ server: {
 }
 ```
 
-`SERVER_PORT` 环境变量（默认 4000）控制代理目标端口。也可通过 `packages/web/.env` 中的 `RUST_SERVER` 变量直接指定后端 URL。
+`SERVER_PORT` 环境变量（默认 5678）控制代理目标端口。也可通过 `packages/web/.env` 中的 `RUST_SERVER` 变量直接指定后端 URL。
 
 ### 语言头
 

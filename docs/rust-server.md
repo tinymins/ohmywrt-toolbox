@@ -1,6 +1,12 @@
 # Rust Backend Guide
 
-`packages/server/` 是基于 Axum 的 HTTP 服务器骨架，使用 Sea-ORM 连接 PostgreSQL。
+`packages/server/` 是基于 Axum 的 HTTP 服务器骨架，使用 Sea-ORM 连接 PostgreSQL。作为 Cargo workspace 的成员，继承根 `Cargo.toml` 中的 lint 规则和 build profiles。
+
+## Cargo Workspace 集成
+
+Server crate 通过 `[lints] workspace = true` 继承 workspace 级别的 clippy + rustc lint 规则，无需在自己的 `Cargo.toml` 中重复定义。
+
+Build profiles（dev/test/release）同样继承自 workspace，确保所有 crate 使用一致的编译配置。
 
 ## 项目结构
 

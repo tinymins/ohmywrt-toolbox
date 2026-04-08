@@ -1,7 +1,7 @@
 const hero = {
   title: "フルスタック Rust + React ボイラープレート",
   subtitle:
-    "Rust (Axum) + React 19 + PostgreSQL のモダンフルスタックボイラープレート — 認証、ワークスペース、i18n、Docker デプロイ対応",
+    "Rust (Axum) + React 19 + PostgreSQL の本番対応モノレポ — 認証、ワークスペース、WASM モジュール、WeChat ミニプログラム、i18n、ワンコマンド Docker デプロイ対応",
   cta: "今すぐ始める",
   secondary: "ログイン",
   ctaGithub: "テンプレートをフォーク",

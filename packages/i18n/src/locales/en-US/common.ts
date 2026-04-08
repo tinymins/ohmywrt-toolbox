@@ -43,7 +43,7 @@ const common = {
     notFoundTitle: "Page Not Found — OhMyWRT Toolbox",
     homeTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
     homeDescription:
-      "A full-stack toolbox built with Rust (Axum) + React 19 + PostgreSQL. Auth · Workspaces · i18n · Docker.",
+      "Production-ready monorepo with Rust (Axum) + React 19 + PostgreSQL. Auth · Workspaces · WASM · Mini Program · i18n · Docker.",
     homeOgTitle: "OhMyWRT Toolbox — OpenWrt Full-Stack Toolbox",
   },
   lang: {

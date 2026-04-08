@@ -27,11 +27,11 @@
 make init
 ```
 
-`make init` 执行以下 9 个步骤：
+`make init` 执行以下步骤：
 
 1. **检查依赖项** — 验证 node / pnpm / docker / cargo / wasm-pack 是否安装
-2. **停止现有容器** — `docker compose down -v`（开发数据库）
-3. **清理数据目录** — 删除 `${DATA_DIR}/postgres`
+2. **询问是否保留现有数据库** — 用户可选择跳过数据库清除（适用于重新安装依赖等场景）
+3. **清理数据目录**（如选择重置）— 停止现有容器 + 删除 `${DATA_DIR}/postgres`
 4. **创建数据目录** — `mkdir -p ${DATA_DIR}/postgres ${DATA_DIR}/storage`
 5. **安装依赖** — `pnpm install`
 6. **构建 WASM** — `cd packages/wasm && wasm-pack build --target web`
@@ -39,7 +39,7 @@ make init
 8. **等待数据库就绪** — `pg_isready` 检查
 9. **同步 Schema** — `npx prisma db push --schema prisma/schema.prisma`
 
-> ⚠️ `make init` 会**清除现有数据库数据**，仅在首次搭建或需要完全重置时使用。
+> 💡 `make init` 默认会询问是否保留现有数据库。选择保留时将跳过容器停止和数据清除步骤。
 
 ## 启动开发环境
 
@@ -85,7 +85,7 @@ make dev
 ```bash
 make dev              # 启动完整开发环境
 make dev:kill         # 杀掉残留进程（释放端口）
-make lint             # Biome lint + format 检查
+make lint             # Biome lint + Cargo clippy + TypeScript 类型检查
 make gen:api          # 从 Rust 生成 TypeScript 类型
 make db:sync          # 同步 Prisma schema 到数据库
 ```

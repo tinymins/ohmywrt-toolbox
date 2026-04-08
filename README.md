@@ -13,7 +13,7 @@ Production-ready full-stack boilerplate: Rust (Axum) backend + React 19 SPA, man
 | **WASM** | wasm-bindgen · wasm-pack |
 | **Types** | Zod v4 · TypeScript 5.9 · ts-rs |
 | **Build** | Turborepo · Vite 7 |
-| **Dev Tools** | Biome · Docker Compose · pnpm 10 |
+| **Dev Tools** | Cargo clippy · rustfmt · Biome · Docker Compose · pnpm 10 |
 | **Mini Program** | Taro 4 · React 18 · WeChat |
 
 ## Quick Start
@@ -33,12 +33,12 @@ Dev servers:
 ## Commands
 
 ```bash
-make init      # First-time setup (destructive — rebuilds database)
+make init      # First-time setup (creates .env, installs deps, starts DB, syncs schema)
 make dev       # Start dev environment (DB + dev servers)
 make build     # Production build
 make docker    # Docker image build
 make deploy    # One-command deploy to server
-make lint      # Biome lint + typecheck
+make lint      # Biome + Cargo clippy + typecheck
 make gen:api   # Generate TypeScript types from Rust DTOs
 ```
 
@@ -57,13 +57,16 @@ packages/
 
 ## Features
 
-- **End-to-end type safety**: Rust DTO → ts-rs → TypeScript, full-chain type safety
+- **End-to-end type safety**: Rust DTO → ts-rs → TypeScript, full-chain type safety with Zod v4 validation
 - **SPA with client routing**: React Router v7 with code splitting and client loaders
 - **Multi-workspace**: Switchable workspaces with role-based access
 - **Admin panel**: Super admin / admin / user three-tier roles
 - **Object storage**: OpenDAL abstraction (local filesystem, extensible to S3)
 - **Internationalization**: 5 languages (zh-CN / en-US / de-DE / ja-JP / zh-TW)
 - **Theming**: Light/dark mode + CSS variables + system preference detection
+- **Strict dev toolchain**: Cargo workspace + clippy pedantic lints, rustfmt, Biome, Turborepo
+- **One-command deployment**: Multi-stage Docker build with embedded SPA, deploy via SSH
+- **Multi-platform**: React SPA + WeChat Mini Program (Taro 4) + WASM modules from one monorepo
 
 ## Deployment
 

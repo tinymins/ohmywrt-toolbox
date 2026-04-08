@@ -1,7 +1,7 @@
 const hero = {
   title: "Full-Stack Rust + React Boilerplate",
   subtitle:
-    "Modern full-stack boilerplate built with Rust (Axum) + React 19 + PostgreSQL — auth, workspaces, i18n, and Docker deployment included",
+    "Production-ready monorepo with Rust (Axum) backend, React 19 SPA, WASM modules, and WeChat Mini Program — auth, workspaces, i18n, and one-command Docker deployment included",
   cta: "Get Started",
   secondary: "Sign In",
   ctaGithub: "Fork Template",
