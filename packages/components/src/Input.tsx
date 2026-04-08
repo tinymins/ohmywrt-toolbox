@@ -41,7 +41,7 @@ const BaseInput = forwardRef<HTMLInputElement, InputProps>(
       suffix,
       status,
       className,
-      autoComplete = "off",
+      autoComplete,
       ...rest
     },
     ref,
@@ -90,7 +90,7 @@ export interface PasswordProps extends Omit<InputProps, "type" | "suffix"> {
 }
 
 export const Password = forwardRef<HTMLInputElement, PasswordProps>(
-  ({ autoComplete = "new-password", ...props }, ref) => {
+  ({ autoComplete, ...props }, ref) => {
     const [visible, setVisible] = useState(false);
     return (
       <BaseInput

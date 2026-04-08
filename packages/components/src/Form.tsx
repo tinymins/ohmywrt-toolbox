@@ -533,6 +533,7 @@ Form.Item = function FormItem({
           }
         },
         id: fieldId,
+        name,
       };
       if (error) {
         injectedProps.status = "error";
