@@ -378,16 +378,18 @@ export function Select({
                   className="inline-flex items-center gap-0.5 bg-black/[0.04] dark:bg-white/[0.08] text-xs rounded px-1.5 py-0.5"
                 >
                   {getTagLabel(v)}
-                  <button
-                    type="button"
-                    className="cursor-pointer hover:text-red-500"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelect(v);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {!disabled && (
+                    <button
+                      type="button"
+                      className="cursor-pointer hover:text-red-500"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(v);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </span>
               ))}
               {showSearch ? (
