@@ -153,7 +153,7 @@ async fn batch_fetch_users(
 }
 
 /// Enrich a single subscription with user data and access count
-async fn enrich_subscribe(
+fn enrich_subscribe(
     _db: &DatabaseConnection,
     sub: proxy_subscribes::Model,
     user_map: &HashMap<String, UserBrief>,
@@ -169,7 +169,7 @@ async fn enrich_subscribe(
         .unwrap_or_else(|| UserBrief {
             id: user_id_str.clone(),
             name: "Unknown".into(),
-            email: "".into(),
+            email: String::new(),
         });
 
     let authorized_users: Vec<UserBrief> = auth_ids
@@ -272,7 +272,7 @@ async fn enrich_subscribes_batch(
 
     let mut output = Vec::with_capacity(subs.len());
     for sub in subs {
-        output.push(enrich_subscribe(db, sub, &user_map, &access_counts).await);
+        output.push(enrich_subscribe(db, sub, &user_map, &access_counts));
     }
     Ok(output)
 }
@@ -653,7 +653,7 @@ pub async fn get_user_stats(
     let sub_ids: Vec<uuid::Uuid> = subs.iter().map(|s| s.id).collect();
     let total_nodes: i64 = subs
         .iter()
-        .map(|s| s.cached_node_count.unwrap_or(0) as i64)
+        .map(|s| i64::from(s.cached_node_count.unwrap_or(0)))
         .sum();
 
     let today_requests =
@@ -1014,11 +1014,10 @@ async fn handle_singbox(
 }
 
 fn get_public_server_url(headers: &HeaderMap) -> String {
-    if let Ok(url) = std::env::var("PUBLIC_SERVER_URL") {
-        if !url.is_empty() {
+    if let Ok(url) = std::env::var("PUBLIC_SERVER_URL")
+        && !url.is_empty() {
             return url;
         }
-    }
     let proto = headers
         .get("x-forwarded-proto")
         .and_then(|v| v.to_str().ok())
@@ -1027,7 +1026,7 @@ fn get_public_server_url(headers: &HeaderMap) -> String {
         .get("host")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("localhost:4000");
-    format!("{}://{}", proto, host)
+    format!("{proto}://{host}")
 }
 
 // ─── Convert Clash YAML rule to Sing-box JSON source format ───

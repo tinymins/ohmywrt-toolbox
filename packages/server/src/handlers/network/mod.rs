@@ -4,7 +4,6 @@ use std::time::Instant;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use once_cell::sync::Lazy;
 use tokio::sync::RwLock;
 
 use crate::error::ApiResponse;
@@ -17,9 +16,9 @@ struct CacheEntry {
     fetched_at: Instant,
 }
 
-static GEOIP_CACHE: Lazy<RwLock<Option<CacheEntry>>> = Lazy::new(|| RwLock::new(None));
+static GEOIP_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> = std::sync::LazyLock::new(|| RwLock::new(None));
 
-static GEOSITE_CACHE: Lazy<RwLock<Option<CacheEntry>>> = Lazy::new(|| RwLock::new(None));
+static GEOSITE_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> = std::sync::LazyLock::new(|| RwLock::new(None));
 
 const CACHE_TTL_SECS: u64 = 24 * 60 * 60; // 24 hours
 
@@ -76,7 +75,7 @@ async fn fetch_geoip_cn() -> Result<String, String> {
                 Err(_) => continue,
             };
             // Convert count to CIDR prefix length
-            let prefix = 32 - (count as f64).log2() as u32;
+            let prefix = 32 - f64::from(count).log2() as u32;
             cidrs.push(format!("{ip}/{prefix}"));
         }
     }
@@ -119,11 +118,10 @@ async fn get_cached_or_fetch(
     // Check cache (read lock)
     {
         let guard = cache.read().await;
-        if let Some(entry) = guard.as_ref() {
-            if entry.fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
+        if let Some(entry) = guard.as_ref()
+            && entry.fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
                 return Ok(entry.data.clone());
             }
-        }
     }
 
     // Cache miss or expired — fetch and update

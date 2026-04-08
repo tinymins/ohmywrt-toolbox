@@ -54,11 +54,10 @@ impl ProxySubscribeRepo {
                 s.authorized_user_ids
                     .as_ref()
                     .and_then(|v: &serde_json::Value| v.as_array())
-                    .map(|arr: &Vec<serde_json::Value>| {
+                    .is_some_and(|arr: &Vec<serde_json::Value>| {
                         arr.iter()
                             .any(|id: &serde_json::Value| id.as_str() == Some(&uid_str))
                     })
-                    .unwrap_or(false)
             })
             .collect::<Vec<_>>();
 
@@ -93,11 +92,10 @@ impl ProxySubscribeRepo {
             .authorized_user_ids
             .as_ref()
             .and_then(|v: &serde_json::Value| v.as_array())
-            .map(|arr: &Vec<serde_json::Value>| {
+            .is_some_and(|arr: &Vec<serde_json::Value>| {
                 arr.iter()
                     .any(|id: &serde_json::Value| id.as_str() == Some(user_id))
-            })
-            .unwrap_or(false);
+            });
         owner || authorized
     }
 
@@ -105,6 +103,7 @@ impl ProxySubscribeRepo {
         sub.user_id.to_string() == user_id
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         db: &DatabaseConnection,
         user_id: &str,

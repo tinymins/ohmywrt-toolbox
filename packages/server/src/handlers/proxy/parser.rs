@@ -28,8 +28,8 @@ pub fn is_base64_subscription(text: &str) -> bool {
         return false;
     }
 
-    if let Some(decoded) = lenient_base64_decode(trimmed) {
-        if let Ok(s) = String::from_utf8(decoded) {
+    if let Some(decoded) = lenient_base64_decode(trimmed)
+        && let Ok(s) = String::from_utf8(decoded) {
             return s
                 .lines()
                 .any(|l| {
@@ -45,7 +45,6 @@ pub fn is_base64_subscription(text: &str) -> bool {
                         || l.starts_with("anytls://")
                 });
         }
-    }
     false
 }
 
@@ -68,13 +67,11 @@ fn is_placeholder_node(p: &ClashProxy) -> bool {
 }
 
 fn parse_base64_subscription(text: &str) -> Vec<ClashProxy> {
-    let decoded = match lenient_base64_decode(text.trim()) {
-        Some(d) => d,
-        None => return Vec::new(),
+    let Some(decoded) = lenient_base64_decode(text.trim()) else {
+        return Vec::new();
     };
-    let s = match String::from_utf8(decoded) {
-        Ok(s) => s,
-        Err(_) => return Vec::new(),
+    let Ok(s) = String::from_utf8(decoded) else {
+        return Vec::new();
     };
 
     let mut proxies = Vec::new();
@@ -83,10 +80,7 @@ fn parse_base64_subscription(text: &str) -> Vec<ClashProxy> {
         if line.is_empty() {
             continue;
         }
-        match parse_proxy_uri(line) {
-            Some(p) => proxies.push(p),
-            None => warn!("Failed to parse proxy URI: {}", line),
-        }
+        if let Some(p) = parse_proxy_uri(line) { proxies.push(p) } else { warn!("Failed to parse proxy URI: {}", line) }
     }
     proxies
 }
@@ -136,7 +130,7 @@ fn url_decode(s: &str) -> String {
 
 fn parse_url_fragment(url: &url::Url) -> String {
     url.fragment()
-        .map(|f| url_decode(f))
+        .map(url_decode)
         .unwrap_or_default()
 }
 
@@ -174,7 +168,7 @@ pub fn parse_vless_uri(uri: &str) -> Option<ClashProxy> {
     let port = url.port()?;
     let name_raw = parse_url_fragment(&url);
     let name = if name_raw.is_empty() {
-        format!("{}:{}", server, port)
+        format!("{server}:{port}")
     } else {
         name_raw
     };
@@ -184,14 +178,14 @@ pub fn parse_vless_uri(uri: &str) -> Option<ClashProxy> {
     extra.insert("uuid".into(), Value::String(uuid));
     extra.insert("udp".into(), Value::Bool(true));
 
-    let network = params.get("type").map(|s| s.as_str()).unwrap_or("tcp");
+    let network = params.get("type").map_or("tcp", std::string::String::as_str);
     if network != "tcp" {
         extra.insert("network".into(), Value::String(network.to_string()));
     }
 
     if network == "ws" {
         let mut ws: Map<String, Value> = Map::new();
-        let path = params.get("path").map(|p| url_decode(p)).unwrap_or_else(|| "/".into());
+        let path = params.get("path").map_or_else(|| "/".into(), |p| url_decode(p));
         ws.insert("path".into(), Value::String(path));
         if let Some(host) = params.get("host") {
             let mut headers = Map::new();
@@ -210,7 +204,7 @@ pub fn parse_vless_uri(uri: &str) -> Option<ClashProxy> {
         extra.insert("grpc-opts".into(), Value::Object(grpc));
     }
 
-    let security = params.get("security").map(|s| s.as_str()).unwrap_or("");
+    let security = params.get("security").map_or("", std::string::String::as_str);
     if security == "tls" {
         extra.insert("tls".into(), Value::Bool(true));
         if let Some(sni) = params.get("sni") {
@@ -223,7 +217,7 @@ pub fn parse_vless_uri(uri: &str) -> Option<ClashProxy> {
             let arr: Vec<Value> = alpn.split(',').map(|s| Value::String(s.to_string())).collect();
             extra.insert("alpn".into(), Value::Array(arr));
         }
-        if params.get("insecure").map(|s| s.as_str()) == Some("1") {
+        if params.get("insecure").map(std::string::String::as_str) == Some("1") {
             extra.insert("skip-cert-verify".into(), Value::Bool(true));
         }
     }
@@ -248,11 +242,10 @@ pub fn parse_vless_uri(uri: &str) -> Option<ClashProxy> {
         }
     }
 
-    if let Some(flow) = params.get("flow") {
-        if !flow.is_empty() {
+    if let Some(flow) = params.get("flow")
+        && !flow.is_empty() {
             extra.insert("flow".into(), Value::String(flow.clone()));
         }
-    }
 
     Some(make_proxy(name, "vless", server, port, extra))
 }
@@ -264,8 +257,8 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
     let content_no_hash = content.split('#').next().unwrap_or(content);
 
     // Try Base64 JSON format
-    if let Some(decoded) = b64_decode_str(content_no_hash) {
-        if let Ok(config) = serde_json::from_str::<serde_json::Value>(&decoded) {
+    if let Some(decoded) = b64_decode_str(content_no_hash)
+        && let Ok(config) = serde_json::from_str::<serde_json::Value>(&decoded) {
             let obj = config.as_object()?;
             let add = obj.get("add")?.as_str()?.to_string();
             let port_val = obj.get("port")?;
@@ -277,9 +270,7 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
             let name = obj
                 .get("ps")
                 .or(obj.get("remarks"))
-                .and_then(|v| v.as_str())
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| format!("{}:{}", add, port));
+                .and_then(|v| v.as_str()).map_or_else(|| format!("{add}:{port}"), std::string::ToString::to_string);
 
             let mut extra = Map::new();
             if let Some(id) = obj.get("id").and_then(|v| v.as_str()) {
@@ -310,13 +301,12 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
                 let mut ws = Map::new();
                 let path = obj.get("path").and_then(|v| v.as_str()).unwrap_or("/");
                 ws.insert("path".into(), Value::String(path.to_string()));
-                if let Some(host) = obj.get("host").and_then(|v| v.as_str()) {
-                    if !host.is_empty() {
+                if let Some(host) = obj.get("host").and_then(|v| v.as_str())
+                    && !host.is_empty() {
                         let mut headers = Map::new();
                         headers.insert("Host".into(), Value::String(host.to_string()));
                         ws.insert("headers".into(), Value::Object(headers));
                     }
-                }
                 extra.insert("ws-opts".into(), Value::Object(ws));
             }
 
@@ -329,11 +319,10 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
 
             if obj.get("tls").and_then(|v| v.as_str()) == Some("tls") {
                 extra.insert("tls".into(), Value::Bool(true));
-                if let Some(sni) = obj.get("sni").and_then(|v| v.as_str()) {
-                    if !sni.is_empty() {
+                if let Some(sni) = obj.get("sni").and_then(|v| v.as_str())
+                    && !sni.is_empty() {
                         extra.insert("servername".into(), Value::String(sni.to_string()));
                     }
-                }
                 if let Some(alpn) = obj.get("alpn") {
                     match alpn {
                         Value::String(s) => {
@@ -346,16 +335,14 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
                         _ => {}
                     }
                 }
-                if let Some(fp) = obj.get("fp").and_then(|v| v.as_str()) {
-                    if !fp.is_empty() {
+                if let Some(fp) = obj.get("fp").and_then(|v| v.as_str())
+                    && !fp.is_empty() {
                         extra.insert("client-fingerprint".into(), Value::String(fp.to_string()));
                     }
-                }
             }
 
             return Some(make_proxy(name, "vmess", add, port, extra));
         }
-    }
 
     // Fallback: URL format
     let url = url::Url::parse(uri).ok()?;
@@ -364,7 +351,7 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
     let port = url.port()?;
     let name_raw = parse_url_fragment(&url);
     let name = if name_raw.is_empty() {
-        format!("{}:{}", server, port)
+        format!("{server}:{port}")
     } else {
         name_raw
     };
@@ -390,12 +377,12 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
 
         // userinfo is base64(method:password) — may contain URL encoding
         let user_info = url_decode(url.username());
-        if let Some(decoded) = b64_decode_str(&user_info) {
-            if let Some(c_idx) = decoded.find(':') {
+        if let Some(decoded) = b64_decode_str(&user_info)
+            && let Some(c_idx) = decoded.find(':') {
                 let method = &decoded[..c_idx];
                 let password = &decoded[c_idx + 1..];
                 let node_name = if name_raw.is_empty() {
-                    format!("{}:{}", server, port)
+                    format!("{server}:{port}")
                 } else {
                     name_raw
                 };
@@ -412,7 +399,6 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
 
                 return Some(make_proxy(node_name, "ss", server, port, extra));
             }
-        }
     }
 
     // Fallback: manual parsing for non-standard URIs
@@ -432,8 +418,8 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
     };
 
     // Format 2: ss://base64(method:password@server:port)
-    if let Some(decoded) = b64_decode_str(no_query) {
-        if let Some(at_idx) = decoded.rfind('@') {
+    if let Some(decoded) = b64_decode_str(no_query)
+        && let Some(at_idx) = decoded.rfind('@') {
             let user_part = &decoded[..at_idx];
             let server_part = &decoded[at_idx + 1..];
             if let Some(c_idx) = user_part.find(':') {
@@ -443,7 +429,7 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
                     let server = &server_part[..colon_idx];
                     if let Ok(port) = server_part[colon_idx + 1..].parse::<u16>() {
                         let node_name = if name.is_empty() {
-                            format!("{}:{}", server, port)
+                            format!("{server}:{port}")
                         } else {
                             name
                         };
@@ -457,7 +443,6 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
                 }
             }
         }
-    }
 
     None
 }
@@ -500,7 +485,7 @@ pub fn parse_trojan_uri(uri: &str) -> Option<ClashProxy> {
     let port = url.port()?;
     let name_raw = parse_url_fragment(&url);
     let name = if name_raw.is_empty() {
-        format!("{}:{}", server, port)
+        format!("{server}:{port}")
     } else {
         name_raw
     };
@@ -520,17 +505,17 @@ pub fn parse_trojan_uri(uri: &str) -> Option<ClashProxy> {
     if let Some(fp) = params.get("fp") {
         extra.insert("client-fingerprint".into(), Value::String(fp.clone()));
     }
-    if params.get("allowInsecure").map(|s| s.as_str()) == Some("1")
-        || params.get("insecure").map(|s| s.as_str()) == Some("1")
+    if params.get("allowInsecure").map(std::string::String::as_str) == Some("1")
+        || params.get("insecure").map(std::string::String::as_str) == Some("1")
     {
         extra.insert("skip-cert-verify".into(), Value::Bool(true));
     }
 
-    let network = params.get("type").map(|s| s.as_str()).unwrap_or("tcp");
+    let network = params.get("type").map_or("tcp", std::string::String::as_str);
     if network == "ws" {
         extra.insert("network".into(), Value::String("ws".into()));
         let mut ws = Map::new();
-        let path = params.get("path").map(|p| url_decode(p)).unwrap_or_else(|| "/".into());
+        let path = params.get("path").map_or_else(|| "/".into(), |p| url_decode(p));
         ws.insert("path".into(), Value::String(path));
         if let Some(host) = params.get("host") {
             let mut headers = Map::new();
@@ -561,7 +546,7 @@ pub fn parse_hysteria2_uri(uri: &str) -> Option<ClashProxy> {
     let port = url.port()?;
     let name_raw = parse_url_fragment(&url);
     let name = if name_raw.is_empty() {
-        format!("{}:{}", server, port)
+        format!("{server}:{port}")
     } else {
         name_raw
     };
@@ -573,13 +558,12 @@ pub fn parse_hysteria2_uri(uri: &str) -> Option<ClashProxy> {
     if let Some(sni) = params.get("sni") {
         extra.insert("sni".into(), Value::String(sni.clone()));
     }
-    if let Some(obfs) = params.get("obfs") {
-        if let Some(obfs_pw) = params.get("obfs-password") {
+    if let Some(obfs) = params.get("obfs")
+        && let Some(obfs_pw) = params.get("obfs-password") {
             extra.insert("obfs".into(), Value::String(obfs.clone()));
             extra.insert("obfs-password".into(), Value::String(obfs_pw.clone()));
         }
-    }
-    if params.get("insecure").map(|s| s.as_str()) == Some("1") {
+    if params.get("insecure").map(std::string::String::as_str) == Some("1") {
         extra.insert("skip-cert-verify".into(), Value::Bool(true));
     }
     if let Some(alpn) = params.get("alpn") {
@@ -599,7 +583,7 @@ pub fn parse_anytls_uri(uri: &str) -> Option<ClashProxy> {
     let port = url.port()?;
     let name_raw = parse_url_fragment(&url);
     let name = if name_raw.is_empty() {
-        format!("{}:{}", server, port)
+        format!("{server}:{port}")
     } else {
         name_raw
     };
@@ -612,7 +596,7 @@ pub fn parse_anytls_uri(uri: &str) -> Option<ClashProxy> {
     if let Some(sni) = params.get("sni") {
         extra.insert("sni".into(), Value::String(sni.clone()));
     }
-    if params.get("insecure").map(|s| s.as_str()) == Some("1") {
+    if params.get("insecure").map(std::string::String::as_str) == Some("1") {
         extra.insert("skip-cert-verify".into(), Value::Bool(true));
     }
     if let Some(fp) = params.get("fp") {

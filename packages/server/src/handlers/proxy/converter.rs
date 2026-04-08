@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt::Write;
 
 use serde_json::{json, Map, Value};
 
@@ -36,22 +37,20 @@ pub fn convert_clash_proxy_to_singbox(proxy: &ClashProxy) -> Option<Value> {
 fn convert_transport(proxy: &ClashProxy) -> Option<Value> {
     if let Some(Value::Object(http_opts)) = proxy.extra.get("http-opts") {
         let mut t = json!({"type": "http"});
-        if let Some(Value::Array(paths)) = http_opts.get("path") {
-            if let Some(first) = paths.first().and_then(|v| v.as_str()) {
+        if let Some(Value::Array(paths)) = http_opts.get("path")
+            && let Some(first) = paths.first().and_then(|v| v.as_str()) {
                 t["path"] = json!(first);
             }
-        }
         if let Some(Value::String(method)) = http_opts.get("method") {
             t["method"] = json!(method);
         }
         if let Some(Value::Object(headers)) = http_opts.get("headers") {
             let mut h = Map::new();
             for (k, v) in headers {
-                if let Value::Array(arr) = v {
-                    if let Some(first) = arr.first().and_then(|v| v.as_str()) {
+                if let Value::Array(arr) = v
+                    && let Some(first) = arr.first().and_then(|v| v.as_str()) {
                         h.insert(k.clone(), json!(first));
                     }
-                }
             }
             if !h.is_empty() {
                 t["headers"] = Value::Object(h);
@@ -149,13 +148,12 @@ fn build_multiplex(proxy: &ClashProxy) -> Option<Value> {
     let smux_obj = match smux {
         Some(Value::Object(m)) => Some(m),
         Some(Value::Bool(true)) => None, // enabled but no details → use defaults below
-        Some(_) => return None,
-        None => return None,
+        Some(_) | None => return None,
     };
 
     let enabled = smux_obj
         .and_then(|m| m.get("enabled"))
-        .and_then(|v| v.as_bool())
+        .and_then(sea_orm::JsonValue::as_bool)
         .unwrap_or(true);
     if !enabled {
         return None;
@@ -167,15 +165,15 @@ fn build_multiplex(proxy: &ClashProxy) -> Option<Value> {
         .unwrap_or("h2mux");
     let max_connections = smux_obj
         .and_then(|m| m.get("max-connections"))
-        .and_then(|v| v.as_u64())
+        .and_then(sea_orm::JsonValue::as_u64)
         .unwrap_or(8);
     let min_streams = smux_obj
         .and_then(|m| m.get("min-streams"))
-        .and_then(|v| v.as_u64())
+        .and_then(sea_orm::JsonValue::as_u64)
         .unwrap_or(16);
     let padding = smux_obj
         .and_then(|m| m.get("padding"))
-        .and_then(|v| v.as_bool())
+        .and_then(sea_orm::JsonValue::as_bool)
         .unwrap_or(true);
 
     Some(json!({
@@ -230,11 +228,10 @@ fn convert_vless(proxy: &ClashProxy) -> Value {
         "uuid": proxy.str_field("uuid").unwrap_or(""),
     });
 
-    if let Some(flow) = proxy.str_field("flow") {
-        if !flow.is_empty() {
+    if let Some(flow) = proxy.str_field("flow")
+        && !flow.is_empty() {
             out["flow"] = json!(flow);
         }
-    }
     if let Some(t) = transport {
         out["transport"] = t;
     }
@@ -292,20 +289,20 @@ fn convert_ss(proxy: &ClashProxy) -> Value {
             if let Some(Value::Object(opts)) = proxy.extra.get("plugin-opts") {
                 let mut plugin_opts = String::new();
                 if let Some(Value::String(mode)) = opts.get("mode") {
-                    plugin_opts.push_str(&format!("mode={}", mode));
+                    let _ = write!(plugin_opts, "mode={mode}");
                 }
                 if let Some(Value::String(host)) = opts.get("host") {
-                    plugin_opts.push_str(&format!(";host={}", host));
+                    let _ = write!(plugin_opts, ";host={host}");
                 }
                 if plugin == "v2ray-plugin" {
-                    if opts.get("tls").and_then(|v| v.as_bool()) == Some(true) {
+                    if opts.get("tls").and_then(sea_orm::JsonValue::as_bool) == Some(true) {
                         plugin_opts.push_str(";tls");
                     }
                     if let Some(Value::String(path)) = opts.get("path") {
-                        plugin_opts.push_str(&format!(";path={}", path));
+                        let _ = write!(plugin_opts, ";path={path}");
                     }
                     if let Some(mux) = opts.get("mux") {
-                        plugin_opts.push_str(&format!(";mux={}", mux));
+                        let _ = write!(plugin_opts, ";mux={mux}");
                     }
                 }
                 out["plugin_opts"] = json!(plugin_opts);
@@ -375,16 +372,14 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
 
     // Bandwidth hints: Clash uses "up"/"down" (e.g. "200 Mbps"),
     // Sing-box uses "up_mbps"/"down_mbps" (integer)
-    if let Some(up) = proxy.str_field("up") {
-        if let Some(mbps) = parse_mbps(up) {
+    if let Some(up) = proxy.str_field("up")
+        && let Some(mbps) = parse_mbps(up) {
             out["up_mbps"] = json!(mbps);
         }
-    }
-    if let Some(down) = proxy.str_field("down") {
-        if let Some(mbps) = parse_mbps(down) {
+    if let Some(down) = proxy.str_field("down")
+        && let Some(mbps) = parse_mbps(down) {
             out["down_mbps"] = json!(mbps);
         }
-    }
 
     // NOTE: hysteria2 uses QUIC-based native multiplexing — sing-box does NOT
     // support the smux `multiplex` field on hysteria2 outbounds.  Any smux/multiplex

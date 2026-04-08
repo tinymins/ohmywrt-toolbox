@@ -100,7 +100,7 @@ fn add_tls_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &Va
 
     // tls.enabled
     if force_tls {
-        o.insert("tls.enabled".into(), generated("tls", &format!("{}_requires_tls", pt)));
+        o.insert("tls.enabled".into(), generated("tls", &format!("{pt}_requires_tls")));
     } else if proxy.extra.contains_key("tls") {
         o.insert("tls.enabled".into(), mapped("tls", "tls", "convert"));
     }
@@ -164,9 +164,8 @@ fn add_tls_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &Va
 // ─── Transport ───
 
 fn add_transport_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &Value) {
-    let transport = match outbound.get("transport").and_then(|t| t.as_object()) {
-        Some(t) => t,
-        None => return,
+    let Some(transport) = outbound.get("transport").and_then(|t| t.as_object()) else {
+        return;
     };
 
     let transport_type = transport.get("type").and_then(|v| v.as_str()).unwrap_or("");
@@ -228,16 +227,14 @@ fn add_transport_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outboun
             if transport.contains_key("method") {
                 o.insert("transport.method".into(), mapped("http-opts.method", "transport", "extract"));
             }
-            if transport.contains_key("headers") {
-                if let Some(opts_inner) = opts {
-                    if opts_inner.contains_key("headers") {
+            if transport.contains_key("headers")
+                && let Some(opts_inner) = opts
+                    && opts_inner.contains_key("headers") {
                         o.insert(
                             "transport.headers".into(),
                             mapped("http-opts.headers", "transport", "extract"),
                         );
                     }
-                }
-            }
         }
         "h2-opts" => {
             if transport.contains_key("host") {
@@ -263,17 +260,17 @@ fn add_multiplex_origins(o: &mut Map<String, Value>, proxy: &ClashProxy) {
     };
 
     o.insert("multiplex".into(), container("multiplex", &[source_key]));
-    o.insert("multiplex.enabled".into(), mapped(&format!("{}.enabled", source_key), "multiplex", "extract"));
-    o.insert("multiplex.protocol".into(), mapped(&format!("{}.protocol", source_key), "multiplex", "extract"));
+    o.insert("multiplex.enabled".into(), mapped(&format!("{source_key}.enabled"), "multiplex", "extract"));
+    o.insert("multiplex.protocol".into(), mapped(&format!("{source_key}.protocol"), "multiplex", "extract"));
     o.insert(
         "multiplex.max_connections".into(),
-        mapped(&format!("{}.max-connections", source_key), "multiplex", "extract"),
+        mapped(&format!("{source_key}.max-connections"), "multiplex", "extract"),
     );
     o.insert(
         "multiplex.min_streams".into(),
-        mapped(&format!("{}.min-streams", source_key), "multiplex", "extract"),
+        mapped(&format!("{source_key}.min-streams"), "multiplex", "extract"),
     );
-    o.insert("multiplex.padding".into(), mapped(&format!("{}.padding", source_key), "multiplex", "extract"));
+    o.insert("multiplex.padding".into(), mapped(&format!("{source_key}.padding"), "multiplex", "extract"));
 }
 
 // ─── Dial fields ───
@@ -309,11 +306,10 @@ fn add_vless_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &
     if let Some(v) = proxy.extra.get("uuid") {
         o.insert("uuid".into(), mapped_val("uuid", v, "type", "direct"));
     }
-    if outbound.get("flow").is_some() {
-        if let Some(flow) = proxy.str_field("flow") {
+    if outbound.get("flow").is_some()
+        && let Some(flow) = proxy.str_field("flow") {
             o.insert("flow".into(), mapped_val("flow", &json!(flow), "type", "direct"));
         }
-    }
 }
 
 fn add_ss_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &Value) {
@@ -358,25 +354,22 @@ fn add_hysteria2_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outboun
         o.insert("password".into(), mapped_val("password", v, "type", "direct"));
     }
 
-    if outbound.get("server_ports").is_some() {
-        if let Some(ports) = proxy.str_field("ports") {
+    if outbound.get("server_ports").is_some()
+        && let Some(ports) = proxy.str_field("ports") {
             o.insert(
                 "server_ports".into(),
                 mapped_val("ports", &json!(ports), "type", "convert"),
             );
         }
-    }
 
-    if outbound.get("up_mbps").is_some() {
-        if let Some(up) = proxy.str_field("up") {
+    if outbound.get("up_mbps").is_some()
+        && let Some(up) = proxy.str_field("up") {
             o.insert("up_mbps".into(), mapped_val("up", &json!(up), "type", "convert"));
         }
-    }
-    if outbound.get("down_mbps").is_some() {
-        if let Some(down) = proxy.str_field("down") {
+    if outbound.get("down_mbps").is_some()
+        && let Some(down) = proxy.str_field("down") {
             o.insert("down_mbps".into(), mapped_val("down", &json!(down), "type", "convert"));
         }
-    }
 
     // Hysteria2 TLS is built inline (not via build_tls), re-explain specific fields
     if outbound.get("tls").is_some() && !o.contains_key("tls") {
@@ -413,16 +406,14 @@ fn add_hysteria_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound
     if let Some(down) = proxy.str_field("down") {
         o.insert("down".into(), mapped_val("down", &json!(down), "type", "direct"));
     }
-    if outbound.get("obfs").is_some() {
-        if let Some(obfs) = proxy.str_field("obfs") {
+    if outbound.get("obfs").is_some()
+        && let Some(obfs) = proxy.str_field("obfs") {
             o.insert("obfs".into(), mapped_val("obfs", &json!(obfs), "type", "direct"));
         }
-    }
-    if outbound.get("auth_str").is_some() {
-        if let Some(auth) = proxy.str_field("auth-str") {
+    if outbound.get("auth_str").is_some()
+        && let Some(auth) = proxy.str_field("auth-str") {
             o.insert("auth_str".into(), mapped_val("auth-str", &json!(auth), "type", "rename"));
         }
-    }
 
     // Hysteria TLS is also built inline
     if outbound.get("tls").is_some() && !o.contains_key("tls") {
@@ -449,38 +440,34 @@ fn add_tuic_origins(o: &mut Map<String, Value>, proxy: &ClashProxy, outbound: &V
     if let Some(v) = proxy.extra.get("uuid") {
         o.insert("uuid".into(), mapped_val("uuid", v, "type", "direct"));
     }
-    if outbound.get("password").is_some() {
-        if let Some(v) = proxy.extra.get("password") {
+    if outbound.get("password").is_some()
+        && let Some(v) = proxy.extra.get("password") {
             o.insert("password".into(), mapped_val("password", v, "type", "direct"));
         }
-    }
-    if outbound.get("heartbeat").is_some() {
-        if let Some(interval) = proxy.u64_field("heartbeat-interval") {
+    if outbound.get("heartbeat").is_some()
+        && let Some(interval) = proxy.u64_field("heartbeat-interval") {
             o.insert(
                 "heartbeat".into(),
                 mapped_val("heartbeat-interval", &json!(interval), "type", "convert"),
             );
         }
-    }
     if outbound.get("zero_rtt_handshake").is_some() {
         o.insert("zero_rtt_handshake".into(), mapped("reduce-rtt", "type", "rename"));
     }
-    if outbound.get("udp_relay_mode").is_some() {
-        if let Some(mode) = proxy.str_field("udp-relay-mode") {
+    if outbound.get("udp_relay_mode").is_some()
+        && let Some(mode) = proxy.str_field("udp-relay-mode") {
             o.insert(
                 "udp_relay_mode".into(),
                 mapped_val("udp-relay-mode", &json!(mode), "type", "rename"),
             );
         }
-    }
-    if outbound.get("congestion_control").is_some() {
-        if let Some(cc) = proxy.str_field("congestion-controller") {
+    if outbound.get("congestion_control").is_some()
+        && let Some(cc) = proxy.str_field("congestion-controller") {
             o.insert(
                 "congestion_control".into(),
                 mapped_val("congestion-controller", &json!(cc), "type", "rename"),
             );
         }
-    }
     if outbound.get("udp_over_stream").is_some() {
         o.insert("udp_over_stream".into(), mapped("udp-over-stream", "type", "rename"));
     }
@@ -535,7 +522,7 @@ fn fill_unmapped_leaves(o: &mut Map<String, Value>, value: &Value, prefix: &str)
                 let path = if prefix.is_empty() {
                     k.clone()
                 } else {
-                    format!("{}.{}", prefix, k)
+                    format!("{prefix}.{k}")
                 };
                 if v.is_object() || v.is_array() {
                     fill_unmapped_leaves(o, v, &path);
@@ -546,7 +533,7 @@ fn fill_unmapped_leaves(o: &mut Map<String, Value>, value: &Value, prefix: &str)
         }
         Value::Array(arr) => {
             for (i, v) in arr.iter().enumerate() {
-                let path = format!("{}[{}]", prefix, i);
+                let path = format!("{prefix}[{i}]");
                 if v.is_object() || v.is_array() {
                     fill_unmapped_leaves(o, v, &path);
                 }

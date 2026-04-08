@@ -103,11 +103,10 @@ pub(super) fn parse_subscribe_url(url: &str) -> Vec<String> {
         return Vec::new();
     }
     // Try as JSON array first (legacy format: ["url1", "url2"])
-    if trimmed.starts_with('[') {
-        if let Ok(urls) = serde_json::from_str::<Vec<String>>(trimmed) {
+    if trimmed.starts_with('[')
+        && let Ok(urls) = serde_json::from_str::<Vec<String>>(trimmed) {
             return urls.into_iter().filter(|u| !u.is_empty()).collect();
         }
-    }
     // Plain URL string
     vec![trimmed.to_string()]
 }
@@ -169,27 +168,26 @@ fn normalize_prefix(raw: &str) -> String {
     }
     
     // 否则在结尾添加"丨"
-    format!("{}丨", raw)
+    format!("{raw}丨")
 }
 
 fn dns_shared_from_value(v: &Value) -> DnsShared {
     let d = DnsShared::default();
-    let obj = match v.as_object() {
-        Some(o) => o,
-        None => return d,
+    let Some(obj) = v.as_object() else {
+        return d;
     };
     DnsShared {
         local_dns: obj.get("localDns").and_then(|v| v.as_str()).unwrap_or(&d.local_dns).to_string(),
-        local_dns_port: obj.get("localDnsPort").and_then(|v| v.as_u64()).unwrap_or(d.local_dns_port),
+        local_dns_port: obj.get("localDnsPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.local_dns_port),
         fakeip_ipv4_range: obj.get("fakeipIpv4Range").and_then(|v| v.as_str()).unwrap_or(&d.fakeip_ipv4_range).to_string(),
         fakeip_ipv6_range: obj.get("fakeipIpv6Range").and_then(|v| v.as_str()).unwrap_or(&d.fakeip_ipv6_range).to_string(),
-        fakeip_enabled: obj.get("fakeipEnabled").and_then(|v| v.as_bool()).unwrap_or(d.fakeip_enabled),
-        fakeip_ttl: obj.get("fakeipTtl").and_then(|v| v.as_u64()).unwrap_or(d.fakeip_ttl),
-        dns_listen_port: obj.get("dnsListenPort").and_then(|v| v.as_u64()).unwrap_or(d.dns_listen_port),
-        tproxy_port: obj.get("tproxyPort").and_then(|v| v.as_u64()).unwrap_or(d.tproxy_port),
-        reject_https: obj.get("rejectHttps").and_then(|v| v.as_bool()).unwrap_or(d.reject_https),
-        cn_domain_local_dns: obj.get("cnDomainLocalDns").and_then(|v| v.as_bool()).unwrap_or(d.cn_domain_local_dns),
-        clash_api_port: obj.get("clashApiPort").and_then(|v| v.as_u64()).unwrap_or(d.clash_api_port),
+        fakeip_enabled: obj.get("fakeipEnabled").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.fakeip_enabled),
+        fakeip_ttl: obj.get("fakeipTtl").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.fakeip_ttl),
+        dns_listen_port: obj.get("dnsListenPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.dns_listen_port),
+        tproxy_port: obj.get("tproxyPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.tproxy_port),
+        reject_https: obj.get("rejectHttps").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.reject_https),
+        cn_domain_local_dns: obj.get("cnDomainLocalDns").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.cn_domain_local_dns),
+        clash_api_port: obj.get("clashApiPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.clash_api_port),
         clash_api_secret: obj.get("clashApiSecret").and_then(|v| v.as_str()).unwrap_or(&d.clash_api_secret).to_string(),
         clash_api_ui_path: obj.get("clashApiUiPath").and_then(|v| v.as_str()).unwrap_or(&d.clash_api_ui_path).to_string(),
     }
@@ -210,9 +208,8 @@ pub(super) fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str
     }
     let jsonc = dns_config_jsonc.unwrap();
     let parsed: Value = parse_jsonc(jsonc, Value::Null);
-    let obj = match parsed.as_object() {
-        Some(o) => o,
-        None => return defaults,
+    let Some(obj) = parsed.as_object() else {
+        return defaults;
     };
 
     let shared_val = obj.get("shared").cloned().unwrap_or(Value::Null);
@@ -221,11 +218,10 @@ pub(super) fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str
     let mut overrides = Map::new();
     if let Some(ov) = obj.get("overrides").and_then(|v| v.as_object()) {
         for key in &["singbox", "singboxV12", "clash", "clashMeta"] {
-            if let Some(v) = ov.get(*key) {
-                if !v.is_null() {
+            if let Some(v) = ov.get(*key)
+                && !v.is_null() {
                     overrides.insert(key.to_string(), v.clone());
                 }
-            }
         }
     }
 
@@ -329,12 +325,9 @@ pub async fn fetch_proxies_preview(
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
         let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
-        let parsed = match result {
-            Some(r) => r.proxies,
-            None => {
-                warn!("Subscription source returned 0 nodes after retries: {}", item.url);
-                continue;
-            }
+        let parsed = if let Some(r) = result { r.proxies } else {
+            warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+            continue;
         };
 
         let normalized_prefix = normalize_prefix(&item.prefix);
@@ -426,7 +419,6 @@ pub async fn fetch_proxies(
     // Determine types to exclude
     let exclude_types: Vec<&str> = match format {
         "sing-box" => vec!["ssr", "anytls"],
-        "sing-box-v12" => vec!["ssr"],
         _ => vec!["ssr"],
     };
 
@@ -445,12 +437,9 @@ pub async fn fetch_proxies(
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
         let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
-        let mut parsed = match result {
-            Some(r) => r.proxies,
-            None => {
-                warn!("Subscription source returned 0 nodes after retries: {}", item.url);
-                continue;
-            }
+        let mut parsed = if let Some(r) = result { r.proxies } else {
+            warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+            continue;
         };
 
         // Prepend prefix (normalized)
@@ -507,7 +496,7 @@ pub fn build_clash_config(
                 let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("");
                 let behavior = item.get("type").and_then(|v| v.as_str()).unwrap_or("classical");
-                rule_set.push(format!("RULE-SET,{},{}", name, group_name));
+                rule_set.push(format!("RULE-SET,{name},{group_name}"));
                 rule_providers.insert(
                     name.to_string(),
                     json!({
@@ -541,7 +530,7 @@ pub fn build_clash_config(
                 .and_then(|v| v.as_array())
                 .cloned()
                 .unwrap_or_default();
-            let readonly = g.get("readonly").and_then(|v| v.as_bool()).unwrap_or(false);
+            let readonly = g.get("readonly").and_then(sea_orm::JsonValue::as_bool).unwrap_or(false);
 
             let mut all_proxies = base_proxies.clone();
             if !readonly {
@@ -645,6 +634,7 @@ pub fn build_clash_config(
 // ─── Build Sing-box config ───
 
 /// Build a complete Sing-box JSON config.
+#[allow(clippy::too_many_lines)]
 pub fn build_singbox_config(
     sub: &proxy_subscribes::Model,
     proxies: &[ClashProxy],
@@ -713,7 +703,7 @@ pub fn build_singbox_config(
     // Build selector outbounds
     for g in &groups {
         let name = g.get("name").and_then(|v| v.as_str()).unwrap_or("");
-        let readonly = g.get("readonly").and_then(|v| v.as_bool()).unwrap_or(false);
+        let readonly = g.get("readonly").and_then(sea_orm::JsonValue::as_bool).unwrap_or(false);
         let base_proxies: Vec<String> = g
             .get("proxies")
             .and_then(|v| v.as_array())
@@ -751,9 +741,9 @@ pub fn build_singbox_config(
     };
 
     let convert_rule_base = if is_v12 {
-        format!("{}/api/proxy/sing-box/convert/rule/12", public_server_url)
+        format!("{public_server_url}/api/proxy/sing-box/convert/rule/12")
     } else {
-        format!("{}/api/proxy/sing-box/convert/rule", public_server_url)
+        format!("{public_server_url}/api/proxy/sing-box/convert/rule")
     };
 
     let mut rule_set_entries: Vec<Value> = Vec::new();
@@ -932,8 +922,8 @@ pub fn build_singbox_config(
         safe_parse_jsonc(sub.custom_config.as_deref(), Vec::new())
     };
 
-    if let Some(route_obj) = config.get_mut("route").and_then(|r| r.as_object_mut()) {
-        if let Some(rules_arr) = route_obj.get_mut("rules").and_then(|r| r.as_array_mut()) {
+    if let Some(route_obj) = config.get_mut("route").and_then(|r| r.as_object_mut())
+        && let Some(rules_arr) = route_obj.get_mut("rules").and_then(|r| r.as_array_mut()) {
             // Add custom rules
             for item in &custom_config {
                 if let Value::String(s) = item {
@@ -989,7 +979,6 @@ pub fn build_singbox_config(
                 }
             }
         }
-    }
 
     config
 }
@@ -1001,11 +990,10 @@ fn build_singbox_dns(dns: &ResolvedDns, is_v12: bool) -> Value {
     if let Some(ov) = dns.overrides.get(override_key) {
         return ov.clone();
     }
-    if !fallback_key.is_empty() {
-        if let Some(ov) = dns.overrides.get(fallback_key) {
+    if !fallback_key.is_empty()
+        && let Some(ov) = dns.overrides.get(fallback_key) {
             return ov.clone();
         }
-    }
 
     let s = &dns.shared;
 

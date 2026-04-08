@@ -49,22 +49,20 @@ impl ValidationResult {
 fn find_singbox_bin(format: &str) -> Option<String> {
     // For v12, allow a separate binary via SINGBOX_V12_BIN
     if format == "sing-box-v12" {
-        if let Ok(bin) = std::env::var("SINGBOX_V12_BIN") {
-            if !bin.is_empty() {
+        if let Ok(bin) = std::env::var("SINGBOX_V12_BIN")
+            && !bin.is_empty() {
                 return Some(bin);
             }
-        }
         // Try vendor directory
         if let Some(vendor) = find_vendor_bin("sing-box-v12", "sing-box") {
             return Some(vendor);
         }
     }
     // Generic sing-box binary
-    if let Ok(bin) = std::env::var("SINGBOX_BIN") {
-        if !bin.is_empty() {
+    if let Ok(bin) = std::env::var("SINGBOX_BIN")
+        && !bin.is_empty() {
             return Some(bin);
         }
-    }
     // Try vendor directory for v11
     if let Some(vendor) = find_vendor_bin("sing-box-v11", "sing-box") {
         return Some(vendor);
@@ -133,11 +131,8 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
     let allow_insecure = std::env::var("ALLOW_INSECURE_VALIDATION")
         .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
         .unwrap_or(false);
-    let bin = match find_singbox_bin(format) {
-        Some(b) => b,
-        None => {
-            return ValidationResult::skipped("sing-box binary not found");
-        }
+    let Some(bin) = find_singbox_bin(format) else {
+        return ValidationResult::skipped("sing-box binary not found");
     };
 
     // Write config to temp file
@@ -145,13 +140,13 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
         Ok(mut f) => {
             if let Err(e) = f.write_all(config_json.as_bytes()) {
                 warn!("Failed to write temp config: {}", e);
-                return ValidationResult::skipped(&format!("temp file write error: {}", e));
+                return ValidationResult::skipped(&format!("temp file write error: {e}"));
             }
             f
         }
         Err(e) => {
             warn!("Failed to create temp file: {}", e);
-            return ValidationResult::skipped(&format!("temp file create error: {}", e));
+            return ValidationResult::skipped(&format!("temp file create error: {e}"));
         }
     };
     let tmp_path = tmp.path().to_string_lossy().to_string();
@@ -230,7 +225,7 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
         Ok(out) => {
             let stderr = String::from_utf8_lossy(&out.stderr).to_string();
             let stdout = String::from_utf8_lossy(&out.stdout).to_string();
-            let combined = strip_ansi(&format!("{}{}", stdout, stderr));
+            let combined = strip_ansi(&format!("{stdout}{stderr}"));
 
             let mut warnings = Vec::new();
             let mut errors = Vec::new();
@@ -263,7 +258,7 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
         }
         Err(e) => {
             warn!("sing-box check execution failed: {}", e);
-            ValidationResult::skipped(&format!("execution error: {}", e))
+            ValidationResult::skipped(&format!("execution error: {e}"))
         }
     }
 }
@@ -290,7 +285,7 @@ pub fn validate_clash_config(config_yaml: &str) -> ValidationResult {
             let required = ["proxies", "proxy-groups", "rules"];
             for key in &required {
                 if doc.get(key).is_none() {
-                    errors.push(format!("Missing required field: {}", key));
+                    errors.push(format!("Missing required field: {key}"));
                 }
             }
 
@@ -306,18 +301,16 @@ pub fn validate_clash_config(config_yaml: &str) -> ValidationResult {
             }
 
             // Check proxy-groups is an array
-            if let Some(groups) = doc.get("proxy-groups") {
-                if groups.as_array().is_none() {
+            if let Some(groups) = doc.get("proxy-groups")
+                && groups.as_array().is_none() {
                     errors.push("proxy-groups must be an array".to_string());
                 }
-            }
 
             // Check rules is an array
-            if let Some(rules) = doc.get("rules") {
-                if rules.as_array().is_none() {
+            if let Some(rules) = doc.get("rules")
+                && rules.as_array().is_none() {
                     errors.push("rules must be an array".to_string());
                 }
-            }
 
             let valid = errors.is_empty();
             ValidationResult {
@@ -337,6 +330,6 @@ pub async fn validate_config(config_output: &str, format: &str) -> ValidationRes
     match format {
         "sing-box" | "sing-box-v12" => validate_singbox_config(config_output, format).await,
         "clash" | "clash-meta" => validate_clash_config(config_output),
-        _ => ValidationResult::skipped(&format!("unknown format: {}", format)),
+        _ => ValidationResult::skipped(&format!("unknown format: {format}")),
     }
 }

@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
 
-use once_cell::sync::Lazy;
 
 struct CacheEntry {
     text: String,
@@ -23,13 +22,13 @@ struct CacheEntry {
     cached_at: Instant,
 }
 
-static CACHE: Lazy<Mutex<HashMap<String, CacheEntry>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+static CACHE: std::sync::LazyLock<Mutex<HashMap<String, CacheEntry>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
 /// Build a cache key from URL and User-Agent.
 /// Same URL with different UAs can return different content from providers.
 fn cache_key(url: &str, ua: &str) -> String {
-    format!("{}\0{}", url, ua)
+    format!("{url}\0{ua}")
 }
 
 /// TTL-aware cache read.

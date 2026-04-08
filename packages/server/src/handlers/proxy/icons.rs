@@ -1,7 +1,6 @@
-use once_cell::sync::Lazy;
 
 /// Country flag emoji mapping table (Chinese names, 2-letter codes, English names).
-static FLAG_MAP: Lazy<Vec<(&'static str, &'static str)>> = Lazy::new(|| {
+static FLAG_MAP: std::sync::LazyLock<Vec<(&'static str, &'static str)>> = std::sync::LazyLock::new(|| {
     vec![
         // ── 东亚 ──
         ("中国", "🇨🇳"),
@@ -325,7 +324,7 @@ pub fn append_icon(name: &str) -> String {
     // No flags found: look up in FLAG_MAP
     for &(keyword, flag) in FLAG_MAP.iter() {
         if name.contains(keyword) {
-            return format!("{} {}", flag, name);
+            return format!("{flag} {name}");
         }
     }
 

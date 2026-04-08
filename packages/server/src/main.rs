@@ -83,7 +83,7 @@ async fn async_main() {
 
     let data_local_path = env::var("DATA_LOCAL_PATH").unwrap_or_else(|_| ".data".to_string());
     let storage =
-        ohmywrt_toolbox_server::services::storage::create_storage_from_env(&data_local_path).await;
+        ohmywrt_toolbox_server::services::storage::create_storage_from_env(&data_local_path);
 
     let state = Arc::new(ohmywrt_toolbox_server::AppState { db, storage });
 

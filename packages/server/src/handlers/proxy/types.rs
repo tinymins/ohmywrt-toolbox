@@ -26,16 +26,16 @@ impl ClashProxy {
 
     /// Convenience: read an optional bool field from `extra`.
     pub fn bool_field(&self, key: &str) -> Option<bool> {
-        self.extra.get(key).and_then(|v| v.as_bool())
+        self.extra.get(key).and_then(sea_orm::JsonValue::as_bool)
     }
 
     /// Convenience: read an optional u64 field from `extra`.
     pub fn u64_field(&self, key: &str) -> Option<u64> {
-        self.extra.get(key).and_then(|v| v.as_u64())
+        self.extra.get(key).and_then(sea_orm::JsonValue::as_u64)
     }
 
     /// Convenience: read an optional i64 field from `extra`.
     pub fn i64_field(&self, key: &str) -> Option<i64> {
-        self.extra.get(key).and_then(|v| v.as_i64())
+        self.extra.get(key).and_then(sea_orm::JsonValue::as_i64)
     }
 }

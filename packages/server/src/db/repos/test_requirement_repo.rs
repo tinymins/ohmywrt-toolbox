@@ -94,9 +94,10 @@ impl TestRequirementRepo {
             None => 1,
         };
 
-        Ok(format!("TR-{:04}", next_num))
+        Ok(format!("TR-{next_num:04}"))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn create(
         db: &DatabaseConnection,
         workspace_id: &str,

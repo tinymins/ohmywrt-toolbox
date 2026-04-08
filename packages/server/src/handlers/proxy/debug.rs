@@ -110,7 +110,7 @@ fn normalize_prefix(raw: &str) -> String {
     }
     
     // 否则在结尾添加"丨"
-    format!("{}丨", raw)
+    format!("{raw}丨")
 }
 
 fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> Value {
@@ -143,15 +143,13 @@ pub async fn trace_node_logic(
     let groups = get_groups(sub);
 
     // Use the real engine to get all nodes with source metadata
-    let preview_nodes = match engine::fetch_proxies_preview(sub).await {
-        Ok(nodes) => nodes,
-        Err(_) => return json!({ "nodeName": node_name, "steps": [] }),
+    let Ok(preview_nodes) = engine::fetch_proxies_preview(sub).await else {
+        return json!({ "nodeName": node_name, "steps": [] });
     };
 
     // Find the target node
-    let target = match preview_nodes.iter().find(|n| n.name == node_name) {
-        Some(n) => n,
-        None => return json!({ "nodeName": node_name, "steps": [] }),
+    let Some(target) = preview_nodes.iter().find(|n| n.name == node_name) else {
+        return json!({ "nodeName": node_name, "steps": [] });
     };
 
     let mut steps: Vec<Value> = Vec::new();
@@ -176,14 +174,12 @@ pub async fn trace_node_logic(
     if target.source_url == "manual" {
         let servers: Vec<Value> = safe_parse_jsonc(sub.servers.as_deref(), Vec::new());
         for item in &servers {
-            if let Value::String(s) = item {
-                if let Ok(p) = serde_yaml::from_str::<ClashProxy>(s) {
-                    if append_icon(&p.name) == node_name {
+            if let Value::String(s) = item
+                && let Ok(p) = serde_yaml::from_str::<ClashProxy>(s)
+                    && append_icon(&p.name) == node_name {
                         source_data["rawUrl"] = json!(s);
                         break;
                     }
-                }
-            }
         }
     }
 
@@ -227,16 +223,12 @@ pub async fn trace_node_logic(
     }
 
     // Step 5: merge - get position in final list
-    let final_proxies = match engine::fetch_proxies(sub, format).await {
-        Ok(p) => p,
-        Err(_) => Vec::new(),
-    };
+    let final_proxies = engine::fetch_proxies(sub, format).await.unwrap_or_default();
 
     let position = final_proxies
         .iter()
         .position(|p| p.name == node_name)
-        .map(|i| i + 1)
-        .unwrap_or(0);
+        .map_or(0, |i| i + 1);
     steps.push(json!({
         "type": "merge",
         "data": {
@@ -251,7 +243,7 @@ pub async fn trace_node_logic(
         .filter(|g| {
             let readonly = g
                 .get("readonly")
-                .and_then(|v| v.as_bool())
+                .and_then(sea_orm::JsonValue::as_bool)
                 .unwrap_or(false);
             !readonly
         })
@@ -268,8 +260,8 @@ pub async fn trace_node_logic(
     }));
 
     // Step 7: convert (sing-box only) — with entropy-loss detection
-    if format == "sing-box" || format == "sing-box-v12" {
-        if let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
+    if (format == "sing-box" || format == "sing-box-v12")
+        && let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
             let (outbound, lost_fields, ignored_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
             if let Some(ref ob) = outbound {
                 let field_origins = build_field_origins(proxy, ob);
@@ -284,7 +276,6 @@ pub async fn trace_node_logic(
                 }));
             }
         }
-    }
 
     // Step 8: output - config fragment for this node
     let config_fragment = if let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
@@ -347,6 +338,7 @@ async fn send_event(tx: &mpsc::Sender<Result<Event, Infallible>>, data: Value) -
     tx.send(Ok(Event::default().data(json_str))).await.is_ok()
 }
 
+#[allow(clippy::too_many_lines)]
 async fn run_debug_stream(
     sub: &proxy_subscribes::Model,
     format: &str,
@@ -423,7 +415,6 @@ async fn run_debug_stream(
 
     let exclude_types: Vec<&str> = match format {
         "sing-box" => vec!["ssr", "anytls"],
-        "sing-box-v12" => vec!["ssr"],
         _ => vec!["ssr"],
     };
 
@@ -539,11 +530,10 @@ async fn run_debug_stream(
         };
 
         // Write to cache only after successful parse with >0 nodes (avoids caching failures)
-        if !is_cached && !parsed.is_empty() {
-            if let Some(status) = http_status {
+        if !is_cached && !parsed.is_empty()
+            && let Some(status) = http_status {
                 cache::set(&item.url, &ua, text.clone(), status);
             }
-        }
 
         let normalized_prefix = normalize_prefix(&item.prefix);
         if !normalized_prefix.is_empty() {
@@ -670,18 +660,15 @@ async fn run_debug_stream(
             let pg = parsed
                 .get("proxy-groups")
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let rc = parsed
                 .get("rules")
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let rp = parsed
                 .get("rule-providers")
                 .and_then(|v| v.as_object())
-                .map(|o| o.len())
-                .unwrap_or(0);
+                .map_or(0, serde_json::Map::len);
             (pg, rc, rp, config_str)
         }
         "clash-meta" => {
@@ -691,18 +678,15 @@ async fn run_debug_stream(
             let pg = parsed
                 .get("proxy-groups")
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let rc = parsed
                 .get("rules")
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let rp = parsed
                 .get("rule-providers")
                 .and_then(|v| v.as_object())
-                .map(|o| o.len())
-                .unwrap_or(0);
+                .map_or(0, serde_json::Map::len);
             (pg, rc, rp, config_str)
         }
         "sing-box" | "sing-box-v12" => {
@@ -713,26 +697,23 @@ async fn run_debug_stream(
             let pg = config
                 .get("outbounds")
                 .and_then(|v| v.as_array())
-                .map(|a| {
+                .map_or(0, |a| {
                     a.iter()
                         .filter(|o| {
                             o.get("type").and_then(|t| t.as_str()) == Some("selector")
                         })
                         .count()
-                })
-                .unwrap_or(0);
+                });
             let rc = config
                 .get("route")
                 .and_then(|r| r.get("rules"))
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let rp = config
                 .get("route")
                 .and_then(|r| r.get("rule_set"))
                 .and_then(|v| v.as_array())
-                .map(|a| a.len())
-                .unwrap_or(0);
+                .map_or(0, std::vec::Vec::len);
             let config_str = serde_json::to_string_pretty(&config).unwrap_or_default();
             (pg, rc, rp, config_str)
         }
@@ -775,7 +756,7 @@ async fn run_debug_stream(
     let total_count = rule_set_items.len();
     let total_rules: usize = rule_set_items
         .iter()
-        .filter_map(|v| v.get("ruleCount").and_then(|n| n.as_u64()))
+        .filter_map(|v| v.get("ruleCount").and_then(sea_orm::JsonValue::as_u64))
         .map(|n| n as usize)
         .sum();
     let error_count = rule_set_items
@@ -830,9 +811,9 @@ async fn fetch_rule_sets(
     let convert_base = if is_singbox {
         let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
         if is_v12 {
-            format!("{}/api/proxy/sing-box/convert/rule/12", public_url)
+            format!("{public_url}/api/proxy/sing-box/convert/rule/12")
         } else {
-            format!("{}/api/proxy/sing-box/convert/rule", public_url)
+            format!("{public_url}/api/proxy/sing-box/convert/rule")
         }
     } else {
         String::new()
@@ -985,12 +966,12 @@ async fn fetch_rule_sets(
 async fn read_body_limited(resp: reqwest::Response, max_size: usize) -> Result<String, String> {
     let content_length = resp.content_length().unwrap_or(0) as usize;
     if content_length > max_size {
-        return Err(format!("Response too large: {} bytes", content_length));
+        return Err(format!("Response too large: {content_length} bytes"));
     }
     let bytes = resp
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read response: {}", e))?;
+        .map_err(|e| format!("Failed to read response: {e}"))?;
     if bytes.len() > max_size {
         return Err(format!("Response too large: {} bytes", bytes.len()));
     }
@@ -1011,8 +992,8 @@ async fn read_body_limited(resp: reqwest::Response, max_size: usize) -> Result<S
 /// Falls back to line-based parsing if `payload:` key is not found.
 fn parse_rule_provider_yaml(text: &str) -> Vec<String> {
     // Try parsing as YAML with payload key
-    if let Ok(parsed) = serde_yaml::from_str::<serde_yaml::Value>(text) {
-        if let Some(payload) = parsed.get("payload").and_then(|v| v.as_sequence()) {
+    if let Ok(parsed) = serde_yaml::from_str::<serde_yaml::Value>(text)
+        && let Some(payload) = parsed.get("payload").and_then(|v| v.as_sequence()) {
             return payload
                 .iter()
                 .filter_map(|v| match v {
@@ -1021,11 +1002,10 @@ fn parse_rule_provider_yaml(text: &str) -> Vec<String> {
                 })
                 .collect();
         }
-    }
 
     // Fallback: treat non-empty, non-comment lines as rules
     text.lines()
-        .map(|l| l.trim())
+        .map(str::trim)
         .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("payload:"))
         .map(|l| l.strip_prefix("- ").unwrap_or(l).to_string())
         .collect()
