@@ -11,6 +11,7 @@ use crate::db::entities::proxy_subscribes;
 
 use super::cache;
 use super::converter::{convert_clash_proxy_to_singbox, convert_clash_proxy_to_singbox_with_diff};
+use super::parser;
 use super::engine::{
     self, parse_jsonc, resolve_dns_config, safe_parse_jsonc,
 };
@@ -592,6 +593,12 @@ async fn run_debug_stream(
         }
 
         // source-result
+        let decoded_text = if source_format == "base64" {
+            parser::lenient_base64_decode(text.trim())
+                .and_then(|b| String::from_utf8(b).ok())
+        } else {
+            None
+        };
         if !send_event(
             tx,
             json!({
@@ -602,6 +609,7 @@ async fn run_debug_stream(
                     "httpStatus": http_status,
                     "httpHeaders": http_headers,
                     "rawText": text,
+                    "decodedText": decoded_text,
                     "format": source_format,
                     "parsedNodeCount": parsed.len(),
                     "nodesBeforeFilter": nodes_before_filter,

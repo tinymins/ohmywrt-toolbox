@@ -354,6 +354,7 @@ export const ProxyDebugSourceResultStepSchema = z.object({
     httpStatus: z.number().nullable(),
     httpHeaders: z.record(z.string(), z.string()),
     rawText: z.string(),
+    decodedText: z.string().nullable().optional(),
     format: z.enum(["base64", "yaml", "unknown"]),
     parsedNodeCount: z.number(),
     nodesBeforeFilter: z.array(ProxyPreviewNodeSchema),

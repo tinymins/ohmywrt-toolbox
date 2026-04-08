@@ -139,6 +139,7 @@ export default {
     fetchDuration: "获取耗时",
     httpStatus: "HTTP 状态",
     rawResponse: "原始响应",
+    decodedResponse: "解碼回應",
     chars: "字符",
     detectedFormat: "检测格式",
     parsedNodes: "解析节点",

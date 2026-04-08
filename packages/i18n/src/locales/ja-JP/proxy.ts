@@ -141,6 +141,7 @@ export default {
     fetchDuration: "Fetch duration",
     httpStatus: "HTTP Status",
     rawResponse: "Raw Response",
+    decodedResponse: "デコード応答",
     chars: "chars",
     detectedFormat: "Detected Format",
     parsedNodes: "Parsed Nodes",

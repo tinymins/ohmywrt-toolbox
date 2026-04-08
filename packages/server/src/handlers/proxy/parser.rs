@@ -1,8 +1,21 @@
+use base64::engine::general_purpose;
 use base64::Engine;
 use serde_json::{Map, Value};
 use tracing::warn;
 
 use super::types::ClashProxy;
+
+/// Try decoding base64 with multiple strategies: STANDARD, STANDARD_NO_PAD,
+/// URL_SAFE, URL_SAFE_NO_PAD. Many subscription providers omit padding or use
+/// URL-safe alphabet.
+pub fn lenient_base64_decode(input: &str) -> Option<Vec<u8>> {
+    general_purpose::STANDARD
+        .decode(input)
+        .or_else(|_| general_purpose::STANDARD_NO_PAD.decode(input))
+        .or_else(|_| general_purpose::URL_SAFE.decode(input))
+        .or_else(|_| general_purpose::URL_SAFE_NO_PAD.decode(input))
+        .ok()
+}
 
 /// Detect whether the text is a Base64-encoded subscription (each line is a proxy URI).
 pub fn is_base64_subscription(text: &str) -> bool {
@@ -15,7 +28,7 @@ pub fn is_base64_subscription(text: &str) -> bool {
         return false;
     }
 
-    if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(trimmed) {
+    if let Some(decoded) = lenient_base64_decode(trimmed) {
         if let Ok(s) = String::from_utf8(decoded) {
             return s
                 .lines()
@@ -55,9 +68,9 @@ fn is_placeholder_node(p: &ClashProxy) -> bool {
 }
 
 fn parse_base64_subscription(text: &str) -> Vec<ClashProxy> {
-    let decoded = match base64::engine::general_purpose::STANDARD.decode(text.trim()) {
-        Ok(d) => d,
-        Err(_) => return Vec::new(),
+    let decoded = match lenient_base64_decode(text.trim()) {
+        Some(d) => d,
+        None => return Vec::new(),
     };
     let s = match String::from_utf8(decoded) {
         Ok(s) => s,
@@ -368,47 +381,58 @@ pub fn parse_vmess_uri(uri: &str) -> Option<ClashProxy> {
 // ─── Shadowsocks ───
 
 pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
-    let hash_idx = uri.find('#');
-    let name = hash_idx.map(|i| url_decode(&uri[i + 1..])).unwrap_or_default();
-    let main_part = if let Some(i) = hash_idx {
-        &uri[5..i]
-    } else {
-        &uri[5..]
-    };
+    // Try URL::parse first — handles query string + fragment cleanly
+    if let Ok(url) = url::Url::parse(uri) {
+        let name_raw = parse_url_fragment(&url);
+        let server = url.host_str()?.to_string();
+        let port = url.port()?;
+        let params = query_params(&url);
 
-    // Format 1: ss://base64@server:port
-    if let Some(at_idx) = main_part.rfind('@') {
-        let user_info = &main_part[..at_idx];
-        let server_part = &main_part[at_idx + 1..];
+        // userinfo is base64(method:password) — may contain URL encoding
+        let user_info = url_decode(url.username());
+        if let Some(decoded) = b64_decode_str(&user_info) {
+            if let Some(c_idx) = decoded.find(':') {
+                let method = &decoded[..c_idx];
+                let password = &decoded[c_idx + 1..];
+                let node_name = if name_raw.is_empty() {
+                    format!("{}:{}", server, port)
+                } else {
+                    name_raw
+                };
 
-        if let Some(colon_idx) = server_part.rfind(':') {
-            let server = &server_part[..colon_idx];
-            if let Ok(port) = server_part[colon_idx + 1..].parse::<u16>() {
-                if let Some(decoded) = b64_decode_str(user_info) {
-                    if let Some(c_idx) = decoded.find(':') {
-                        let method = &decoded[..c_idx];
-                        let password = &decoded[c_idx + 1..];
-                        let node_name = if name.is_empty() {
-                            format!("{}:{}", server, port)
-                        } else {
-                            name.clone()
-                        };
+                let mut extra = Map::new();
+                extra.insert("cipher".into(), Value::String(method.to_string()));
+                extra.insert("password".into(), Value::String(password.to_string()));
+                extra.insert("udp".into(), Value::Bool(true));
 
-                        let mut extra = Map::new();
-                        extra.insert("cipher".into(), Value::String(method.to_string()));
-                        extra.insert("password".into(), Value::String(password.to_string()));
-                        extra.insert("udp".into(), Value::Bool(true));
-
-                        return Some(make_proxy(node_name, "ss", server.to_string(), port, extra));
-                    }
+                // SIP003 plugin support (plugin=obfs-local;obfs=http;obfs-host=...)
+                if let Some(plugin_str) = params.get("plugin") {
+                    parse_ss_plugin(plugin_str, &mut extra);
                 }
+
+                return Some(make_proxy(node_name, "ss", server, port, extra));
             }
         }
     }
 
+    // Fallback: manual parsing for non-standard URIs
+    let hash_idx = uri.find('#');
+    let name = hash_idx.map(|i| url_decode(&uri[i + 1..])).unwrap_or_default();
+    let after_scheme = &uri[5..]; // strip "ss://"
+    let no_fragment = if let Some(i) = after_scheme.find('#') {
+        &after_scheme[..i]
+    } else {
+        after_scheme
+    };
+    // Strip query string for base64 fallback
+    let no_query = if let Some(i) = no_fragment.find('?') {
+        &no_fragment[..i]
+    } else {
+        no_fragment
+    };
+
     // Format 2: ss://base64(method:password@server:port)
-    if let Some(decoded) = b64_decode_str(main_part) {
-        // Pattern: method:password@server:port
+    if let Some(decoded) = b64_decode_str(no_query) {
         if let Some(at_idx) = decoded.rfind('@') {
             let user_part = &decoded[..at_idx];
             let server_part = &decoded[at_idx + 1..];
@@ -436,6 +460,35 @@ pub fn parse_ss_uri(uri: &str) -> Option<ClashProxy> {
     }
 
     None
+}
+
+/// Parse SIP003 plugin string (e.g. "obfs-local;obfs=http;obfs-host=example.com")
+fn parse_ss_plugin(plugin_str: &str, extra: &mut Map<String, Value>) {
+    let parts: Vec<&str> = plugin_str.split(';').collect();
+    if parts.is_empty() {
+        return;
+    }
+    let plugin_name = parts[0];
+    let mut plugin_opts = Map::new();
+    for part in &parts[1..] {
+        if let Some((k, v)) = part.split_once('=') {
+            plugin_opts.insert(k.to_string(), Value::String(v.to_string()));
+        }
+    }
+    // Map to Clash-style plugin/plugin-opts
+    extra.insert("plugin".into(), Value::String(plugin_name.to_string()));
+    if !plugin_opts.is_empty() {
+        // Clash expects "mode" instead of "obfs" for obfs-local
+        if plugin_name == "obfs-local" || plugin_name == "obfs" {
+            if let Some(mode) = plugin_opts.remove("obfs") {
+                plugin_opts.insert("mode".into(), mode);
+            }
+            if let Some(host) = plugin_opts.remove("obfs-host") {
+                plugin_opts.insert("host".into(), host);
+            }
+        }
+        extra.insert("plugin-opts".into(), Value::Object(plugin_opts));
+    }
 }
 
 // ─── Trojan ───

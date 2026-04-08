@@ -354,6 +354,27 @@ export const SourceResultStepContent = ({
             ),
             children: <SmartCodeBlock content={data.rawText} maxHeight={300} />,
           },
+          ...(data.decodedText
+            ? [
+                {
+                  key: "decoded",
+                  label: (
+                    <div className="flex gap-2 items-center">
+                      <span>{t("proxy.debug.decodedResponse")}</span>
+                      <Tag>
+                        {data.decodedText.length} {t("proxy.debug.chars")}
+                      </Tag>
+                    </div>
+                  ),
+                  children: (
+                    <SmartCodeBlock
+                      content={data.decodedText}
+                      maxHeight={300}
+                    />
+                  ),
+                },
+              ]
+            : []),
           ...(data.filteredNodes.length > 0
             ? [
                 {
