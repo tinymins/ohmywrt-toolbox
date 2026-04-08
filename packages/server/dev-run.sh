@@ -41,4 +41,4 @@ cargo build 2>&1 || exit $?
   [ "$COUNT" -gt 0 ] && echo "[rust-dev] ts-rs types updated ($COUNT files)"
 ) &
 
-exec ./target/debug/ohmywrt-toolbox-server --listen 0.0.0.0:5678
+exec "$ROOT_DIR/target/debug/ohmywrt-toolbox-server" --listen 0.0.0.0:5678
