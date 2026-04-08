@@ -28,7 +28,7 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
   const isFirstUser = registrationStatusQuery.data?.isFirstUser ?? false;
 
   const [mode, setMode] = useState<"login" | "register">(initialMode);
-  const [form] = Form.useForm();
+  const [form] = Form.useForm({ email: "", password: "", name: "" });
   const redirect = searchParams.get("redirect");
   const didNavigate = useRef(false);
   const didAutoSwitch = useRef(false);
@@ -154,12 +154,26 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
                 form={form}
                 layout="vertical"
                 requiredMark={false}
+                method="post"
                 onFinish={async (values) => {
                   if (mode === "login") {
                     const result = await loginMutation.mutateAsync({
                       email: values.email,
                       password: values.password,
                     });
+                    // Signal browser to offer saving credentials (Credential Management API)
+                    if ("PasswordCredential" in window) {
+                      try {
+                        await navigator.credentials.store(
+                          new PasswordCredential({
+                            id: values.email as string,
+                            password: values.password as string,
+                          }),
+                        );
+                      } catch {
+                        // Not supported or user dismissed
+                      }
+                    }
                     handleSuccess(
                       result.user as User,
                       result.defaultWorkspaceSlug,
@@ -171,6 +185,19 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
                       password: values.password,
                       invitationCode: invitationCode || undefined,
                     });
+                    // Signal browser to offer saving credentials for new account
+                    if ("PasswordCredential" in window) {
+                      try {
+                        await navigator.credentials.store(
+                          new PasswordCredential({
+                            id: values.email as string,
+                            password: values.password as string,
+                          }),
+                        );
+                      } catch {
+                        // Not supported or user dismissed
+                      }
+                    }
                     handleSuccess(
                       result.user as User,
                       result.defaultWorkspaceSlug,
@@ -202,7 +229,7 @@ export default function AuthPage({ initialMode = "login" }: LoginPageProps) {
                     type="email"
                     placeholder={t("login.emailPlaceholder")}
                     size="large"
-                    autoComplete="email"
+                    autoComplete={mode === "login" ? "username" : "email"}
                   />
                 </Form.Item>
 

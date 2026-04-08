@@ -351,7 +351,7 @@ export function Form({
           e.preventDefault();
           try {
             const values = await form.validateFields();
-            onFinish?.(values);
+            await onFinish?.(values);
           } catch {
             const errorFields = Object.entries(form._errors)
               .filter(([, v]) => v)
