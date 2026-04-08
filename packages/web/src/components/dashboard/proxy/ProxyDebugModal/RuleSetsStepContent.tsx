@@ -6,38 +6,15 @@ type RuleSetsStep = Extract<ProxyDebugStep, { type: "rule-sets" }>;
 type RuleSetItem = RuleSetsStep["data"]["items"][number];
 
 /** 规则内容代码块 */
-const RuleCodeBlock = ({
-  rules,
-  truncated,
-  totalCount,
-}: {
-  rules: string[];
-  truncated?: boolean;
-  totalCount: number;
-}) => (
-  <div>
-    <pre className="!m-0 !p-3 !text-xs !bg-gray-50 dark:!bg-gray-900 !rounded-md !overflow-auto !whitespace-pre-wrap !break-all !font-mono max-h-[300px]">
-      {rules.join("\n")}
-    </pre>
-    {truncated && (
-      <div className="text-xs text-slate-400 mt-1 pl-1">
-        … {totalCount - rules.length} more rules not shown
-      </div>
-    )}
-  </div>
+const RuleCodeBlock = ({ rules }: { rules: string[] }) => (
+  <pre className="!m-0 !p-3 !text-xs !bg-gray-50 dark:!bg-gray-900 !rounded-md !overflow-auto !whitespace-pre-wrap !break-all !font-mono max-h-[300px]">
+    {rules.join("\n")}
+  </pre>
 );
 
 /** 单个规则集项 */
 const RuleSetItemContent = ({ item }: { item: RuleSetItem }) => {
   const { t } = useTranslation();
-
-  if (item.builtin) {
-    return (
-      <div className="text-xs text-slate-500">
-        {t("proxy.debug.ruleSetBuiltinHint")}
-      </div>
-    );
-  }
 
   if (item.status === "error") {
     return (
@@ -46,6 +23,16 @@ const RuleSetItemContent = ({ item }: { item: RuleSetItem }) => {
           {item.error}
         </div>
         <div className="text-xs text-slate-400 break-all">{item.url}</div>
+      </div>
+    );
+  }
+
+  if (item.status === "skipped") {
+    return (
+      <div className="text-xs text-slate-500">
+        {item.format === "binary"
+          ? t("proxy.debug.ruleSetBuiltinHint")
+          : "skipped"}
       </div>
     );
   }
@@ -62,11 +49,7 @@ const RuleSetItemContent = ({ item }: { item: RuleSetItem }) => {
         </div>
       )}
       {item.sampleRules && item.sampleRules.length > 0 && (
-        <RuleCodeBlock
-          rules={item.sampleRules}
-          truncated={item.truncated}
-          totalCount={item.ruleCount}
-        />
+        <RuleCodeBlock rules={item.sampleRules} />
       )}
     </div>
   );
@@ -79,6 +62,9 @@ const RuleSetItemLabel = ({ item }: { item: RuleSetItem }) => {
   return (
     <div className="flex gap-2 items-center flex-wrap">
       <span className="font-mono text-xs">{item.tag}</span>
+      {item.builtin && (
+        <Tag className="!text-xs">{t("proxy.debug.ruleSetBuiltinTag")}</Tag>
+      )}
       {item.status === "ok" && (
         <Tag color="green" className="!text-xs">
           {item.ruleCount} {t("proxy.debug.ruleSetRulesUnit")}
@@ -93,9 +79,6 @@ const RuleSetItemLabel = ({ item }: { item: RuleSetItem }) => {
         <Tag color="error" className="!text-xs">
           {item.error ?? t("proxy.debug.error")}
         </Tag>
-      )}
-      {item.truncated && (
-        <Tag className="!text-xs">{t("proxy.debug.ruleSetTruncated")}</Tag>
       )}
     </div>
   );

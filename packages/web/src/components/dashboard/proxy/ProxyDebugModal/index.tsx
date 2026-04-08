@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
   LoadingOutlined,
   Modal,
+  SearchOutlined,
   ShieldCheckOutlined,
   Tag,
 } from "@acme/components";
@@ -31,6 +32,8 @@ import {
   SourceStartStepContent,
   ValidateStepContent,
 } from "./DebugStepContent";
+import type { GlobalSearchModalRef } from "./GlobalSearchModal";
+import GlobalSearchModal from "./GlobalSearchModal";
 import type { NodeTraceModalRef } from "./NodeTraceModal";
 import NodeTraceModal from "./NodeTraceModal";
 import { RuleSetsStepContent } from "./RuleSetsStepContent";
@@ -48,8 +51,10 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [showNodeSearch, setShowNodeSearch] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const traceModalRef = useRef<NodeTraceModalRef>(null);
+  const globalSearchRef = useRef<GlobalSearchModalRef>(null);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => {
@@ -377,28 +382,54 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
         </div>
       )}
 
-      {/* 节点追踪区域 */}
-      {done && allNodeNames.length > 0 && subscribeId && (
+      {/* 工具栏 */}
+      {done && subscribeId && (
         <>
           <hr className="my-4 border-gray-200 dark:border-gray-700" />
-          <div className="flex items-center gap-3 flex-wrap">
-            <AimOutlined className="text-blue-500 text-lg" />
-            <span className="font-semibold">{t("proxy.debug.traceTitle")}</span>
-            <AutoComplete
-              value={searchValue}
-              options={autoCompleteOptions}
-              onSearch={(value: string) => {
-                setSearchValue(value);
-              }}
-              onSelect={(value: string) => handleTraceNode(value)}
-              placeholder={t("proxy.debug.traceSearchPlaceholder")}
-              className="flex-1 min-w-[200px] max-w-[500px]"
-              allowClear
-            />
-            <span className="text-slate-500 text-xs">
-              {t("proxy.debug.traceNodeList")}: {allNodeNames.length}
-            </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* 节点追踪按钮 */}
+            {allNodeNames.length > 0 && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                onClick={() => setShowNodeSearch((v) => !v)}
+              >
+                <AimOutlined className="text-blue-500" />
+                <span>{t("proxy.debug.traceTitle")}</span>
+                <Tag className="!text-xs">{allNodeNames.length}</Tag>
+              </button>
+            )}
+
+            {/* 全局搜索按钮 */}
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              onClick={() => globalSearchRef.current?.open()}
+            >
+              <SearchOutlined className="text-green-500" />
+              <span>{t("proxy.debug.globalSearch")}</span>
+            </button>
           </div>
+
+          {/* 内联节点追踪搜索 */}
+          {showNodeSearch && allNodeNames.length > 0 && (
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
+              <AutoComplete
+                value={searchValue}
+                options={autoCompleteOptions}
+                onSearch={(value: string) => {
+                  setSearchValue(value);
+                }}
+                onSelect={(value: string) => handleTraceNode(value)}
+                placeholder={t("proxy.debug.traceSearchPlaceholder")}
+                className="flex-1 min-w-[200px] max-w-[500px]"
+                allowClear
+              />
+              <span className="text-slate-500 text-xs">
+                {t("proxy.debug.traceNodeList")}: {allNodeNames.length}
+              </span>
+            </div>
+          )}
 
           <NodeTraceModal
             ref={traceModalRef}
@@ -408,6 +439,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
             nodeWarnings={nodeWarningSet}
             nodeIgnored={nodeIgnoredSet}
           />
+          <GlobalSearchModal ref={globalSearchRef} steps={steps} />
         </>
       )}
 

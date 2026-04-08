@@ -234,7 +234,14 @@ export default {
     ruleSetTruncated: "gekürzt",
     ruleSetBuiltinHint:
       "Integrierter Regelsatz, Binärformat, wird automatisch vom Client heruntergeladen",
+    ruleSetBuiltinTag: "integriert",
     ruleSetEffectiveUrl: "Effektive URL",
+    globalSearch: "Globale Suche",
+    globalSearchPlaceholder: "Endkonfiguration und Regelsätze durchsuchen…",
+    globalSearchNoResults: "Keine Treffer gefunden",
+    globalSearchResultCount: "{{current}}/{{total}} Ergebnisse",
+    globalSearchFinalConfig: "Endkonfiguration",
+    globalSearchRuleSets: "Regelsätze",
     originClickHint:
       "Klicken Sie auf einen Feldnamen, um seine Herkunft anzuzeigen",
     originNoData: "— Keine Herkunftsdaten",

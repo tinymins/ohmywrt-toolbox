@@ -786,8 +786,6 @@ async fn run_debug_stream(
 
 // ─── Rule-set fetching & parsing ───
 
-/// Maximum number of sample rules to include per item (avoid huge payloads).
-const MAX_SAMPLE_RULES: usize = 50;
 /// Maximum response body size to read (2 MB).
 const MAX_BODY_SIZE: usize = 2 * 1024 * 1024;
 
@@ -864,10 +862,8 @@ async fn fetch_rule_sets(
                         Ok(text) if status < 400 => {
                             let rules = parse_rule_provider_yaml(&text);
                             let rule_count = rules.len();
-                            let is_truncated = rule_count > MAX_SAMPLE_RULES;
-                            let samples: Vec<Value> = rules
+                            let all_rules: Vec<Value> = rules
                                 .into_iter()
-                                .take(MAX_SAMPLE_RULES)
                                 .map(|s| json!(s))
                                 .collect();
                             json!({
@@ -878,8 +874,7 @@ async fn fetch_rule_sets(
                                 "status": "ok",
                                 "httpStatus": status,
                                 "ruleCount": rule_count,
-                                "sampleRules": samples,
-                                "truncated": is_truncated,
+                                "sampleRules": all_rules,
                             })
                         }
                         Ok(_) => json!({
@@ -937,25 +932,95 @@ async fn fetch_rule_sets(
         ga.cmp(gb)
     });
 
-    // For sing-box, append built-in geoip/geosite rule sets as skipped markers
+    // For sing-box, fetch built-in geoip/geosite rule sets (use JSON alternatives)
     if is_singbox {
-        let builtin_sets = [
-            ("geoip-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs"),
-            ("geoip-hk", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.srs"),
-            ("geosite-openai", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.srs"),
-            ("geosite-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs"),
-            ("geoip-gfwblack", ""),
-        ];
-        for (tag, url) in builtin_sets {
+        let builtin_results = fetch_builtin_rule_sets(&client).await;
+        results.extend(builtin_results);
+    }
+
+    results
+}
+
+/// Fetch built-in sing-box geoip/geosite rule sets using JSON alternatives.
+async fn fetch_builtin_rule_sets(client: &reqwest::Client) -> Vec<Value> {
+    let builtin_sets = [
+        ("geoip-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.srs", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-cn.json"),
+        ("geoip-hk", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.srs", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geoip@rule-set/geoip-hk.json"),
+        ("geosite-openai", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.srs", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-openai.json"),
+        ("geosite-cn", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.srs", "https://cdn.jsdelivr.net/gh/SagerNet/sing-geosite@rule-set/geosite-cn.json"),
+        ("geoip-gfwblack", "", ""),
+    ];
+
+    let mut results = Vec::new();
+    let mut join_set = tokio::task::JoinSet::new();
+    for (tag, srs_url, json_url) in builtin_sets {
+        if json_url.is_empty() {
             results.push(json!({
                 "tag": tag,
-                "url": url,
+                "url": srs_url,
                 "group": "built-in",
                 "status": "skipped",
                 "ruleCount": 0,
                 "builtin": true,
                 "format": "binary",
             }));
+            continue;
+        }
+        let client = client.clone();
+        join_set.spawn(async move {
+            match client.get(json_url).send().await {
+                Ok(resp) if resp.status().is_success() => {
+                    match read_body_limited(resp, MAX_BODY_SIZE).await {
+                        Ok(text) => {
+                            let rules = parse_singbox_ruleset_json(&text);
+                            let rule_count = rules.len();
+                            let all_rules: Vec<Value> =
+                                rules.into_iter().map(|s| json!(s)).collect();
+                            json!({
+                                "tag": tag,
+                                "url": srs_url,
+                                "group": "built-in",
+                                "status": "ok",
+                                "ruleCount": rule_count,
+                                "sampleRules": all_rules,
+                                "builtin": true,
+                            })
+                        }
+                        Err(e) => json!({
+                            "tag": tag,
+                            "url": srs_url,
+                            "group": "built-in",
+                            "status": "error",
+                            "error": e,
+                            "ruleCount": 0,
+                            "builtin": true,
+                        }),
+                    }
+                }
+                Ok(resp) => json!({
+                    "tag": tag,
+                    "url": srs_url,
+                    "group": "built-in",
+                    "status": "error",
+                    "error": format!("HTTP {}", resp.status().as_u16()),
+                    "ruleCount": 0,
+                    "builtin": true,
+                }),
+                Err(e) => json!({
+                    "tag": tag,
+                    "url": srs_url,
+                    "group": "built-in",
+                    "status": "error",
+                    "error": e.to_string(),
+                    "ruleCount": 0,
+                    "builtin": true,
+                }),
+            }
+        });
+    }
+    while let Some(res) = join_set.join_next().await {
+        if let Ok(val) = res {
+            results.push(val);
         }
     }
 
@@ -1009,4 +1074,37 @@ fn parse_rule_provider_yaml(text: &str) -> Vec<String> {
         .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("payload:"))
         .map(|l| l.strip_prefix("- ").unwrap_or(l).to_string())
         .collect()
+}
+
+/// Parse a sing-box JSON rule set file.
+///
+/// Typical format:
+/// ```json
+/// { "version": 2, "rules": [{ "ip_cidr": ["1.0.1.0/24", ...] }, { "domain_suffix": [".cn", ...] }] }
+/// ```
+///
+/// Extracts individual rules from each rule object's arrays.
+fn parse_singbox_ruleset_json(text: &str) -> Vec<String> {
+    let Ok(parsed) = serde_json::from_str::<Value>(text) else {
+        return vec![];
+    };
+    let Some(rules) = parsed.get("rules").and_then(|v| v.as_array()) else {
+        return vec![];
+    };
+    let mut result = Vec::new();
+    for rule_obj in rules {
+        let Some(obj) = rule_obj.as_object() else {
+            continue;
+        };
+        for (rule_type, values) in obj {
+            if let Some(arr) = values.as_array() {
+                for val in arr {
+                    if let Some(s) = val.as_str() {
+                        result.push(format!("{rule_type},{s}"));
+                    }
+                }
+            }
+        }
+    }
+    result
 }
