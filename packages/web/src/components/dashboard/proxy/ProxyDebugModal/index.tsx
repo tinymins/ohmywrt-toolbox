@@ -1,6 +1,5 @@
 import {
   AimOutlined,
-  AutoComplete,
   BugOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -50,8 +49,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
   const [steps, setSteps] = useState<ProxyDebugStep[]>([]);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchValue, setSearchValue] = useState("");
-  const [showNodeSearch, setShowNodeSearch] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const traceModalRef = useRef<NodeTraceModalRef>(null);
   const globalSearchRef = useRef<GlobalSearchModalRef>(null);
@@ -69,7 +66,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
-      setSearchValue("");
       setVisible(true);
     },
   }));
@@ -170,7 +166,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
       setSteps([]);
       setDone(false);
       setError(null);
-      setSearchValue("");
     }, 300);
   };
 
@@ -270,31 +265,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     }
   };
 
-  // AutoComplete 选项
-  const autoCompleteOptions = useMemo(() => {
-    const query = searchValue.toLowerCase();
-    return allNodeNames
-      .filter((n) => !query || n.name.toLowerCase().includes(query))
-      .slice(0, 50)
-      .map((n) => ({
-        value: n.name,
-        label: (
-          <div className="flex items-center justify-between">
-            <span
-              className={`text-xs truncate flex-1 ${n.filtered ? "text-slate-500 line-through" : ""}`}
-            >
-              {n.name}
-            </span>
-            {n.filtered && (
-              <Tag color="orange" className="!text-xs ml-1 shrink-0">
-                {t("proxy.debug.traceFilteredLabel")}
-              </Tag>
-            )}
-          </div>
-        ),
-      }));
-  }, [allNodeNames, searchValue, t]);
-
   return (
     <Modal
       title={
@@ -392,7 +362,7 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                onClick={() => setShowNodeSearch((v) => !v)}
+                onClick={() => traceModalRef.current?.open()}
               >
                 <AimOutlined className="text-blue-500" />
                 <span>{t("proxy.debug.traceTitle")}</span>
@@ -410,26 +380,6 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
               <span>{t("proxy.debug.globalSearch")}</span>
             </button>
           </div>
-
-          {/* 内联节点追踪搜索 */}
-          {showNodeSearch && allNodeNames.length > 0 && (
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <AutoComplete
-                value={searchValue}
-                options={autoCompleteOptions}
-                onSearch={(value: string) => {
-                  setSearchValue(value);
-                }}
-                onSelect={(value: string) => handleTraceNode(value)}
-                placeholder={t("proxy.debug.traceSearchPlaceholder")}
-                className="flex-1 min-w-[200px] max-w-[500px]"
-                allowClear
-              />
-              <span className="text-slate-500 text-xs">
-                {t("proxy.debug.traceNodeList")}: {allNodeNames.length}
-              </span>
-            </div>
-          )}
 
           <NodeTraceModal
             ref={traceModalRef}

@@ -148,10 +148,16 @@ const GlobalSearchModal = forwardRef<GlobalSearchModalRef, Props>(
       return result;
     }, [query, sections]);
 
-    // Reset current index when matches change
+    // Reset current index and expand all matched sections when matches change
     // biome-ignore lint/correctness/useExhaustiveDependencies: reset on new match results
     useEffect(() => {
       setCurrentIndex(0);
+      // Expand all sections that have matches by default
+      const sectionKeys = new Set<string>();
+      for (const m of matches) {
+        sectionKeys.add(m.sectionKey);
+      }
+      setExpandedKeys([...sectionKeys]);
     }, [matches]);
 
     // Auto-expand section containing current match and scroll to it
