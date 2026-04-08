@@ -1,4 +1,4 @@
-.PHONY: init dev dev\:kill build docker deploy lint gen\:api db\:sync help
+.PHONY: init dev dev\:kill build docker deploy lint lint\:web lint\:rust gen\:api db\:sync help
 
 # 默认目标
 .DEFAULT_GOAL := help
@@ -29,7 +29,9 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make build$(NC)     - 编译生产版本\n"
 	@printf "  $(YELLOW)make docker$(NC)    - 构建 Docker 镜像（Rust + 前端）\n"
 	@printf "  $(YELLOW)make deploy$(NC)    - 一键部署到服务器（构建+上传+部署）\n"
-	@printf "  $(YELLOW)make lint$(NC)      - 代码检查（Biome lint & format）\n"
+	@printf "  $(YELLOW)make lint$(NC)      - 代码检查（前端 + Rust 全量）\n"
+	@printf "  $(YELLOW)make lint:web$(NC)  - 前端代码检查（Biome + typecheck）\n"
+	@printf "  $(YELLOW)make lint:rust$(NC) - Rust 代码检查（cargo clippy）\n"
 	@printf "  $(YELLOW)make gen:api$(NC)   - 从 Rust 生成 TypeScript 类型（ts-rs）\n"
 	@printf "  $(YELLOW)make db:sync$(NC)   - 同步 schema 到 DB（prisma db push）\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
@@ -165,7 +167,14 @@ db\:sync: ## 同步 schema 到 DB（prisma db push）
 	@npx prisma db push --schema prisma/schema.prisma
 	@printf "$(GREEN)✓ db:sync 完成$(NC)\n"
 
-lint: ## 代码检查（Biome lint & format）
-	@printf "$(GREEN)🔍 代码检查中...$(NC)\n"
+lint\:web: ## 前端代码检查（Biome lint）
+	@printf "$(GREEN)🔍 前端代码检查中...$(NC)\n"
 	@pnpm lint
-	@printf "$(GREEN)✓ 代码检查通过$(NC)\n"
+	@printf "$(GREEN)✓ 前端代码检查通过$(NC)\n"
+
+lint\:rust: ## Rust 代码检查（cargo clippy）
+	@printf "$(GREEN)🦀 Rust 代码检查中...$(NC)\n"
+	@cargo clippy --workspace -- -D warnings
+	@printf "$(GREEN)✓ Rust 代码检查通过$(NC)\n"
+
+lint: lint\:web lint\:rust ## 代码检查（前端 + Rust 全量）

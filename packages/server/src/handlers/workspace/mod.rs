@@ -63,7 +63,7 @@ pub async fn list_workspaces(
             .await
             .ok()
             .flatten();
-        let db_value = row.map(|s| s.single_workspace_mode).unwrap_or(false);
+        let db_value = row.is_some_and(|s| s.single_workspace_mode);
         let (effective, _) = resolve_single_workspace_mode(db_value);
 
         if effective {
@@ -120,7 +120,7 @@ pub async fn create_workspace(
             .await
             .ok()
             .flatten();
-        let db_value = row.map(|s| s.single_workspace_mode).unwrap_or(false);
+        let db_value = row.is_some_and(|s| s.single_workspace_mode);
         let (effective, _) = resolve_single_workspace_mode(db_value);
         if effective {
             return AppError::BadRequest(
@@ -225,10 +225,10 @@ pub async fn update_workspace(
             return AppError::BadRequest("Reserved workspace slug".into()).into_response();
         }
         // Check uniqueness
-        if let Ok(Some(existing)) = WorkspaceRepo::find_by_slug(&state.db, &slug).await {
-            if existing.id != workspace.id {
-                return AppError::Conflict("Workspace slug already exists".into()).into_response();
-            }
+        if let Ok(Some(existing)) = WorkspaceRepo::find_by_slug(&state.db, &slug).await
+            && existing.id != workspace.id
+        {
+            return AppError::Conflict("Workspace slug already exists".into()).into_response();
         }
     }
 

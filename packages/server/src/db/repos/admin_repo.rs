@@ -212,26 +212,24 @@ impl AdminRepo {
         db: &DatabaseConnection,
     ) -> Result<system_settings::Model, AppError> {
         let row = system_settings::Entity::find().one(db).await?;
-        match row {
-            Some(s) => Ok(s),
-            None => {
-                // Create default settings
-                let id = Uuid::new_v4();
-                let now: DateTimeWithTimeZone = Utc::now().into();
-                let active = system_settings::ActiveModel {
-                    id: Set(id),
-                    allow_registration: Set(true),
-                    single_workspace_mode: Set(false),
-                    created_at: Set(Some(now)),
-                    updated_at: Set(Some(now)),
-                };
-                system_settings::Entity::insert(active).exec(db).await?;
-                system_settings::Entity::find_by_id(id)
-                    .one(db)
-                    .await?
-                    .ok_or_else(|| AppError::Internal("Failed to create system settings".into()))
-            }
+        if let Some(s) = row {
+            return Ok(s);
         }
+        // Create default settings
+        let id = Uuid::new_v4();
+        let now: DateTimeWithTimeZone = Utc::now().into();
+        let active = system_settings::ActiveModel {
+            id: Set(id),
+            allow_registration: Set(true),
+            single_workspace_mode: Set(false),
+            created_at: Set(Some(now)),
+            updated_at: Set(Some(now)),
+        };
+        system_settings::Entity::insert(active).exec(db).await?;
+        system_settings::Entity::find_by_id(id)
+            .one(db)
+            .await?
+            .ok_or_else(|| AppError::Internal("Failed to create system settings".into()))
     }
 
     pub async fn update_system_settings(

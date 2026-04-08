@@ -1,5 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
@@ -13,6 +18,12 @@
       },
       "style": {
         "useImportType": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "warn"
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": "warn"
       }
     }
   },
@@ -31,7 +42,9 @@
       "allowWrongLineComments": true,
       "cssModules": false,
       "tailwindDirectives": true
-    }
+    },
+    "formatter": { "enabled": false },
+    "linter": { "enabled": false }
   },
   "files": {
     "includes": [

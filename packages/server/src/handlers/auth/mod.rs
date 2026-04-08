@@ -71,7 +71,7 @@ pub fn parse_session_cookie(headers: &HeaderMap) -> Option<String> {
         .and_then(|cookie_str| {
             cookie_str
                 .split(';')
-                .map(|s| s.trim())
+                .map(str::trim)
                 .find_map(|part| part.strip_prefix("SESSION_ID=").map(ToOwned::to_owned))
         })
 }

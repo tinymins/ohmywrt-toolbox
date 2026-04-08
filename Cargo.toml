@@ -1,0 +1,84 @@
+[workspace]
+# packages/wasm 使用 wasm-pack 构建，需要 opt-level = "s" 体积优化，
+# 加入 workspace 会被 [profile.release] 覆盖，因此单独管理
+members = ["packages/server"]
+exclude = ["packages/wasm"]
+resolver = "2"
+
+# 与 clippy.toml msrv 保持一致
+[workspace.package]
+rust-version = "1.94.0"
+
+# ── Lint 配置（行为阈值在 clippy.toml） ─────────────────────────────────────
+# 成员 crate 的 Cargo.toml 需加 [lints] workspace = true 来继承
+
+[workspace.lints.rust]
+# 所有 unsafe 块都必须显式标注
+unsafe_code     = "warn"
+# Result / Future 返回值必须被消费，防止静默丢弃错误
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+# ── Lint 群组（priority = -1：先应用群组，具体条目再覆盖）──────────────────
+all      = { level = "warn", priority = -1 }   # 正确性 / 性能 / 可疑代码
+pedantic = { level = "warn", priority = -1 }   # 更严格的惯用风格
+
+# ── 关掉噪音大的 pedantic lint ──────────────────────────────────────────────
+# Sea-ORM 标准用法
+wildcard_imports        = "allow"
+# AppError::Foo 这种命名在领域分层下很自然
+module_name_repetitions = "allow"
+# 给每个纯计算函数加 #[must_use] 注解成本高
+must_use_candidate      = "allow"
+# API 文档要求暂不强制（内部项目）
+missing_errors_doc      = "allow"
+missing_panics_doc      = "allow"
+# handler 里先做事、再声明中间变量是常见 Rust 风格
+items_after_statements  = "allow"
+# Config / Feature flag struct 天然需要多个 bool 字段
+struct_excessive_bools  = "allow"
+# 低层代码中相似短名是领域惯例
+similar_names           = "allow"
+# &Option<T> → Option<&T> 转换影响所有调用点（内部 API 不强制）
+ref_option              = "allow"
+# 函数参数过多 bool 在配置构建函数中常见
+fn_params_excessive_bools = "allow"
+# 按值传参 vs 按引用在内部 API 中属于风格选择
+needless_pass_by_value  = "allow"
+# u64 → i64 / i64 → usize 在 Sea-ORM 分页计算中不可避免
+cast_possible_wrap      = "allow"
+cast_possible_truncation = "allow"
+cast_precision_loss     = "allow"
+cast_sign_loss          = "allow"
+# 文档注释里的 backtick 格式：属于独立文档质量任务
+doc_markdown            = "allow"
+
+# ── 从 restriction 组精选高价值 lint ──────────────────────────────────────
+# Result 函数体内不允许裸 .unwrap()，必须用 ? 或 expect
+unwrap_in_result = "warn"
+# 生产代码不应有裸 panic!
+panic            = "warn"
+# TODO 注释不应进入 CI
+todo             = "warn"
+# 调试宏不进 CI
+dbg_macro        = "warn"
+# 用 tracing 而非 println! / eprintln!
+print_stdout     = "warn"
+print_stderr     = "warn"
+
+# ── 生产构建：最大化运行性能 ────────────────────────────────────────────────
+[profile.release]
+opt-level     = 3           # 最高优化级别
+lto           = true        # 跨 crate 链接时优化
+strip         = "symbols"   # 去除调试符号
+codegen-units = 1           # 单编译单元，允许更激进的优化
+panic         = "abort"     # panic 直接终止进程
+debug         = 0           # 不嵌入调试信息
+
+# ── 测试构建：跳过调试符号，加快编译 ────────────────────────────────────────
+[profile.test]
+debug = false
+
+# ── 开发构建：只保留行号（够 backtrace 用），加快编译 ──────────────────────
+[profile.dev]
+debug = "line-tables-only"

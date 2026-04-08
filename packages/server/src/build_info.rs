@@ -57,12 +57,14 @@ pub fn startup_banner() -> String {
         out.push_str("\x1b[0m\n");
     }
 
-    out.push_str(&format!(
+    use std::fmt::Write;
+    let _ = write!(
+        out,
         "\n  \x1b[2mv{} · {} · built {}\x1b[0m\n",
         server_version(),
         git_commit_hash(),
         build_time(),
-    ));
+    );
 
     out
 }

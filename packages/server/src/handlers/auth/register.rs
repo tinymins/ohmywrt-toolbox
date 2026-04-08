@@ -31,7 +31,8 @@ async fn is_single_workspace_mode(db: &sea_orm::DatabaseConnection) -> bool {
     use sea_orm::EntityTrait;
 
     let row = system_settings::Entity::find().one(db).await.ok().flatten();
-    let db_value = row.map(|s| s.single_workspace_mode).unwrap_or(false);
+    let db_value = row
+        .is_some_and(|s| s.single_workspace_mode);
     let (effective, _) = resolve_single_workspace_mode(db_value);
     effective
 }
@@ -174,12 +175,11 @@ pub async fn register(
     };
 
     // If invitation code was used, mark it as used
-    if let Some(ref code) = body.invitation_code {
-        if valid_invitation {
-            if let Err(e) = AdminRepo::use_invitation_code(&state.db, code, &user_id_str).await {
-                return e.into_response();
-            }
-        }
+    if let Some(ref code) = body.invitation_code
+        && valid_invitation
+        && let Err(e) = AdminRepo::use_invitation_code(&state.db, code, &user_id_str).await
+    {
+        return e.into_response();
     }
 
     let output = AuthOutput {
