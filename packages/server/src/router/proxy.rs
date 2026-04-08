@@ -8,6 +8,7 @@ use crate::AppState;
 pub fn build_proxy_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Authenticated endpoints
+        .route("/api/proxy/users", get(proxy::list_users_brief))
         .route(
             "/api/proxy/subscribes",
             get(proxy::list_subscribes).post(proxy::create_subscribe),

@@ -107,6 +107,9 @@ export interface ProxyUserStats {
 // ─── API ───
 
 export const proxyApi = {
+  listUsers: createQuery<void, UserBrief[]>({
+    path: "/api/proxy/users",
+  }),
   list: createQuery<void, ProxySubscribe[]>({
     path: "/api/proxy/subscribes",
   }),

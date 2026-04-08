@@ -153,8 +153,8 @@ impl ProxySubscribeRepo {
             cache_ttl_minutes: Set(cache_ttl_minutes),
             cached_node_count: NotSet,
             last_access_at: NotSet,
-            created_at: NotSet,
-            updated_at: NotSet,
+            created_at: Set(Some(Utc::now().into())),
+            updated_at: Set(Some(Utc::now().into())),
         };
         proxy_subscribes::Entity::insert(record).exec(db).await?;
 

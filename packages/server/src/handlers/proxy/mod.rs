@@ -288,6 +288,34 @@ async fn enrich_single(
 
 // ─── Authenticated handlers ───
 
+/// List all users as brief info (id, name, email) — accessible by any authenticated user.
+/// Used by the proxy subscription "authorized users" feature.
+pub async fn list_users_brief(
+    State(state): State<Arc<AppState>>,
+    _auth_user: AuthUser,
+) -> Response {
+    let all_users = match users::Entity::find().all(&state.db).await {
+        Ok(v) => v,
+        Err(e) => return AppError::Database(e).into_response(),
+    };
+
+    let briefs: Vec<UserBrief> = all_users
+        .into_iter()
+        .map(|u| UserBrief {
+            id: u.id.to_string(),
+            name: u.name,
+            email: u.email,
+        })
+        .collect();
+
+    Json(ApiResponse {
+        success: true,
+        data: Some(briefs),
+        error: None,
+    })
+    .into_response()
+}
+
 pub async fn list_subscribes(
     State(state): State<Arc<AppState>>,
     auth_user: AuthUser,

@@ -17,7 +17,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { parse as parseJsonc } from "jsonc-parser";
 import { forwardRef, useImperativeHandle, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { adminApi, proxyApi, userApi } from "@/generated/rust-api";
+import { proxyApi, userApi } from "@/generated/rust-api";
 import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
@@ -203,7 +203,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
     }));
 
     // 获取用户列表
-    const { data: userList } = adminApi.listUsers.useQuery();
+    const { data: userList } = proxyApi.listUsers.useQuery();
 
     // 获取当前用户信息
     const { data: currentUser } = userApi.getProfile.useQuery();
