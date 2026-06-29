@@ -1194,7 +1194,7 @@ pub(super) const DEFAULT_RULE_PROVIDERS_JSON: &str = r#"{
   "🎮 Discord": [{"name":"Discord","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Discord.yaml"}],
   "✈️ Telegram": [{"name":"Telegram","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/Telegram.yaml"}],
   "🏳️‍🌈 Google": [{"name":"GoogleCIDRv2","url":"https://vercel.williamchan.me/api/google-ips"}],
-  "🛡️ 正版验证拦截": [{"name":"AdobeUnlicensed","url":"https://raw.githubusercontent.com/ohmywrt/clash-rule/refs/heads/master/AdobeUnlicensed.yaml"}],
+  "🛡️ 正版验证拦截": [{"name":"a.dove.is.dumb","url":"https://raw.githubusercontent.com/ignaciocastro/a-dove-is-dumb/main/clash.yaml"}],
   "🧹 秋风广告规则 AWAvenue": [{"name":"AWAvenueAD","url":"https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/Filters/AWAvenue-Ads-Rule-Clash.yaml"}],
   "💊 广告合集": [{"name":"AD","url":"https://raw.githubusercontent.com/dler-io/Rules/refs/heads/main/Clash/Provider/AdBlock.yaml"}]
 }"#;
