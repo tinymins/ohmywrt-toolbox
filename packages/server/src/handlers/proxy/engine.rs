@@ -418,7 +418,7 @@ pub async fn fetch_proxies(
 
     // Determine types to exclude
     let exclude_types: Vec<&str> = match format {
-        "sing-box" => vec!["ssr", "anytls"],
+        "sing-box" | "sing-box-windows" => vec!["ssr", "anytls"],
         _ => vec!["ssr"],
     };
 
@@ -633,16 +633,92 @@ pub fn build_clash_config(
 
 // ─── Build Sing-box config ───
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SingboxVersion {
+    V11,
+    V12,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SingboxPlatform {
+    DefaultTproxy,
+    WindowsTun,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SingboxTarget {
+    pub version: SingboxVersion,
+    pub platform: SingboxPlatform,
+}
+
+impl SingboxTarget {
+    pub const fn default_v11() -> Self {
+        Self {
+            version: SingboxVersion::V11,
+            platform: SingboxPlatform::DefaultTproxy,
+        }
+    }
+
+    pub const fn default_v12() -> Self {
+        Self {
+            version: SingboxVersion::V12,
+            platform: SingboxPlatform::DefaultTproxy,
+        }
+    }
+
+    pub const fn windows_v11() -> Self {
+        Self {
+            version: SingboxVersion::V11,
+            platform: SingboxPlatform::WindowsTun,
+        }
+    }
+
+    pub const fn windows_v12() -> Self {
+        Self {
+            version: SingboxVersion::V12,
+            platform: SingboxPlatform::WindowsTun,
+        }
+    }
+
+    pub fn from_format(format: &str) -> Option<Self> {
+        match format {
+            "sing-box" => Some(Self::default_v11()),
+            "sing-box-windows" => Some(Self::windows_v11()),
+            "sing-box-v12" => Some(Self::default_v12()),
+            "sing-box-v12-windows" => Some(Self::windows_v12()),
+            _ => None,
+        }
+    }
+
+    pub const fn is_v12(self) -> bool {
+        matches!(self.version, SingboxVersion::V12)
+    }
+
+    pub const fn is_windows(self) -> bool {
+        matches!(self.platform, SingboxPlatform::WindowsTun)
+    }
+
+    pub const fn format(self) -> &'static str {
+        match (self.version, self.platform) {
+            (SingboxVersion::V11, SingboxPlatform::DefaultTproxy) => "sing-box",
+            (SingboxVersion::V11, SingboxPlatform::WindowsTun) => "sing-box-windows",
+            (SingboxVersion::V12, SingboxPlatform::DefaultTproxy) => "sing-box-v12",
+            (SingboxVersion::V12, SingboxPlatform::WindowsTun) => "sing-box-v12-windows",
+        }
+    }
+}
+
 /// Build a complete Sing-box JSON config.
 #[allow(clippy::too_many_lines)]
 pub fn build_singbox_config(
     sub: &proxy_subscribes::Model,
     proxies: &[ClashProxy],
-    is_v12: bool,
+    target: SingboxTarget,
     public_server_url: &str,
 ) -> Value {
     let dns = resolve_dns_config(sub.use_system_dns_config, sub.dns_config.as_deref());
     let node_names: Vec<&str> = proxies.iter().map(|p| p.name.as_str()).collect();
+    let is_v12 = target.is_v12();
 
     // Convert proxies to sing-box outbounds
     let mut outbounds: Vec<Value> = Vec::new();
@@ -767,7 +843,19 @@ pub fn build_singbox_config(
     let dns_section = build_singbox_dns(&dns, is_v12);
 
     // Inbounds
-    let inbounds = if is_v12 {
+    let inbounds = if target.is_windows() {
+        json!([
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "interface_name": "sing-box",
+                "address": ["172.19.0.1/30"],
+                "auto_route": true,
+                "strict_route": true,
+                "stack": "mixed",
+            }
+        ])
+    } else if is_v12 {
         json!([
             {
                 "type": "direct",
@@ -807,7 +895,18 @@ pub fn build_singbox_config(
     };
 
     // Route rules
-    let route_rules = if is_v12 {
+    let route_rules = if target.is_windows() {
+        json!([
+            {"action": "sniff"},
+            {"protocol": "dns", "action": "hijack-dns"},
+            {
+                "action": "route",
+                "outbound": "🚀 直接连接",
+                "rule_set": ["geoip-cn", "geosite-cn"],
+                "ip_is_private": true
+            }
+        ])
+    } else if is_v12 {
         json!([
             {"inbound": "dns-in", "action": "hijack-dns"},
             {"action": "sniff"},
@@ -890,6 +989,9 @@ pub fn build_singbox_config(
     });
     if is_v12 {
         route["default_domain_resolver"] = json!("local");
+    }
+    if target.is_windows() {
+        route["auto_detect_interface"] = json!(true);
     }
 
     let mut config = json!({
@@ -1114,5 +1216,95 @@ fn build_singbox_dns(dns: &ResolvedDns, is_v12: bool) -> Value {
             });
         }
         dns_section
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_subscribe() -> proxy_subscribes::Model {
+        proxy_subscribes::Model {
+            id: uuid::Uuid::new_v4(),
+            user_id: uuid::Uuid::new_v4(),
+            url: "test-subscribe".to_string(),
+            remark: None,
+            subscribe_url: None,
+            subscribe_items: None,
+            rule_list: None,
+            use_system_rule_list: true,
+            group: None,
+            use_system_group: true,
+            filter: None,
+            use_system_filter: true,
+            servers: None,
+            custom_config: None,
+            use_system_custom_config: true,
+            dns_config: None,
+            use_system_dns_config: true,
+            authorized_user_ids: None,
+            cache_ttl_minutes: None,
+            cached_node_count: None,
+            last_access_at: None,
+            created_at: None,
+            updated_at: None,
+        }
+    }
+
+    fn inbound_types(config: &Value) -> Vec<&str> {
+        config
+            .get("inbounds")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .filter_map(|inbound| inbound.get("type").and_then(Value::as_str))
+            .collect()
+    }
+
+    #[test]
+    fn windows_targets_use_tun_without_tproxy() {
+        let sub = test_subscribe();
+        for target in [SingboxTarget::windows_v11(), SingboxTarget::windows_v12()] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let types = inbound_types(&config);
+            assert_eq!(types, vec!["tun"]);
+            assert_eq!(
+                config.pointer("/inbounds/0/interface_name").and_then(Value::as_str),
+                Some("sing-box")
+            );
+            assert_eq!(
+                config.pointer("/route/auto_detect_interface").and_then(Value::as_bool),
+                Some(true)
+            );
+            assert!(!types.contains(&"tproxy"));
+        }
+    }
+
+    #[test]
+    fn default_targets_keep_tproxy_inbound() {
+        let sub = test_subscribe();
+        for target in [SingboxTarget::default_v11(), SingboxTarget::default_v12()] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let types = inbound_types(&config);
+            assert!(types.contains(&"tproxy"));
+        }
+    }
+
+    #[test]
+    fn v12_windows_uses_v12_rule_conversion_endpoint() {
+        let sub = test_subscribe();
+        let config =
+            build_singbox_config(&sub, &[], SingboxTarget::windows_v12(), "https://example.test");
+        let rule_sets = config
+            .pointer("/route/rule_set")
+            .and_then(Value::as_array)
+            .unwrap();
+
+        assert!(rule_sets.iter().any(|rule_set| {
+            rule_set
+                .get("url")
+                .and_then(Value::as_str)
+                .is_some_and(|url| url.contains("/api/proxy/sing-box/convert/rule/12"))
+        }));
     }
 }

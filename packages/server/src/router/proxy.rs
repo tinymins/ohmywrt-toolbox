@@ -50,8 +50,16 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
             get(proxy::public_sing_box),
         )
         .route(
+            "/api/public/proxy/{uuid}/sing-box/windows",
+            get(proxy::public_sing_box_windows),
+        )
+        .route(
             "/api/public/proxy/{uuid}/sing-box/12",
             get(proxy::public_sing_box_v12),
+        )
+        .route(
+            "/api/public/proxy/{uuid}/sing-box/12/windows",
+            get(proxy::public_sing_box_v12_windows),
         )
         // Rule conversion endpoints (no auth) — Clash YAML → Sing-box JSON
         .route(

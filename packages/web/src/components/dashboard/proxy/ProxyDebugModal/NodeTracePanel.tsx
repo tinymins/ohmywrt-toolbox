@@ -455,8 +455,7 @@ const NodeTracePanel = ({
     // sing-box 相关格式才显示 convert 步骤
     if (
       stepType === "convert" &&
-      format !== "sing-box" &&
-      format !== "sing-box-v12"
+      !format.startsWith("sing-box")
     ) {
       return false;
     }

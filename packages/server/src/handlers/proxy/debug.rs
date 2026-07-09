@@ -260,7 +260,7 @@ pub async fn trace_node_logic(
     }));
 
     // Step 7: convert (sing-box only) — with entropy-loss detection
-    if (format == "sing-box" || format == "sing-box-v12")
+    if format.starts_with("sing-box")
         && let Some(proxy) = final_proxies.iter().find(|p| p.name == node_name) {
             let (outbound, lost_fields, ignored_fields) = convert_clash_proxy_to_singbox_with_diff(proxy);
             if let Some(ref ob) = outbound {
@@ -284,7 +284,7 @@ pub async fn trace_node_logic(
                 serde_yaml::to_string(&serde_json::to_value(proxy).unwrap_or_default())
                     .unwrap_or_default()
             }
-            "sing-box" | "sing-box-v12" => {
+            "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
                 convert_clash_proxy_to_singbox(proxy)
                     .map(|ob| serde_json::to_string_pretty(&ob).unwrap_or_default())
                     .unwrap_or_default()
@@ -414,7 +414,7 @@ async fn run_debug_stream(
     }
 
     let exclude_types: Vec<&str> = match format {
-        "sing-box" => vec!["ssr", "anytls"],
+        "sing-box" | "sing-box-windows" => vec!["ssr", "anytls"],
         _ => vec!["ssr"],
     };
 
@@ -621,7 +621,7 @@ async fn run_debug_stream(
     let final_node_names: Vec<String> = all_proxies.iter().map(|p| p.name.clone()).collect();
     let mut node_warnings: Vec<String> = Vec::new();
     let mut node_ignored: Vec<String> = Vec::new();
-    if format == "sing-box" || format == "sing-box-v12" {
+    if format.starts_with("sing-box") {
         for p in &all_proxies {
             let (_, lost, ignored) = convert_clash_proxy_to_singbox_with_diff(p);
             if !lost.is_empty() {
@@ -689,11 +689,12 @@ async fn run_debug_stream(
                 .map_or(0, serde_json::Map::len);
             (pg, rc, rp, config_str)
         }
-        "sing-box" | "sing-box-v12" => {
-            let is_v12 = format == "sing-box-v12";
+        "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
+            let target = engine::SingboxTarget::from_format(format)
+                .unwrap_or_else(engine::SingboxTarget::default_v11);
             let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
             let config =
-                engine::build_singbox_config(sub, &proxies_for_config, is_v12, &public_url);
+                engine::build_singbox_config(sub, &proxies_for_config, target, &public_url);
             let pg = config
                 .get("outbounds")
                 .and_then(|v| v.as_array())
@@ -806,7 +807,8 @@ async fn fetch_rule_sets(
         .unwrap_or_default();
 
     let is_singbox = format.starts_with("sing-box");
-    let is_v12 = format == "sing-box-v12";
+    let is_v12 = engine::SingboxTarget::from_format(format)
+        .is_some_and(engine::SingboxTarget::is_v12);
 
     // Build effective URL base for sing-box
     let convert_base = if is_singbox {

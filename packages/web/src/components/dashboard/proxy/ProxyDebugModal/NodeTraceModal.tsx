@@ -463,8 +463,7 @@ const TraceStepsContent = ({
   const displaySteps = ALL_TRACE_STEP_TYPES.filter((stepType) => {
     if (
       stepType === "convert" &&
-      format !== "sing-box" &&
-      format !== "sing-box-v12"
+      !format.startsWith("sing-box")
     ) {
       return false;
     }

@@ -23,7 +23,9 @@ const DEBUG_FORMAT_MAP: Record<string, ProxyDebugFormat> = {
   clash: "clash",
   clashMeta: "clash-meta",
   "singbox-v11": "sing-box",
+  "singbox-v11-windows": "sing-box-windows",
   "singbox-v12": "sing-box-v12",
+  "singbox-v12-windows": "sing-box-v12-windows",
 };
 
 export interface ProxyLinksModalRef {
@@ -57,7 +59,9 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const clashUrl = `${baseUrl}/api/public/proxy/${uuid}/clash`;
   const clashMetaUrl = `${baseUrl}/api/public/proxy/${uuid}/clash-meta`;
   const singboxV11Url = `${baseUrl}/api/public/proxy/${uuid}/sing-box`;
+  const singboxV11WindowsUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/windows`;
   const singboxV12Url = `${baseUrl}/api/public/proxy/${uuid}/sing-box/12`;
+  const singboxV12WindowsUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/12/windows`;
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url).then(() => {
@@ -91,12 +95,28 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
       url: singboxV11Url,
     },
     {
+      key: "singbox-v11-windows",
+      label: "Sing-box v1.11 Windows",
+      icon: <LinkOutlined />,
+      color: "#16a34a",
+      tagColor: "green",
+      url: singboxV11WindowsUrl,
+    },
+    {
       key: "singbox-v12",
       label: "Sing-box v1.12",
       icon: <LinkOutlined />,
       color: "#059669",
       tagColor: "cyan",
       url: singboxV12Url,
+    },
+    {
+      key: "singbox-v12-windows",
+      label: "Sing-box v1.12 Windows",
+      icon: <LinkOutlined />,
+      color: "#0e7490",
+      tagColor: "cyan",
+      url: singboxV12WindowsUrl,
     },
   ];
 

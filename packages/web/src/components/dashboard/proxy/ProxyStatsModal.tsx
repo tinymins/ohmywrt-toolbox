@@ -101,7 +101,9 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           clash: "blue",
           "clash-meta": "purple",
           "sing-box": "green",
+          "sing-box-windows": "green",
           "sing-box-v12": "cyan",
+          "sing-box-v12-windows": "cyan",
         };
         return (
           <Tag color={colorMap[type] ?? "default"} className="!m-0">
@@ -145,7 +147,9 @@ const ProxyStatsModal = forwardRef<ProxyStatsModalRef>((_, ref) => {
           clash: "blue",
           "clash-meta": "purple",
           "sing-box": "green",
+          "sing-box-windows": "green",
           "sing-box-v12": "cyan",
+          "sing-box-v12-windows": "cyan",
         };
         return (
           <Tag color={colorMap[type] ?? "default"}>{type.toUpperCase()}</Tag>

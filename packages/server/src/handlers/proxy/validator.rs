@@ -48,7 +48,7 @@ impl ValidationResult {
 /// Priority: SINGBOX_BIN env → DATA_LOCAL_PATH/vendors/ → PATH.
 fn find_singbox_bin(format: &str) -> Option<String> {
     // For v12, allow a separate binary via SINGBOX_V12_BIN
-    if format == "sing-box-v12" {
+    if format == "sing-box-v12" || format == "sing-box-v12-windows" {
         if let Ok(bin) = std::env::var("SINGBOX_V12_BIN")
             && !bin.is_empty() {
                 return Some(bin);
@@ -328,7 +328,9 @@ pub fn validate_clash_config(config_yaml: &str) -> ValidationResult {
 /// Validate a config based on format, dispatching to the right validator.
 pub async fn validate_config(config_output: &str, format: &str) -> ValidationResult {
     match format {
-        "sing-box" | "sing-box-v12" => validate_singbox_config(config_output, format).await,
+        "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
+            validate_singbox_config(config_output, format).await
+        }
         "clash" | "clash-meta" => validate_clash_config(config_output),
         _ => ValidationResult::skipped(&format!("unknown format: {format}")),
     }

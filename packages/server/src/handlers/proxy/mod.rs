@@ -954,7 +954,15 @@ pub async fn public_sing_box(
     Path(uuid): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    handle_singbox(state, uuid, headers, false).await
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::default_v11()).await
+}
+
+pub async fn public_sing_box_windows(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v11()).await
 }
 
 pub async fn public_sing_box_v12(
@@ -962,14 +970,22 @@ pub async fn public_sing_box_v12(
     Path(uuid): Path<String>,
     headers: HeaderMap,
 ) -> Response {
-    handle_singbox(state, uuid, headers, true).await
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::default_v12()).await
+}
+
+pub async fn public_sing_box_v12_windows(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v12()).await
 }
 
 async fn handle_singbox(
     state: Arc<AppState>,
     uuid: String,
     headers: HeaderMap,
-    is_v12: bool,
+    target: engine::SingboxTarget,
 ) -> Response {
     let sub = match ProxySubscribeRepo::find_by_url(&state.db, &uuid).await {
         Ok(Some(s)) => s,
@@ -977,7 +993,7 @@ async fn handle_singbox(
         Err(e) => return e.into_response(),
     };
 
-    let format = if is_v12 { "sing-box-v12" } else { "sing-box" };
+    let format = target.format();
     let proxies = match engine::fetch_proxies(&sub, format).await {
         Ok(p) => p,
         Err(e) => {
@@ -989,13 +1005,12 @@ async fn handle_singbox(
     // Derive public server URL from headers
     let public_server_url = get_public_server_url(&headers);
 
-    let config = engine::build_singbox_config(&sub, &proxies, is_v12, &public_server_url);
+    let config = engine::build_singbox_config(&sub, &proxies, target, &public_server_url);
 
-    let access_type = if is_v12 { "sing-box-v12" } else { "sing-box" };
     let _ = ProxyAccessLogRepo::create(
         &state.db,
         sub.id,
-        access_type,
+        format,
         extract_client_ip(&headers).as_deref(),
         extract_user_agent(&headers).as_deref(),
         Some(proxies.len() as i32),
