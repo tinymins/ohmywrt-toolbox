@@ -284,7 +284,12 @@ pub async fn trace_node_logic(
                 serde_yaml::to_string(&serde_json::to_value(proxy).unwrap_or_default())
                     .unwrap_or_default()
             }
-            "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
+            "sing-box"
+            | "sing-box-windows"
+            | "sing-box-v12"
+            | "sing-box-v12-windows"
+            | "sing-box-v13"
+            | "sing-box-v13-windows" => {
                 convert_clash_proxy_to_singbox(proxy)
                     .map(|ob| serde_json::to_string_pretty(&ob).unwrap_or_default())
                     .unwrap_or_default()
@@ -689,7 +694,12 @@ async fn run_debug_stream(
                 .map_or(0, serde_json::Map::len);
             (pg, rc, rp, config_str)
         }
-        "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
+        "sing-box"
+        | "sing-box-windows"
+        | "sing-box-v12"
+        | "sing-box-v12-windows"
+        | "sing-box-v13"
+        | "sing-box-v13-windows" => {
             let target = engine::SingboxTarget::from_format(format)
                 .unwrap_or_else(engine::SingboxTarget::default_v11);
             let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
@@ -807,16 +817,16 @@ async fn fetch_rule_sets(
         .unwrap_or_default();
 
     let is_singbox = format.starts_with("sing-box");
-    let is_v12 = engine::SingboxTarget::from_format(format)
-        .is_some_and(engine::SingboxTarget::is_v12);
+    let rule_set_version = engine::SingboxTarget::from_format(format)
+        .map_or(1, engine::SingboxTarget::rule_set_version);
 
     // Build effective URL base for sing-box
     let convert_base = if is_singbox {
         let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();
-        if is_v12 {
-            format!("{public_url}/api/proxy/sing-box/convert/rule/12")
-        } else {
-            format!("{public_url}/api/proxy/sing-box/convert/rule")
+        match rule_set_version {
+            3 => format!("{public_url}/api/proxy/sing-box/convert/rule/12"),
+            4 => format!("{public_url}/api/proxy/sing-box/convert/rule/13"),
+            _ => format!("{public_url}/api/proxy/sing-box/convert/rule"),
         }
     } else {
         String::new()

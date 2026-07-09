@@ -981,6 +981,22 @@ pub async fn public_sing_box_v12_windows(
     handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v12()).await
 }
 
+pub async fn public_sing_box_v13(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::default_v13()).await
+}
+
+pub async fn public_sing_box_v13_windows(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v13()).await
+}
+
 async fn handle_singbox(
     state: Arc<AppState>,
     uuid: String,
@@ -1057,6 +1073,10 @@ pub async fn convert_rule(Query(query): Query<ConvertRuleQuery>) -> Response {
 
 pub async fn convert_rule_v12(Query(query): Query<ConvertRuleQuery>) -> Response {
     handle_convert_rule(&query.url, 3).await
+}
+
+pub async fn convert_rule_v13(Query(query): Query<ConvertRuleQuery>) -> Response {
+    handle_convert_rule(&query.url, 4).await
 }
 
 async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {

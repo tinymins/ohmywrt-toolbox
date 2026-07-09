@@ -47,6 +47,17 @@ impl ValidationResult {
 /// Find the sing-box binary path.
 /// Priority: SINGBOX_BIN env → DATA_LOCAL_PATH/vendors/ → PATH.
 fn find_singbox_bin(format: &str) -> Option<String> {
+    // For v13, allow a separate binary via SINGBOX_V13_BIN
+    if format == "sing-box-v13" || format == "sing-box-v13-windows" {
+        if let Ok(bin) = std::env::var("SINGBOX_V13_BIN")
+            && !bin.is_empty() {
+                return Some(bin);
+            }
+        // Try vendor directory
+        if let Some(vendor) = find_vendor_bin("sing-box-v13", "sing-box") {
+            return Some(vendor);
+        }
+    }
     // For v12, allow a separate binary via SINGBOX_V12_BIN
     if format == "sing-box-v12" || format == "sing-box-v12-windows" {
         if let Ok(bin) = std::env::var("SINGBOX_V12_BIN")
@@ -328,7 +339,12 @@ pub fn validate_clash_config(config_yaml: &str) -> ValidationResult {
 /// Validate a config based on format, dispatching to the right validator.
 pub async fn validate_config(config_output: &str, format: &str) -> ValidationResult {
     match format {
-        "sing-box" | "sing-box-windows" | "sing-box-v12" | "sing-box-v12-windows" => {
+        "sing-box"
+        | "sing-box-windows"
+        | "sing-box-v12"
+        | "sing-box-v12-windows"
+        | "sing-box-v13"
+        | "sing-box-v13-windows" => {
             validate_singbox_config(config_output, format).await
         }
         "clash" | "clash-meta" => validate_clash_config(config_output),

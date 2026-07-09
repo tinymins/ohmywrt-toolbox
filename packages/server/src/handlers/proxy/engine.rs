@@ -637,6 +637,7 @@ pub fn build_clash_config(
 pub enum SingboxVersion {
     V11,
     V12,
+    V13,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -666,6 +667,13 @@ impl SingboxTarget {
         }
     }
 
+    pub const fn default_v13() -> Self {
+        Self {
+            version: SingboxVersion::V13,
+            platform: SingboxPlatform::DefaultTproxy,
+        }
+    }
+
     pub const fn windows_v11() -> Self {
         Self {
             version: SingboxVersion::V11,
@@ -680,18 +688,35 @@ impl SingboxTarget {
         }
     }
 
+    pub const fn windows_v13() -> Self {
+        Self {
+            version: SingboxVersion::V13,
+            platform: SingboxPlatform::WindowsTun,
+        }
+    }
+
     pub fn from_format(format: &str) -> Option<Self> {
         match format {
             "sing-box" => Some(Self::default_v11()),
             "sing-box-windows" => Some(Self::windows_v11()),
             "sing-box-v12" => Some(Self::default_v12()),
             "sing-box-v12-windows" => Some(Self::windows_v12()),
+            "sing-box-v13" => Some(Self::default_v13()),
+            "sing-box-v13-windows" => Some(Self::windows_v13()),
             _ => None,
         }
     }
 
-    pub const fn is_v12(self) -> bool {
-        matches!(self.version, SingboxVersion::V12)
+    pub const fn uses_modern_dns(self) -> bool {
+        matches!(self.version, SingboxVersion::V12 | SingboxVersion::V13)
+    }
+
+    pub const fn rule_set_version(self) -> u8 {
+        match self.version {
+            SingboxVersion::V11 => 1,
+            SingboxVersion::V12 => 3,
+            SingboxVersion::V13 => 4,
+        }
     }
 
     pub const fn is_windows(self) -> bool {
@@ -704,6 +729,8 @@ impl SingboxTarget {
             (SingboxVersion::V11, SingboxPlatform::WindowsTun) => "sing-box-windows",
             (SingboxVersion::V12, SingboxPlatform::DefaultTproxy) => "sing-box-v12",
             (SingboxVersion::V12, SingboxPlatform::WindowsTun) => "sing-box-v12-windows",
+            (SingboxVersion::V13, SingboxPlatform::DefaultTproxy) => "sing-box-v13",
+            (SingboxVersion::V13, SingboxPlatform::WindowsTun) => "sing-box-v13-windows",
         }
     }
 }
@@ -718,12 +745,13 @@ pub fn build_singbox_config(
 ) -> Value {
     let dns = resolve_dns_config(sub.use_system_dns_config, sub.dns_config.as_deref());
     let node_names: Vec<&str> = proxies.iter().map(|p| p.name.as_str()).collect();
-    let is_v12 = target.is_v12();
+    let uses_modern_dns = target.uses_modern_dns();
+    let rule_set_version = target.rule_set_version();
 
     // Convert proxies to sing-box outbounds
     let mut outbounds: Vec<Value> = Vec::new();
     outbounds.push(json!({"type": "direct", "tag": "🚀 直接连接"}));
-    if !is_v12 {
+    if !uses_modern_dns {
         outbounds.push(json!({"tag": "dns-out", "type": "dns"}));
     }
     outbounds.push(json!({"type": "block", "tag": "reject"}));
@@ -816,10 +844,10 @@ pub fn build_singbox_config(
         if custom.is_empty() { default_rp.clone() } else { custom }
     };
 
-    let convert_rule_base = if is_v12 {
-        format!("{public_server_url}/api/proxy/sing-box/convert/rule/12")
-    } else {
-        format!("{public_server_url}/api/proxy/sing-box/convert/rule")
+    let convert_rule_base = match rule_set_version {
+        3 => format!("{public_server_url}/api/proxy/sing-box/convert/rule/12"),
+        4 => format!("{public_server_url}/api/proxy/sing-box/convert/rule/13"),
+        _ => format!("{public_server_url}/api/proxy/sing-box/convert/rule"),
     };
 
     let mut rule_set_entries: Vec<Value> = Vec::new();
@@ -840,7 +868,7 @@ pub fn build_singbox_config(
     }
 
     // DNS section
-    let dns_section = build_singbox_dns(&dns, is_v12);
+    let dns_section = build_singbox_dns(&dns, uses_modern_dns);
 
     // Inbounds
     let inbounds = if target.is_windows() {
@@ -855,7 +883,7 @@ pub fn build_singbox_config(
                 "stack": "mixed",
             }
         ])
-    } else if is_v12 {
+    } else if uses_modern_dns {
         json!([
             {
                 "type": "direct",
@@ -906,7 +934,7 @@ pub fn build_singbox_config(
                 "ip_is_private": true
             }
         ])
-    } else if is_v12 {
+    } else if uses_modern_dns {
         json!([
             {"inbound": "dns-in", "action": "hijack-dns"},
             {"action": "sniff"},
@@ -929,18 +957,22 @@ pub fn build_singbox_config(
     };
 
     // Geo rule sets
-    let gfwblack_url = if is_v12 {
-        format!(
+    let gfwblack_url = match rule_set_version {
+        3 => format!(
             "{}/api/proxy/sing-box/convert/rule/12?url={}",
             public_server_url,
             urlencoding::encode("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")
-        )
-    } else {
-        format!(
+        ),
+        4 => format!(
+            "{}/api/proxy/sing-box/convert/rule/13?url={}",
+            public_server_url,
+            urlencoding::encode("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")
+        ),
+        _ => format!(
             "{}/api/proxy/sing-box/convert/rule?url={}",
             public_server_url,
             urlencoding::encode("https://cdn.jsdelivr.net/gh/ohmywrt/clash-rule@master/gfwip.yaml")
-        )
+        ),
     };
 
     let mut all_rule_sets = rule_set_entries;
@@ -987,7 +1019,7 @@ pub fn build_singbox_config(
         "rule_set": all_rule_sets,
         "final": "⚓️ 其他流量",
     });
-    if is_v12 {
+    if uses_modern_dns {
         route["default_domain_resolver"] = json!("local");
     }
     if target.is_windows() {
@@ -1085,9 +1117,9 @@ pub fn build_singbox_config(
     config
 }
 
-fn build_singbox_dns(dns: &ResolvedDns, is_v12: bool) -> Value {
-    let override_key = if is_v12 { "singboxV12" } else { "singbox" };
-    let fallback_key = if is_v12 { "singbox" } else { "" };
+fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
+    let override_key = if uses_modern_dns { "singboxV12" } else { "singbox" };
+    let fallback_key = if uses_modern_dns { "singbox" } else { "" };
 
     if let Some(ov) = dns.overrides.get(override_key) {
         return ov.clone();
@@ -1099,7 +1131,7 @@ fn build_singbox_dns(dns: &ResolvedDns, is_v12: bool) -> Value {
 
     let s = &dns.shared;
 
-    if is_v12 {
+    if uses_modern_dns {
         // v1.12 DNS format
         let mut servers = vec![json!({"type": "local", "tag": "local"})];
         if s.fakeip_enabled {
@@ -1222,6 +1254,9 @@ fn build_singbox_dns(dns: &ResolvedDns, is_v12: bool) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
 
     fn test_subscribe() -> proxy_subscribes::Model {
         proxy_subscribes::Model {
@@ -1261,10 +1296,31 @@ mod tests {
             .collect()
     }
 
+    fn singbox_v13_bin() -> Option<PathBuf> {
+        if let Ok(bin) = std::env::var("SINGBOX_V13_BIN")
+            && !bin.is_empty() {
+                return Some(PathBuf::from(bin));
+            }
+
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)?;
+        let vendor = repo_root
+            .join(".data")
+            .join("vendors")
+            .join("sing-box-v13")
+            .join("sing-box");
+        vendor.is_file().then_some(vendor)
+    }
+
     #[test]
     fn windows_targets_use_tun_without_tproxy() {
         let sub = test_subscribe();
-        for target in [SingboxTarget::windows_v11(), SingboxTarget::windows_v12()] {
+        for target in [
+            SingboxTarget::windows_v11(),
+            SingboxTarget::windows_v12(),
+            SingboxTarget::windows_v13(),
+        ] {
             let config = build_singbox_config(&sub, &[], target, "https://example.test");
             let types = inbound_types(&config);
             assert_eq!(types, vec!["tun"]);
@@ -1283,7 +1339,11 @@ mod tests {
     #[test]
     fn default_targets_keep_tproxy_inbound() {
         let sub = test_subscribe();
-        for target in [SingboxTarget::default_v11(), SingboxTarget::default_v12()] {
+        for target in [
+            SingboxTarget::default_v11(),
+            SingboxTarget::default_v12(),
+            SingboxTarget::default_v13(),
+        ] {
             let config = build_singbox_config(&sub, &[], target, "https://example.test");
             let types = inbound_types(&config);
             assert!(types.contains(&"tproxy"));
@@ -1306,5 +1366,82 @@ mod tests {
                 .and_then(Value::as_str)
                 .is_some_and(|url| url.contains("/api/proxy/sing-box/convert/rule/12"))
         }));
+    }
+
+    #[test]
+    fn v13_uses_v13_rule_conversion_endpoint() {
+        let sub = test_subscribe();
+        for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let rule_sets = config
+                .pointer("/route/rule_set")
+                .and_then(Value::as_array)
+                .unwrap();
+
+            assert_eq!(target.rule_set_version(), 4);
+            assert!(rule_sets.iter().any(|rule_set| {
+                rule_set
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .is_some_and(|url| url.contains("/api/proxy/sing-box/convert/rule/13"))
+            }));
+        }
+    }
+
+    #[test]
+    fn v13_uses_modern_dns_without_dns_outbound() {
+        let sub = test_subscribe();
+        let config =
+            build_singbox_config(&sub, &[], SingboxTarget::default_v13(), "https://example.test");
+        let outbound_tags: Vec<&str> = config
+            .get("outbounds")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .filter_map(|outbound| outbound.get("tag").and_then(Value::as_str))
+            .collect();
+
+        assert!(!outbound_tags.contains(&"dns-out"));
+        assert_eq!(
+            config
+                .pointer("/route/default_domain_resolver")
+                .and_then(Value::as_str),
+            Some("local")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/type")
+                .and_then(Value::as_str),
+            Some("local")
+        );
+    }
+
+    #[test]
+    fn v13_generated_configs_pass_singbox_binary_check_when_available() {
+        let Some(bin) = singbox_v13_bin() else {
+            eprintln!("skipping sing-box v1.13 binary check: binary not found");
+            return;
+        };
+
+        let sub = test_subscribe();
+        for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let mut file = tempfile::NamedTempFile::new().unwrap();
+            write!(file, "{}", serde_json::to_string_pretty(&config).unwrap()).unwrap();
+
+            let output = Command::new(&bin)
+                .args(["check", "-c"])
+                .arg(file.path())
+                .output()
+                .unwrap();
+
+            assert!(
+                output.status.success(),
+                "sing-box check failed for {}:\nstdout:\n{}\nstderr:\n{}",
+                target.format(),
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
     }
 }

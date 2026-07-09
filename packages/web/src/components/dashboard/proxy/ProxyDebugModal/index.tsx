@@ -226,6 +226,8 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     "sing-box-windows": "Sing-box Windows",
     "sing-box-v12": "Sing-box v1.12",
     "sing-box-v12-windows": "Sing-box v1.12 Windows",
+    "sing-box-v13": "Sing-box v1.13",
+    "sing-box-v13-windows": "Sing-box v1.13 Windows",
   };
 
   /** Render step content */

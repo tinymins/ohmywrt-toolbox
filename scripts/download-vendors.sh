@@ -12,6 +12,7 @@
 #   DATA_LOCAL_PATH   — base directory for vendor binaries (default: .data)
 #   SINGBOX_V11_VER   — sing-box version for v1.11 format (default: 1.11.0)
 #   SINGBOX_V12_VER   — sing-box version for v1.12 format (default: 1.12.25)
+#   SINGBOX_V13_VER   — sing-box version for v1.13 format (default: 1.13.14)
 #   MIHOMO_VER        — mihomo version (default: 1.19.22)
 
 set -euo pipefail
@@ -43,6 +44,7 @@ fi
 DATA_LOCAL_PATH="${DATA_LOCAL_PATH:-.data}"
 SINGBOX_V11_VER="${SINGBOX_V11_VER:-1.11.0}"
 SINGBOX_V12_VER="${SINGBOX_V12_VER:-1.12.25}"
+SINGBOX_V13_VER="${SINGBOX_V13_VER:-1.13.14}"
 MIHOMO_VER="${MIHOMO_VER:-1.19.22}"
 
 # Resolve DATA_LOCAL_PATH relative to repo root
@@ -155,6 +157,10 @@ download_singbox "$SINGBOX_V11_VER" "$VENDORS_DIR/sing-box-v11" "$ARCH" || ((fai
 echo ""
 echo "sing-box v${SINGBOX_V12_VER} (v1.12 format):"
 download_singbox "$SINGBOX_V12_VER" "$VENDORS_DIR/sing-box-v12" "$ARCH" || ((failures++))
+
+echo ""
+echo "sing-box v${SINGBOX_V13_VER} (v1.13 format):"
+download_singbox "$SINGBOX_V13_VER" "$VENDORS_DIR/sing-box-v13" "$ARCH" || ((failures++))
 
 echo ""
 echo "mihomo v${MIHOMO_VER} (clash/clash-meta format):"

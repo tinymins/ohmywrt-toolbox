@@ -294,6 +294,8 @@ export const ProxyDebugFormatSchema = z.enum([
   "sing-box-windows",
   "sing-box-v12",
   "sing-box-v12-windows",
+  "sing-box-v13",
+  "sing-box-v13-windows",
 ]);
 
 export type ProxyDebugFormat = z.infer<typeof ProxyDebugFormatSchema>;
