@@ -21,6 +21,7 @@ import { proxyApi, userApi } from "@/generated/rust-api";
 import { useIsMobile } from "@/hooks";
 import { message } from "@/lib/message";
 import DnsConfigEditor from "./DnsConfigEditor";
+import PrivateAccessEditor from "./PrivateAccessEditor";
 import SubscribeItemsEditor from "./SubscribeItemsEditor";
 import TagListEditor from "./TagListEditor";
 
@@ -713,9 +714,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 label={t("proxy.form.privateAccessConfigLabel")}
                 name="privateAccessConfig"
               >
-                <JsoncEditor
-                  placeholder={t("proxy.form.privateAccessConfigPlaceholder")}
-                />
+                <PrivateAccessEditor />
               </Form.Item>
             </div>
 
