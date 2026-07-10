@@ -371,7 +371,7 @@ async fn run_debug_stream(
     } else {
         safe_parse_jsonc(sub.custom_config.as_deref(), Vec::new())
     };
-    let wireguard_config: Value = safe_parse_jsonc(sub.wireguard_config.as_deref(), Value::Null);
+    let private_access_config: Value = safe_parse_jsonc(sub.private_access_config.as_deref(), Value::Null);
 
     let servers: Vec<Value> = safe_parse_jsonc(sub.servers.as_deref(), Vec::new());
 
@@ -393,7 +393,7 @@ async fn run_debug_stream(
                 "ruleProviders": rule_providers,
                 "customConfig": custom_config,
                 "servers": servers,
-                "wireguardConfig": wireguard_config,
+                "privateAccessConfig": private_access_config,
                 "dnsConfig": {
                     "shared": {
                         "localDns": dns.shared.local_dns,

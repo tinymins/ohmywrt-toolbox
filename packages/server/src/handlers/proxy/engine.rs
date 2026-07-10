@@ -279,86 +279,228 @@ pub(super) fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str
     ResolvedDns { shared, overrides }
 }
 
-// ─── WireGuard config resolution ───
+// ─── Private access config resolution ───
+
+fn default_true() -> bool {
+    true
+}
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct WireguardConfig {
+struct PrivateAccessConfig {
     #[serde(default)]
     enabled: bool,
-    tag: Option<String>,
-    address: Option<String>,
-    private_key: Option<String>,
-    peer: Option<WireguardPeer>,
     #[serde(default)]
-    route_cidrs: Vec<String>,
-    #[serde(default)]
-    dns_rules: Vec<WireguardDnsRule>,
+    connectors: Vec<PrivateConnector>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct WireguardPeer {
-    address: Option<String>,
-    port: Option<u16>,
-    public_key: Option<String>,
-    pre_shared_key: Option<String>,
+struct PrivateConnector {
+    #[serde(default = "default_true")]
+    enabled: bool,
+    tag: Option<String>,
+    #[serde(rename = "type")]
+    connector_type: Option<String>,
+    endpoint: Option<Value>,
+    outbound: Option<Value>,
+    routes: Option<PrivateRouteMatcher>,
     #[serde(default)]
-    allowed_ips: Vec<String>,
-    persistent_keepalive_interval: Option<u16>,
+    dns: Vec<PrivateDnsRule>,
 }
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct WireguardDnsRule {
+struct PrivateRouteMatcher {
+    #[serde(default)]
+    ip_cidrs: Vec<String>,
+    #[serde(default)]
+    domains: Vec<String>,
+    #[serde(default)]
+    domain_suffixes: Vec<String>,
+    #[serde(default)]
+    domain_keywords: Vec<String>,
+    #[serde(default)]
+    domain_regexes: Vec<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PrivateDnsRule {
     tag: Option<String>,
-    domain_suffix: Option<Value>,
+    #[serde(default)]
+    domains: Vec<String>,
+    #[serde(default)]
+    domain_suffixes: Vec<String>,
+    #[serde(default)]
+    domain_keywords: Vec<String>,
+    #[serde(default)]
+    domain_regexes: Vec<String>,
     server: Option<String>,
     server_port: Option<u16>,
 }
 
-#[derive(Debug)]
-struct ResolvedWireguard {
-    tag: String,
-    endpoint: Value,
-    endpoint_host: String,
-    route_cidrs: Vec<String>,
+#[derive(Debug, Default)]
+struct ResolvedPrivateAccess {
+    endpoints: Vec<Value>,
+    outbounds: Vec<Value>,
+    direct_domains: Vec<String>,
+    route_rules: Vec<Value>,
     dns_servers: Vec<Value>,
     dns_rules: Vec<Value>,
 }
 
-fn value_to_string_list(value: Option<&Value>) -> Vec<String> {
-    match value {
-        Some(Value::String(s)) if !s.trim().is_empty() => vec![s.trim().to_string()],
-        Some(Value::Array(items)) => items
-            .iter()
-            .filter_map(|item| item.as_str())
-            .map(str::trim)
-            .filter(|item| !item.is_empty())
-            .map(String::from)
-            .collect(),
-        _ => Vec::new(),
+fn take_string_list(obj: &mut Map<String, Value>, from: &str, to: &str) {
+    if obj.contains_key(to) {
+        obj.remove(from);
+        return;
+    }
+    if let Some(value) = obj.remove(from) {
+        obj.insert(to.to_string(), value);
     }
 }
 
-fn resolve_wireguard_config(
+fn normalize_private_access_value(value: &mut Value) {
+    match value {
+        Value::Object(obj) => {
+            let aliases = [
+                ("privateKey", "private_key"),
+                ("publicKey", "public_key"),
+                ("preSharedKey", "pre_shared_key"),
+                ("allowedIps", "allowed_ips"),
+                (
+                    "persistentKeepaliveInterval",
+                    "persistent_keepalive_interval",
+                ),
+                ("domainResolver", "domain_resolver"),
+                ("serverPort", "server_port"),
+                ("listenPort", "listen_port"),
+                ("alterId", "alter_id"),
+            ];
+            for (from, to) in aliases {
+                take_string_list(obj, from, to);
+            }
+            for item in obj.values_mut() {
+                normalize_private_access_value(item);
+            }
+        }
+        Value::Array(items) => {
+            for item in items {
+                normalize_private_access_value(item);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn clean_string_list(values: Vec<String>) -> Vec<String> {
+    values
+        .into_iter()
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .collect()
+}
+
+fn add_route_matchers(rule: &mut Value, routes: Option<PrivateRouteMatcher>) -> bool {
+    let Some(routes) = routes else {
+        return false;
+    };
+    let Some(obj) = rule.as_object_mut() else {
+        return false;
+    };
+
+    let ip_cidrs = clean_string_list(routes.ip_cidrs);
+    let domains = clean_string_list(routes.domains);
+    let domain_suffixes = clean_string_list(routes.domain_suffixes);
+    let domain_keywords = clean_string_list(routes.domain_keywords);
+    let domain_regexes = clean_string_list(routes.domain_regexes);
+
+    if !ip_cidrs.is_empty() {
+        obj.insert("ip_cidr".into(), json!(ip_cidrs));
+    }
+    if !domains.is_empty() {
+        obj.insert("domain".into(), json!(domains));
+    }
+    if !domain_suffixes.is_empty() {
+        obj.insert("domain_suffix".into(), json!(domain_suffixes));
+    }
+    if !domain_keywords.is_empty() {
+        obj.insert("domain_keyword".into(), json!(domain_keywords));
+    }
+    if !domain_regexes.is_empty() {
+        obj.insert("domain_regex".into(), json!(domain_regexes));
+    }
+
+    obj.len() > 2
+}
+
+fn add_dns_matchers(rule: &mut Value, dns: &PrivateDnsRule) -> bool {
+    let Some(obj) = rule.as_object_mut() else {
+        return false;
+    };
+
+    let domains = clean_string_list(dns.domains.clone());
+    let domain_suffixes = clean_string_list(dns.domain_suffixes.clone());
+    let domain_keywords = clean_string_list(dns.domain_keywords.clone());
+    let domain_regexes = clean_string_list(dns.domain_regexes.clone());
+
+    if !domains.is_empty() {
+        obj.insert("domain".into(), json!(domains));
+    }
+    if !domain_suffixes.is_empty() {
+        obj.insert("domain_suffix".into(), json!(domain_suffixes));
+    }
+    if !domain_keywords.is_empty() {
+        obj.insert("domain_keyword".into(), json!(domain_keywords));
+    }
+    if !domain_regexes.is_empty() {
+        obj.insert("domain_regex".into(), json!(domain_regexes));
+    }
+
+    obj.len() > 2
+}
+
+fn first_endpoint_domain(endpoint: &Value) -> Option<String> {
+    let peers = endpoint.get("peers").and_then(Value::as_array)?;
+    let host = peers
+        .first()
+        .and_then(|peer| peer.get("address"))
+        .and_then(Value::as_str)?
+        .trim();
+    if is_domain_name(host) {
+        Some(host.to_string())
+    } else {
+        None
+    }
+}
+
+fn outbound_server_domain(outbound: &Value) -> Option<String> {
+    let host = outbound.get("server").and_then(Value::as_str)?.trim();
+    if is_domain_name(host) {
+        Some(host.to_string())
+    } else {
+        None
+    }
+}
+
+fn resolve_private_access_config(
     sub: &proxy_subscribes::Model,
     target: SingboxTarget,
-) -> Option<ResolvedWireguard> {
+) -> Option<ResolvedPrivateAccess> {
     if !target.uses_modern_dns() {
         return None;
     }
 
-    let raw = sub.wireguard_config.as_deref()?.trim();
+    let raw = sub.private_access_config.as_deref()?.trim();
     if raw.is_empty() {
         return None;
     }
 
     let cleaned = strip_json_comments(raw);
-    let parsed: WireguardConfig = match serde_json::from_str(&cleaned) {
+    let parsed: PrivateAccessConfig = match serde_json::from_str(&cleaned) {
         Ok(value) => value,
         Err(err) => {
-            warn!("Ignoring invalid WireGuard config JSONC: {err}");
+            warn!("Ignoring invalid private access config JSONC: {err}");
             return None;
         }
     };
@@ -366,154 +508,160 @@ fn resolve_wireguard_config(
         return None;
     }
 
-    let tag = parsed
-        .tag
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("wg")
-        .to_string();
-    let address = parsed
-        .address
-        .as_deref()
-        .map(str::trim)
-        .filter(|v| !v.is_empty())?;
-    let private_key = parsed
-        .private_key
-        .as_deref()
-        .map(str::trim)
-        .filter(|v| !v.is_empty())?;
-    let peer = parsed.peer?;
-    let endpoint_host = peer
-        .address
-        .as_deref()
-        .map(str::trim)
-        .filter(|v| !v.is_empty())?
-        .to_string();
-    let endpoint_port = peer.port?;
-    let public_key = peer
-        .public_key
-        .as_deref()
-        .map(str::trim)
-        .filter(|v| !v.is_empty())?;
-
-    let mut peer_json = json!({
-        "address": endpoint_host,
-        "port": endpoint_port,
-        "public_key": public_key,
-        "allowed_ips": peer.allowed_ips,
-    });
-    if let Some(pre_shared_key) = peer
-        .pre_shared_key
-        .as_deref()
-        .map(str::trim)
-        .filter(|v| !v.is_empty())
-    {
-        peer_json["pre_shared_key"] = json!(pre_shared_key);
-    }
-    if let Some(keepalive) = peer.persistent_keepalive_interval {
-        peer_json["persistent_keepalive_interval"] = json!(keepalive);
-    }
-
     let resolver = if target.is_windows() {
         "bootstrap"
     } else {
         "local"
     };
-    let mut endpoint = json!({
-        "type": "wireguard",
-        "tag": tag,
-        "address": [address],
-        "private_key": private_key,
-        "peers": [peer_json],
-    });
-    if is_domain_name(&endpoint_host) {
-        endpoint["domain_resolver"] = json!({
-            "server": resolver,
-            "strategy": "ipv4_only"
-        });
-    }
+    let mut resolved = ResolvedPrivateAccess::default();
 
-    let route_cidrs = parsed
-        .route_cidrs
-        .into_iter()
-        .map(|item| item.trim().to_string())
-        .filter(|item| !item.is_empty())
-        .collect::<Vec<_>>();
-
-    let mut dns_servers = Vec::new();
-    let mut dns_rules = Vec::new();
-    let dns_rule_count = parsed.dns_rules.len();
-    for (idx, rule) in parsed.dns_rules.into_iter().enumerate() {
-        let Some(server) = rule
-            .server
-            .as_deref()
-            .map(str::trim)
-            .filter(|v| !v.is_empty())
-        else {
-            continue;
-        };
-        let suffixes = value_to_string_list(rule.domain_suffix.as_ref());
-        if suffixes.is_empty() {
+    for (idx, connector) in parsed.connectors.into_iter().enumerate() {
+        if !connector.enabled {
             continue;
         }
-        let server_tag = rule
+        let tag = connector
             .tag
             .as_deref()
             .map(str::trim)
-            .filter(|v| !v.is_empty())
+            .filter(|value| !value.is_empty())
             .map(String::from)
-            .unwrap_or_else(|| {
-                if dns_rule_count == 1 {
-                    format!("{tag}-dns")
-                } else {
-                    format!("{tag}-dns-{}", idx + 1)
+            .unwrap_or_else(|| format!("private-access-{}", idx + 1));
+        let connector_type = connector
+            .connector_type
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("outbound");
+
+        match connector_type {
+            "wireguard" | "tailscale" => {
+                let Some(mut endpoint) = connector.endpoint else {
+                    warn!("Ignoring private access endpoint {tag}: missing endpoint");
+                    continue;
+                };
+                normalize_private_access_value(&mut endpoint);
+                endpoint["type"] = json!(connector_type);
+                endpoint["tag"] = json!(tag);
+
+                if let Some(host) = first_endpoint_domain(&endpoint) {
+                    push_unique(&mut resolved.direct_domains, host);
+                    if endpoint.get("domain_resolver").is_none() {
+                        endpoint["domain_resolver"] = json!({
+                            "server": resolver,
+                            "strategy": "ipv4_only"
+                        });
+                    }
                 }
-            });
-        dns_servers.push(json!({
-            "type": "udp",
-            "tag": server_tag,
-            "server": server,
-            "server_port": rule.server_port.unwrap_or(53),
-            "detour": tag,
-        }));
-        dns_rules.push(json!({
-            "domain_suffix": suffixes,
+                resolved.endpoints.push(endpoint);
+            }
+            "outbound" | "v2ray" | "xray" | "vmess" | "vless" | "trojan" | "socks" | "socks5"
+            | "http" | "ssh" | "hysteria2" | "tuic" | "anytls" => {
+                let Some(mut outbound) = connector.outbound else {
+                    warn!("Ignoring private access outbound {tag}: missing outbound");
+                    continue;
+                };
+                normalize_private_access_value(&mut outbound);
+                if !matches!(connector_type, "outbound" | "v2ray" | "xray") {
+                    outbound["type"] = json!(connector_type);
+                }
+                outbound["tag"] = json!(tag);
+                if let Some(host) = outbound_server_domain(&outbound) {
+                    push_unique(&mut resolved.direct_domains, host);
+                    if target.is_windows() && outbound.get("domain_resolver").is_none() {
+                        outbound["domain_resolver"] = json!({
+                            "server": "bootstrap",
+                            "strategy": "ipv4_only"
+                        });
+                    }
+                }
+                resolved.outbounds.push(outbound);
+            }
+            _ => {
+                warn!("Ignoring unsupported private access connector type: {connector_type}");
+                continue;
+            }
+        }
+
+        let mut route_rule = json!({
             "action": "route",
-            "server": server_tag,
-        }));
+            "outbound": tag,
+        });
+        if add_route_matchers(&mut route_rule, connector.routes) {
+            resolved.route_rules.push(route_rule);
+        }
+
+        let dns_rule_count = connector.dns.len();
+        for (dns_idx, dns) in connector.dns.into_iter().enumerate() {
+            let Some(server) = dns
+                .server
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+            else {
+                continue;
+            };
+            let server_tag = dns
+                .tag
+                .as_deref()
+                .map(str::trim)
+                .filter(|v| !v.is_empty())
+                .map(String::from)
+                .unwrap_or_else(|| {
+                    if dns_rule_count == 1 {
+                        format!("{tag}-dns")
+                    } else {
+                        format!("{tag}-dns-{}", dns_idx + 1)
+                    }
+                });
+            let mut dns_rule = json!({
+                "action": "route",
+                "server": server_tag,
+            });
+            if !add_dns_matchers(&mut dns_rule, &dns) {
+                continue;
+            }
+            resolved.dns_servers.push(json!({
+                "type": "udp",
+                "tag": server_tag,
+                "server": server,
+                "server_port": dns.server_port.unwrap_or(53),
+                "detour": tag,
+            }));
+            resolved.dns_rules.push(dns_rule);
+        }
     }
 
-    Some(ResolvedWireguard {
-        tag,
-        endpoint,
-        endpoint_host,
-        route_cidrs,
-        dns_servers,
-        dns_rules,
-    })
+    if resolved.endpoints.is_empty()
+        && resolved.outbounds.is_empty()
+        && resolved.route_rules.is_empty()
+        && resolved.dns_rules.is_empty()
+    {
+        None
+    } else {
+        Some(resolved)
+    }
 }
 
-fn apply_wireguard_dns(dns_section: &mut Value, wireguard: &ResolvedWireguard) {
+fn apply_private_access_dns(dns_section: &mut Value, private_access: &ResolvedPrivateAccess) {
     let Some(dns_obj) = dns_section.as_object_mut() else {
         return;
     };
     let Some(servers) = dns_obj.get_mut("servers").and_then(Value::as_array_mut) else {
         return;
     };
-    servers.extend(wireguard.dns_servers.iter().cloned());
+    servers.extend(private_access.dns_servers.iter().cloned());
 
     let rules = dns_obj
         .entry("rules")
         .or_insert_with(|| Value::Array(Vec::new()));
     if let Some(rules) = rules.as_array_mut() {
-        for rule in wireguard.dns_rules.iter().rev() {
+        for rule in private_access.dns_rules.iter().rev() {
             rules.insert(0, rule.clone());
         }
     }
 }
 
-fn apply_wireguard_routes(route_rules: &mut Value, wireguard: &ResolvedWireguard) {
+fn apply_private_access_routes(route_rules: &mut Value, private_access: &ResolvedPrivateAccess) {
     let Some(rules) = route_rules.as_array_mut() else {
         return;
     };
@@ -523,11 +671,11 @@ fn apply_wireguard_routes(route_rules: &mut Value, wireguard: &ResolvedWireguard
         .position(|rule| rule.get("ip_is_private").is_some())
         .unwrap_or(rules.len());
 
-    if is_domain_name(&wireguard.endpoint_host) {
+    if !private_access.direct_domains.is_empty() {
         rules.insert(
             insert_at,
             json!({
-                "domain": [wireguard.endpoint_host],
+                "domain": private_access.direct_domains,
                 "action": "route",
                 "outbound": "🚀 直接连接"
             }),
@@ -535,16 +683,37 @@ fn apply_wireguard_routes(route_rules: &mut Value, wireguard: &ResolvedWireguard
         insert_at += 1;
     }
 
-    if !wireguard.route_cidrs.is_empty() {
-        rules.insert(
-            insert_at,
-            json!({
-                "ip_cidr": wireguard.route_cidrs,
-                "action": "route",
-                "outbound": wireguard.tag
-            }),
-        );
+    for rule in &private_access.route_rules {
+        rules.insert(insert_at, rule.clone());
+        insert_at += 1;
     }
+}
+
+fn private_access_outbounds(private_access: &Option<ResolvedPrivateAccess>) -> Vec<Value> {
+    private_access
+        .as_ref()
+        .map(|access| access.outbounds.clone())
+        .unwrap_or_default()
+}
+
+fn private_access_endpoints(private_access: &Option<ResolvedPrivateAccess>) -> Vec<Value> {
+    private_access
+        .as_ref()
+        .map(|access| access.endpoints.clone())
+        .unwrap_or_default()
+}
+
+fn private_access_direct_domains(private_access: &Option<ResolvedPrivateAccess>) -> Vec<Value> {
+    private_access
+        .as_ref()
+        .map(|access| {
+            access
+                .direct_domains
+                .iter()
+                .map(|domain| json!(domain))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 // ─── Preview node ───
@@ -1111,7 +1280,7 @@ pub fn build_singbox_config(
     public_server_url: &str,
 ) -> Value {
     let dns = resolve_dns_config(sub.use_system_dns_config, sub.dns_config.as_deref());
-    let wireguard = resolve_wireguard_config(sub, target);
+    let private_access = resolve_private_access_config(sub, target);
     let node_names: Vec<&str> = proxies.iter().map(|p| p.name.as_str()).collect();
     let uses_modern_dns = target.uses_modern_dns();
     let rule_set_version = target.rule_set_version();
@@ -1135,6 +1304,7 @@ pub fn build_singbox_config(
             outbounds.push(ob);
         }
     }
+    outbounds.extend(private_access_outbounds(&private_access));
 
     // Groups
     let singbox_keyword_map = |p: &str| -> String {
@@ -1270,11 +1440,12 @@ pub fn build_singbox_config(
         }
     }
 
-    let server_domains: Vec<Value> = proxies
+    let mut server_domains: Vec<Value> = proxies
         .iter()
         .filter(|p| is_domain_name(&p.server))
         .map(|p| json!(p.server))
         .collect();
+    server_domains.extend(private_access_direct_domains(&private_access));
 
     // DNS section
     let mut dns_section = if target.is_windows() {
@@ -1282,8 +1453,8 @@ pub fn build_singbox_config(
     } else {
         build_singbox_dns(&dns, uses_modern_dns)
     };
-    if let Some(wireguard) = wireguard.as_ref() {
-        apply_wireguard_dns(&mut dns_section, wireguard);
+    if let Some(private_access) = private_access.as_ref() {
+        apply_private_access_dns(&mut dns_section, private_access);
     }
 
     // Inbounds
@@ -1392,8 +1563,8 @@ pub fn build_singbox_config(
             }
         ])
     };
-    if let Some(wireguard) = wireguard.as_ref() {
-        apply_wireguard_routes(&mut route_rules, wireguard);
+    if let Some(private_access) = private_access.as_ref() {
+        apply_private_access_routes(&mut route_rules, private_access);
     }
 
     // Geo rule sets
@@ -1498,8 +1669,9 @@ pub fn build_singbox_config(
             }
         }
     });
-    if let Some(wireguard) = wireguard.as_ref() {
-        config["endpoints"] = json!([wireguard.endpoint]);
+    let endpoints = private_access_endpoints(&private_access);
+    if !endpoints.is_empty() {
+        config["endpoints"] = json!(endpoints);
     }
 
     // Add custom rules and rule_set rules to route
@@ -1867,7 +2039,7 @@ mod tests {
             use_system_custom_config: true,
             dns_config: None,
             use_system_dns_config: true,
-            wireguard_config: None,
+            private_access_config: None,
             authorized_user_ids: None,
             cache_ttl_minutes: None,
             cached_node_count: None,
@@ -1940,29 +2112,57 @@ mod tests {
             .unwrap()
     }
 
-    fn wireguard_subscribe() -> proxy_subscribes::Model {
+    fn private_access_subscribe() -> proxy_subscribes::Model {
         let mut sub = test_subscribe();
-        sub.wireguard_config = Some(
+        sub.private_access_config = Some(
             r#"{
               "enabled": true,
-              "tag": "wg-lvmcn",
-              "address": "10.8.29.23/32",
-              "privateKey": "wRGa89tcyKhbZt9fGR6atEru0RFbBbSe16SvjSkAQjE=",
-              "peer": {
-                "address": "ddns.lvmcn.com",
-                "port": 31088,
-                "publicKey": "w2aXEVTOtvOSdclyYMAdNYVzlS2paWdhncNr5HoXBRo=",
-                "preSharedKey": "mV0yytCSc95AhotCiy4wRl0MI/E0CLS06ybRqYS27z4=",
-                "allowedIps": ["10.8.28.0/24", "10.8.29.0/24", "10.254.0.0/24"],
-                "persistentKeepaliveInterval": 25
-              },
-              "routeCidrs": ["10.8.28.0/24"],
-              "dnsRules": [
+              "connectors": [
                 {
-                  "tag": "rpsh-dns",
-                  "domainSuffix": "rpsh.vmins.com",
-                  "server": "10.8.28.1",
-                  "serverPort": 53
+                  "enabled": true,
+                  "tag": "wg-lvmcn",
+                  "type": "wireguard",
+                  "endpoint": {
+                    "address": ["10.8.29.23/32"],
+                    "privateKey": "wRGa89tcyKhbZt9fGR6atEru0RFbBbSe16SvjSkAQjE=",
+                    "peers": [
+                      {
+                        "address": "ddns.lvmcn.com",
+                        "port": 31088,
+                        "publicKey": "w2aXEVTOtvOSdclyYMAdNYVzlS2paWdhncNr5HoXBRo=",
+                        "preSharedKey": "mV0yytCSc95AhotCiy4wRl0MI/E0CLS06ybRqYS27z4=",
+                        "allowedIps": ["10.8.28.0/24", "10.8.29.0/24", "10.254.0.0/24"],
+                        "persistentKeepaliveInterval": 25
+                      }
+                    ]
+                  },
+                  "routes": {
+                    "ipCidrs": ["10.8.28.0/24"]
+                  },
+                  "dns": [
+                    {
+                      "tag": "rpsh-dns",
+                      "domainSuffixes": ["rpsh.vmins.com"],
+                      "server": "10.8.28.1",
+                      "serverPort": 53
+                    }
+                  ]
+                },
+                {
+                  "enabled": true,
+                  "tag": "corp-vmess",
+                  "type": "outbound",
+                  "outbound": {
+                    "type": "vmess",
+                    "server": "private.example.com",
+                    "serverPort": 443,
+                    "uuid": "00000000-0000-0000-0000-000000000000",
+                    "security": "auto",
+                    "alterId": 0
+                  },
+                  "routes": {
+                    "domainSuffixes": ["corp.example.com"]
+                  }
                 }
               ]
             }"#
@@ -2294,9 +2494,9 @@ mod tests {
     }
 
     #[test]
-    fn v13_windows_injects_wireguard_endpoint_route_and_dns() {
+    fn v13_windows_injects_private_access_endpoint_outbound_route_and_dns() {
         let config = build_singbox_config(
-            &wireguard_subscribe(),
+            &private_access_subscribe(),
             &[domain_vmess_proxy()],
             SingboxTarget::windows_v13(),
             "https://example.test",
@@ -2348,6 +2548,29 @@ mod tests {
                 })
                 && rule.get("outbound").and_then(Value::as_str) == Some("wg-lvmcn")
         }));
+        assert!(rules.iter().any(|rule| {
+            rule.get("domain_suffix")
+                .and_then(Value::as_array)
+                .is_some_and(|suffixes| {
+                    suffixes
+                        .iter()
+                        .any(|suffix| suffix.as_str() == Some("corp.example.com"))
+                })
+                && rule.get("outbound").and_then(Value::as_str) == Some("corp-vmess")
+        }));
+
+        let outbound = outbound_by_tag(&config, "corp-vmess");
+        assert_eq!(outbound.get("type").and_then(Value::as_str), Some("vmess"));
+        assert_eq!(
+            outbound.get("server_port").and_then(Value::as_u64),
+            Some(443)
+        );
+        assert_eq!(
+            outbound
+                .pointer("/domain_resolver/server")
+                .and_then(Value::as_str),
+            Some("bootstrap")
+        );
 
         let servers = config
             .pointer("/dns/servers")
@@ -2373,9 +2596,9 @@ mod tests {
     }
 
     #[test]
-    fn v11_ignores_wireguard_endpoint_config() {
+    fn v11_ignores_private_access_config() {
         let config = build_singbox_config(
-            &wireguard_subscribe(),
+            &private_access_subscribe(),
             &[],
             SingboxTarget::windows_v11(),
             "https://example.test",
@@ -2434,7 +2657,7 @@ mod tests {
             assert_singbox_check_for_sub(
                 &bin,
                 SingboxTarget::windows_v12(),
-                &wireguard_subscribe(),
+                &private_access_subscribe(),
             );
         } else {
             eprintln!("skipping sing-box v1.12 binary check: binary not found");
@@ -2447,7 +2670,7 @@ mod tests {
             assert_singbox_check_for_sub(
                 &bin,
                 SingboxTarget::windows_v13(),
-                &wireguard_subscribe(),
+                &private_access_subscribe(),
             );
         } else {
             eprintln!("skipping sing-box v1.13 binary check: binary not found");

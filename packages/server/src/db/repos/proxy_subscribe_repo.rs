@@ -121,7 +121,7 @@ impl ProxySubscribeRepo {
         use_system_custom_config: Option<bool>,
         dns_config: Option<&str>,
         use_system_dns_config: Option<bool>,
-        wireguard_config: Option<&str>,
+        private_access_config: Option<&str>,
         authorized_user_ids: Option<serde_json::Value>,
         cache_ttl_minutes: Option<i32>,
     ) -> Result<proxy_subscribes::Model, AppError> {
@@ -149,7 +149,7 @@ impl ProxySubscribeRepo {
             use_system_custom_config: Set(use_system_custom_config.unwrap_or(true)),
             dns_config: Set(dns_config.map(String::from)),
             use_system_dns_config: Set(use_system_dns_config.unwrap_or(true)),
-            wireguard_config: Set(wireguard_config.map(String::from)),
+            private_access_config: Set(private_access_config.map(String::from)),
             authorized_user_ids: Set(Some(auth_ids)),
             cache_ttl_minutes: Set(cache_ttl_minutes),
             cached_node_count: NotSet,
@@ -183,7 +183,7 @@ impl ProxySubscribeRepo {
         use_system_custom_config: Option<bool>,
         dns_config: Option<Option<String>>,
         use_system_dns_config: Option<bool>,
-        wireguard_config: Option<Option<String>>,
+        private_access_config: Option<Option<String>>,
         authorized_user_ids: Option<Option<serde_json::Value>>,
         cache_ttl_minutes: Option<Option<i32>>,
     ) -> Result<proxy_subscribes::Model, AppError> {
@@ -237,8 +237,8 @@ impl ProxySubscribeRepo {
         if let Some(v) = use_system_dns_config {
             active.use_system_dns_config = Set(v);
         }
-        if let Some(v) = wireguard_config {
-            active.wireguard_config = Set(v);
+        if let Some(v) = private_access_config {
+            active.private_access_config = Set(v);
         }
         if let Some(v) = authorized_user_ids {
             // Normalize: None → [], validate array-of-strings

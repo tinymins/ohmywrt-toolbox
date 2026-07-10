@@ -143,7 +143,7 @@ export const ProxySubscribeSchema = z.object({
   useSystemCustomConfig: z.boolean(),
   dnsConfig: z.string().nullable(),
   useSystemDnsConfig: z.boolean(),
-  wireguardConfig: z.string().nullable(),
+  privateAccessConfig: z.string().nullable(),
   authorizedUserIds: z.array(z.string()),
   /** 订阅缓存时间（分钟），null 或 0 表示不缓存 */
   cacheTtlMinutes: z.number().nullable(),
@@ -193,7 +193,7 @@ export const CreateProxySubscribeInputSchema = z.object({
   useSystemCustomConfig: z.boolean().optional(),
   dnsConfig: z.string().nullable().optional(),
   useSystemDnsConfig: z.boolean().optional(),
-  wireguardConfig: z.string().nullable().optional(),
+  privateAccessConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional().default([]),
   cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
@@ -218,7 +218,7 @@ export const UpdateProxySubscribeInputSchema = z.object({
   useSystemCustomConfig: z.boolean().optional(),
   dnsConfig: z.string().nullable().optional(),
   useSystemDnsConfig: z.boolean().optional(),
-  wireguardConfig: z.string().nullable().optional(),
+  privateAccessConfig: z.string().nullable().optional(),
   authorizedUserIds: z.array(z.string()).optional(),
   cacheTtlMinutes: z.number().min(0).nullable().optional(),
 });
@@ -331,7 +331,7 @@ export const ProxyDebugConfigStepSchema = z.object({
     ruleProviders: ProxyRuleProvidersListSchema,
     customConfig: z.array(z.unknown()),
     servers: z.array(z.unknown()),
-    wireguardConfig: z.record(z.string(), z.unknown()).nullable(),
+    privateAccessConfig: z.record(z.string(), z.unknown()).nullable(),
     dnsConfig: z.object({
       shared: z.record(z.string(), z.unknown()),
       overrides: z.record(z.string(), z.unknown()),

@@ -256,30 +256,42 @@ const TABS = [
   { label: "group", value: "group" },
   { label: "customConfig", value: "customConfig" },
   { label: "dnsConfig", value: "dnsConfig" },
-  { label: "wireguardConfig", value: "wireguardConfig" },
+  { label: "privateAccessConfig", value: "privateAccessConfig" },
   { label: "servers", value: "servers" },
 ];
 
-const DEFAULT_WIREGUARD_CONFIG = `{
+const DEFAULT_PRIVATE_ACCESS_CONFIG = `{
   "enabled": false,
-  "tag": "wg-lvmcn",
-  "address": "10.8.29.23/32",
-  "privateKey": "",
-  "peer": {
-    "address": "ddns.lvmcn.com",
-    "port": 31088,
-    "publicKey": "",
-    "preSharedKey": "",
-    "allowedIps": ["10.8.28.0/24"],
-    "persistentKeepaliveInterval": 25
-  },
-  "routeCidrs": ["10.8.28.0/24"],
-  "dnsRules": [
+  "connectors": [
     {
-      "tag": "rpsh-dns",
-      "domainSuffix": "rpsh.vmins.com",
-      "server": "10.8.28.1",
-      "serverPort": 53
+      "enabled": true,
+      "tag": "wg-lvmcn",
+      "type": "wireguard",
+      "endpoint": {
+        "address": ["10.8.29.23/32"],
+        "privateKey": "",
+        "peers": [
+          {
+            "address": "ddns.lvmcn.com",
+            "port": 31088,
+            "publicKey": "",
+            "preSharedKey": "",
+            "allowedIps": ["10.8.28.0/24"],
+            "persistentKeepaliveInterval": 25
+          }
+        ]
+      },
+      "routes": {
+        "ipCidrs": ["10.8.28.0/24"]
+      },
+      "dns": [
+        {
+          "tag": "rpsh-dns",
+          "domainSuffixes": ["rpsh.vmins.com"],
+          "server": "10.8.28.1",
+          "serverPort": 53
+        }
+      ]
     }
   ]
 }`;
@@ -367,7 +379,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             useSystemCustomConfig: true,
             dnsConfig: "",
             useSystemDnsConfig: true,
-            wireguardConfig: DEFAULT_WIREGUARD_CONFIG,
+            privateAccessConfig: DEFAULT_PRIVATE_ACCESS_CONFIG,
             servers: JSON.stringify([], null, 2),
           });
           setLoading(false);
@@ -436,8 +448,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         useSystemCustomConfig: existingData.useSystemCustomConfig,
         dnsConfig: existingData.dnsConfig ?? "",
         useSystemDnsConfig: existingData.useSystemDnsConfig,
-        wireguardConfig:
-          existingData.wireguardConfig ?? DEFAULT_WIREGUARD_CONFIG,
+        privateAccessConfig:
+          existingData.privateAccessConfig ?? DEFAULT_PRIVATE_ACCESS_CONFIG,
         servers: existingData.servers ?? "",
         authorizedUserIds: existingData.authorizedUserIds,
       });
@@ -468,7 +480,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           "group",
           "customConfig",
           "dnsConfig",
-          "wireguardConfig",
+          "privateAccessConfig",
           "servers",
         ];
         for (const field of fields) {
@@ -497,7 +509,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           useSystemCustomConfig: values.useSystemCustomConfig ?? true,
           dnsConfig: values.dnsConfig || null,
           useSystemDnsConfig: values.useSystemDnsConfig ?? true,
-          wireguardConfig: values.wireguardConfig || null,
+          privateAccessConfig: values.privateAccessConfig || null,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
           cacheTtlMinutes: null, // 缓存时间已移至每个订阅源
@@ -695,14 +707,14 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
               </Form.Item>
             </div>
 
-            {/* WireGuard 配置 */}
-            <div className={activeTab === "wireguardConfig" ? "" : "hidden"}>
+            {/* 内网访问配置 */}
+            <div className={activeTab === "privateAccessConfig" ? "" : "hidden"}>
               <Form.Item
-                label={t("proxy.form.wireguardConfigLabel")}
-                name="wireguardConfig"
+                label={t("proxy.form.privateAccessConfigLabel")}
+                name="privateAccessConfig"
               >
                 <JsoncEditor
-                  placeholder={t("proxy.form.wireguardConfigPlaceholder")}
+                  placeholder={t("proxy.form.privateAccessConfigPlaceholder")}
                 />
               </Form.Item>
             </div>

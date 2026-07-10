@@ -33,7 +33,7 @@ pub struct Model {
     pub dns_config: Option<String>,
     pub use_system_dns_config: bool,
     #[sea_orm(column_type = "Text", nullable)]
-    pub wireguard_config: Option<String>,
+    pub private_access_config: Option<String>,
     #[sea_orm(column_type = "JsonBinary", nullable)]
     pub authorized_user_ids: Option<serde_json::Value>,
     pub cache_ttl_minutes: Option<i32>,

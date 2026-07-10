@@ -57,7 +57,7 @@ pub struct ProxySubscribeOutput {
     pub use_system_custom_config: bool,
     pub dns_config: Option<String>,
     pub use_system_dns_config: bool,
-    pub wireguard_config: Option<String>,
+    pub private_access_config: Option<String>,
     pub authorized_user_ids: Vec<String>,
     pub cache_ttl_minutes: Option<i32>,
     pub cached_node_count: i32,
@@ -198,7 +198,7 @@ fn enrich_subscribe(
         use_system_custom_config: sub.use_system_custom_config,
         dns_config: sub.dns_config,
         use_system_dns_config: sub.use_system_dns_config,
-        wireguard_config: sub.wireguard_config,
+        private_access_config: sub.private_access_config,
         authorized_user_ids: auth_ids,
         cache_ttl_minutes: sub.cache_ttl_minutes,
         cached_node_count: sub.cached_node_count.unwrap_or(0),
@@ -386,7 +386,7 @@ pub struct CreateSubscribeInput {
     pub use_system_custom_config: Option<bool>,
     pub dns_config: Option<String>,
     pub use_system_dns_config: Option<bool>,
-    pub wireguard_config: Option<String>,
+    pub private_access_config: Option<String>,
     pub authorized_user_ids: Option<serde_json::Value>,
     pub cache_ttl_minutes: Option<i32>,
 }
@@ -413,7 +413,7 @@ pub async fn create_subscribe(
         body.use_system_custom_config,
         body.dns_config.as_deref(),
         body.use_system_dns_config,
-        body.wireguard_config.as_deref(),
+        body.private_access_config.as_deref(),
         body.authorized_user_ids,
         body.cache_ttl_minutes,
     )
@@ -453,7 +453,7 @@ pub struct UpdateSubscribeInput {
     pub use_system_custom_config: Option<bool>,
     pub dns_config: Option<Option<String>>,
     pub use_system_dns_config: Option<bool>,
-    pub wireguard_config: Option<Option<String>>,
+    pub private_access_config: Option<Option<String>>,
     pub authorized_user_ids: Option<Option<serde_json::Value>>,
     pub cache_ttl_minutes: Option<Option<i32>>,
 }
@@ -502,7 +502,7 @@ pub async fn update_subscribe(
         body.use_system_custom_config,
         body.dns_config,
         body.use_system_dns_config,
-        body.wireguard_config,
+        body.private_access_config,
         auth_ids,
         body.cache_ttl_minutes,
     )

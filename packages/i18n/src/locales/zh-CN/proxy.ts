@@ -42,7 +42,7 @@ export default {
     filter: "过滤器",
     customConfig: "自定义配置",
     dnsConfig: "DNS 配置",
-    wireguardConfig: "WireGuard",
+    privateAccessConfig: "内网访问",
     servers: "手动服务器",
   },
   form: {
@@ -104,8 +104,8 @@ export default {
     dnsDnsRules: "DNS 规则",
     dnsNativeHint: "使用平台原生 DNS 配置格式",
     dnsOverrideHint: "覆盖默认 DNS 配置",
-    wireguardConfigLabel: "WireGuard 组网配置 (JSONC，支持注释)",
-    wireguardConfigPlaceholder: "WireGuard 配置 JSONC",
+    privateAccessConfigLabel: "内网访问配置 (JSONC，支持注释)",
+    privateAccessConfigPlaceholder: "内网访问配置 JSONC",
   },
   links: {
     title: "订阅链接",
@@ -169,7 +169,7 @@ export default {
     groupConfig: "分组配置",
     customConfigRules: "自定义配置规则",
     dnsConfig: "DNS 配置",
-    wireguardConfig: "WireGuard 配置",
+    privateAccessConfig: "内网访问配置",
     configBuild: "配置构建",
     finalConfig: "最终配置",
     totalDuration: "总耗时",
