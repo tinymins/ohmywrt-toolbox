@@ -759,9 +759,9 @@ pub fn build_singbox_config(
 
     for p in proxies {
         if let Some(mut ob) = convert_clash_proxy_to_singbox(p) {
-            if target.is_windows() && is_domain_name(&p.server) {
+            if target.is_windows() && uses_modern_dns && is_domain_name(&p.server) {
                 ob["domain_resolver"] = json!({
-                    "server": "local",
+                    "server": "bootstrap",
                     "strategy": "ipv4_only"
                 });
             }
@@ -825,21 +825,37 @@ pub fn build_singbox_config(
             })
             .unwrap_or_default();
 
-        let mut all_outbounds: Vec<String> = base_proxies.clone();
-        if !readonly {
+        let mut all_outbounds: Vec<String> = Vec::new();
+        let windows_foreign_selector = target.is_windows() && name == "🔰 国外流量";
+        if windows_foreign_selector && !readonly {
             for n in &node_names {
-                all_outbounds.push(n.to_string());
+                push_unique(&mut all_outbounds, (*n).to_string());
+            }
+            for p in &base_proxies {
+                push_unique(&mut all_outbounds, p.clone());
+            }
+        } else {
+            for p in &base_proxies {
+                push_unique(&mut all_outbounds, p.clone());
+            }
+            if !readonly {
+                for n in &node_names {
+                    push_unique(&mut all_outbounds, (*n).to_string());
+                }
             }
         }
 
         let default_ob = all_outbounds.first().cloned().unwrap_or_default();
-        outbounds.push(json!({
+        let mut selector = json!({
             "type": "selector",
             "tag": name,
             "outbounds": all_outbounds,
-            "default": default_ob,
             "interrupt_exist_connections": true,
-        }));
+        });
+        if !windows_foreign_selector {
+            selector["default"] = json!(default_ob);
+        }
+        outbounds.push(selector);
     }
 
     // Rule providers list
@@ -874,9 +890,15 @@ pub fn build_singbox_config(
         }
     }
 
+    let server_domains: Vec<Value> = proxies
+        .iter()
+        .filter(|p| is_domain_name(&p.server))
+        .map(|p| json!(p.server))
+        .collect();
+
     // DNS section
     let dns_section = if target.is_windows() {
-        build_windows_singbox_dns(&dns, uses_modern_dns)
+        build_windows_singbox_dns(&dns, uses_modern_dns, &server_domains)
     } else {
         build_singbox_dns(&dns, uses_modern_dns)
     };
@@ -934,12 +956,7 @@ pub fn build_singbox_config(
     };
 
     // Route rules
-    let route_rules = if target.is_windows() {
-        let server_domains: Vec<Value> = proxies
-            .iter()
-            .filter(|p| is_domain_name(&p.server))
-            .map(|p| json!(p.server))
-            .collect();
+    let route_rules = if target.is_windows() && uses_modern_dns {
         let mut rules = vec![
             json!({"action": "sniff"}),
             json!({"protocol": "dns", "action": "hijack-dns"}),
@@ -952,6 +969,20 @@ pub fn build_singbox_config(
         }
         rules.push(json!({
             "action": "route",
+            "outbound": "🚀 直接连接",
+            "rule_set": ["geoip-cn", "geosite-cn"],
+            "ip_is_private": true
+        }));
+        Value::Array(rules)
+    } else if target.is_windows() {
+        let mut rules = vec![json!({"outbound": "dns-out", "protocol": "dns"})];
+        if !server_domains.is_empty() {
+            rules.push(json!({
+                "domain": server_domains,
+                "outbound": "🚀 直接连接"
+            }));
+        }
+        rules.push(json!({
             "outbound": "🚀 直接连接",
             "rule_set": ["geoip-cn", "geosite-cn"],
             "ip_is_private": true
@@ -1043,7 +1074,7 @@ pub fn build_singbox_config(
         "final": "⚓️ 其他流量",
     });
     if uses_modern_dns {
-        route["default_domain_resolver"] = json!("local");
+        route["default_domain_resolver"] = json!(if target.is_windows() { "bootstrap" } else { "local" });
     }
     if target.is_windows() {
         route["auto_detect_interface"] = json!(true);
@@ -1069,7 +1100,7 @@ pub fn build_singbox_config(
                 "store_rdrc": false
             },
             "clash_api": {
-                "external_controller": format!("0.0.0.0:{}", dns.shared.clash_api_port),
+                "external_controller": format!("{}:{}", if target.is_windows() { "127.0.0.1" } else { "0.0.0.0" }, dns.shared.clash_api_port),
                 "external_ui": clash_api_ui_path,
                 "external_ui_download_url": "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
                 "secret": dns.shared.clash_api_secret,
@@ -1149,6 +1180,12 @@ pub fn build_singbox_config(
 
 fn is_domain_name(host: &str) -> bool {
     !host.is_empty() && host.parse::<IpAddr>().is_err()
+}
+
+fn push_unique(items: &mut Vec<String>, item: String) {
+    if !items.iter().any(|existing| existing == &item) {
+        items.push(item);
+    }
 }
 
 fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
@@ -1285,21 +1322,63 @@ fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
     }
 }
 
-fn build_windows_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
+fn build_windows_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool, server_domains: &[Value]) -> Value {
     if !uses_modern_dns {
-        return build_singbox_dns(dns, false);
+        let s = &dns.shared;
+        let mut rules: Vec<Value> = Vec::new();
+        if s.reject_https {
+            rules.push(json!({"query_type": ["HTTPS"], "action": "reject"}));
+        }
+        if !server_domains.is_empty() {
+            rules.push(json!({"domain": server_domains, "server": "local"}));
+        }
+        rules.push(json!({
+            "ip_cidr": ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+            "server": "local"
+        }));
+        if s.cn_domain_local_dns {
+            rules.push(json!({"rule_set": ["geosite-cn"], "server": "local"}));
+            rules.push(json!({
+                "type": "logical",
+                "mode": "and",
+                "rules": [
+                    {"rule_set": ["geoip-cn"]},
+                    {"rule_set": ["geoip-hk"], "invert": true},
+                    {"rule_set": ["geoip-gfwblack"], "invert": true}
+                ],
+                "server": "local"
+            }));
+        }
+
+        return json!({
+            "disable_cache": false,
+            "servers": [
+                {
+                    "tag": "local",
+                    "address": "https://223.5.5.5/dns-query",
+                    "detour": "🚀 直接连接"
+                },
+                {
+                    "tag": "local_v4",
+                    "address": "https://223.5.5.5/dns-query",
+                    "strategy": "ipv4_only",
+                    "detour": "🚀 直接连接"
+                },
+                {
+                    "tag": "remote",
+                    "address": "https://8.8.8.8/dns-query",
+                    "detour": "🔰 国外流量"
+                }
+            ],
+            "rules": rules,
+            "disable_expire": false,
+            "independent_cache": false,
+            "reverse_mapping": true,
+            "final": "remote",
+        });
     }
 
     let s = &dns.shared;
-    let local_dns = if s.local_dns.is_empty()
-        || s.local_dns == "127.0.0.1"
-        || s.local_dns == "::1"
-        || s.local_dns.eq_ignore_ascii_case("localhost")
-    {
-        "223.5.5.5"
-    } else {
-        s.local_dns.as_str()
-    };
 
     let mut rules: Vec<Value> = Vec::new();
     if s.reject_https {
@@ -1328,21 +1407,32 @@ fn build_windows_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value 
     json!({
         "servers": [
             {
-                "type": "udp",
+                "type": "tls",
                 "tag": "local",
-                "server": local_dns,
-                "server_port": s.local_dns_port,
+                "server": "223.5.5.5",
+                "server_port": 853,
+                "tls": {"server_name": "dns.alidns.com"}
             },
             {
-                "type": "udp",
+                "type": "tls",
                 "tag": "local_v4",
-                "server": local_dns,
-                "server_port": s.local_dns_port,
+                "server": "223.5.5.5",
+                "server_port": 853,
+                "tls": {"server_name": "dns.alidns.com"}
             },
             {
-                "type": "https",
+                "type": "tls",
+                "tag": "bootstrap",
+                "server": "223.5.5.5",
+                "server_port": 853,
+                "tls": {"server_name": "dns.alidns.com"}
+            },
+            {
+                "type": "tls",
                 "tag": "remote",
-                "server": "1.1.1.1",
+                "server": "8.8.8.8",
+                "server_port": 853,
+                "tls": {"server_name": "dns.google"},
                 "detour": "🔰 国外流量",
             }
         ],
@@ -1411,8 +1501,8 @@ mod tests {
         }
     }
 
-    fn singbox_v13_bin() -> Option<PathBuf> {
-        if let Ok(bin) = std::env::var("SINGBOX_V13_BIN")
+    fn singbox_vendor_bin(env_key: &str, vendor_dir: &str) -> Option<PathBuf> {
+        if let Ok(bin) = std::env::var(env_key)
             && !bin.is_empty() {
                 return Some(PathBuf::from(bin));
             }
@@ -1423,9 +1513,31 @@ mod tests {
         let vendor = repo_root
             .join(".data")
             .join("vendors")
-            .join("sing-box-v13")
+            .join(vendor_dir)
             .join("sing-box");
         vendor.is_file().then_some(vendor)
+    }
+
+    fn singbox_v11_bin() -> Option<PathBuf> {
+        singbox_vendor_bin("SINGBOX_V11_BIN", "sing-box-v11")
+    }
+
+    fn singbox_v12_bin() -> Option<PathBuf> {
+        singbox_vendor_bin("SINGBOX_V12_BIN", "sing-box-v12")
+    }
+
+    fn singbox_v13_bin() -> Option<PathBuf> {
+        singbox_vendor_bin("SINGBOX_V13_BIN", "sing-box-v13")
+    }
+
+    fn outbound_by_tag<'a>(config: &'a Value, tag: &str) -> &'a Value {
+        config
+            .get("outbounds")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .find(|outbound| outbound.get("tag").and_then(Value::as_str) == Some(tag))
+            .unwrap()
     }
 
     #[test]
@@ -1541,12 +1653,18 @@ mod tests {
             "https://example.test",
         );
 
-        assert_eq!(config.pointer("/dns/servers/0/type").and_then(Value::as_str), Some("udp"));
+        assert_eq!(config.pointer("/dns/servers/0/type").and_then(Value::as_str), Some("tls"));
         assert_eq!(config.pointer("/dns/servers/0/server").and_then(Value::as_str), Some("223.5.5.5"));
+        assert_eq!(config.pointer("/dns/servers/0/server_port").and_then(Value::as_u64), Some(853));
+        assert_eq!(config.pointer("/dns/servers/0/detour").and_then(Value::as_str), None);
+        assert_eq!(config.pointer("/dns/servers/2/tag").and_then(Value::as_str), Some("bootstrap"));
+        assert_eq!(config.pointer("/dns/servers/3/detour").and_then(Value::as_str), Some("🔰 国外流量"));
+        assert_eq!(config.pointer("/route/default_domain_resolver").and_then(Value::as_str), Some("bootstrap"));
         assert_eq!(config.pointer("/dns/final").and_then(Value::as_str), Some("remote"));
         assert_eq!(config.pointer("/dns/reverse_mapping").and_then(Value::as_bool), Some(true));
         assert_eq!(config.pointer("/experimental/cache_file/store_fakeip").and_then(Value::as_bool), Some(false));
         assert_eq!(config.pointer("/experimental/clash_api/external_ui").and_then(Value::as_str), Some("./ui"));
+        assert_eq!(config.pointer("/experimental/clash_api/external_controller").and_then(Value::as_str), Some("127.0.0.1:9999"));
     }
 
     #[test]
@@ -1566,7 +1684,7 @@ mod tests {
             .iter()
             .find(|outbound| outbound.get("tag").and_then(Value::as_str) == Some("domain node"))
             .unwrap();
-        assert_eq!(node.pointer("/domain_resolver/server").and_then(Value::as_str), Some("local"));
+        assert_eq!(node.pointer("/domain_resolver/server").and_then(Value::as_str), Some("bootstrap"));
         assert_eq!(node.pointer("/domain_resolver/strategy").and_then(Value::as_str), Some("ipv4_only"));
 
         let rules = config.pointer("/route/rules").and_then(Value::as_array).unwrap();
@@ -1579,31 +1697,89 @@ mod tests {
     }
 
     #[test]
-    fn v13_generated_configs_pass_singbox_binary_check_when_available() {
-        let Some(bin) = singbox_v13_bin() else {
-            eprintln!("skipping sing-box v1.13 binary check: binary not found");
-            return;
-        };
-
+    fn windows_foreign_selector_prefers_nodes_without_dynamic_default() {
         let sub = test_subscribe();
-        for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
-            let config = build_singbox_config(&sub, &[], target, "https://example.test");
-            let mut file = tempfile::NamedTempFile::new().unwrap();
-            write!(file, "{}", serde_json::to_string_pretty(&config).unwrap()).unwrap();
+        let config = build_singbox_config(
+            &sub,
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v13(),
+            "https://example.test",
+        );
+        let selector = outbound_by_tag(&config, "🔰 国外流量");
+        let outbounds = selector.get("outbounds").and_then(Value::as_array).unwrap();
 
-            let output = Command::new(&bin)
-                .args(["check", "-c"])
-                .arg(file.path())
-                .output()
-                .unwrap();
+        assert_eq!(outbounds.first().and_then(Value::as_str), Some("domain node"));
+        assert!(outbounds.iter().any(|outbound| outbound.as_str() == Some("🚀 直接连接")));
+        assert!(selector.get("default").is_none());
+    }
 
-            assert!(
-                output.status.success(),
-                "sing-box check failed for {}:\nstdout:\n{}\nstderr:\n{}",
-                target.format(),
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)
-            );
+    #[test]
+    fn v11_windows_uses_legacy_dns_and_route_schema() {
+        let sub = test_subscribe();
+        let config = build_singbox_config(
+            &sub,
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v11(),
+            "https://example.test",
+        );
+        let node = outbound_by_tag(&config, "domain node");
+        assert!(node.get("domain_resolver").is_none());
+        assert_eq!(config.pointer("/dns/servers/0/address").and_then(Value::as_str), Some("https://223.5.5.5/dns-query"));
+        assert_eq!(config.pointer("/dns/servers/2/detour").and_then(Value::as_str), Some("🔰 国外流量"));
+        assert_eq!(config.pointer("/dns/final").and_then(Value::as_str), Some("remote"));
+
+        let route_rules = config.pointer("/route/rules").and_then(Value::as_array).unwrap();
+        assert_eq!(route_rules.first().and_then(|rule| rule.get("protocol")).and_then(Value::as_str), Some("dns"));
+        assert!(route_rules.iter().all(|rule| rule.get("action").is_none()));
+        assert!(config.pointer("/dns/rules").and_then(Value::as_array).unwrap().iter().any(|rule| {
+            rule.get("domain")
+                .and_then(Value::as_array)
+                .is_some_and(|domains| domains.iter().any(|domain| domain.as_str() == Some("node.example.com")))
+                && rule.get("server").and_then(Value::as_str) == Some("local")
+        }));
+    }
+
+    fn assert_singbox_check(bin: &Path, target: SingboxTarget) {
+        let sub = test_subscribe();
+        let config = build_singbox_config(&sub, &[domain_vmess_proxy()], target, "https://example.test");
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        write!(file, "{}", serde_json::to_string_pretty(&config).unwrap()).unwrap();
+
+        let output = Command::new(bin)
+            .args(["check", "-c"])
+            .arg(file.path())
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "sing-box check failed for {}:\nstdout:\n{}\nstderr:\n{}",
+            target.format(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn generated_configs_pass_singbox_binary_check_when_available() {
+        if let Some(bin) = singbox_v11_bin() {
+            assert_singbox_check(&bin, SingboxTarget::windows_v11());
+        } else {
+            eprintln!("skipping sing-box v1.11 binary check: binary not found");
+        }
+
+        if let Some(bin) = singbox_v12_bin() {
+            assert_singbox_check(&bin, SingboxTarget::windows_v12());
+        } else {
+            eprintln!("skipping sing-box v1.12 binary check: binary not found");
+        }
+
+        if let Some(bin) = singbox_v13_bin() {
+            for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
+                assert_singbox_check(&bin, target);
+            }
+        } else {
+            eprintln!("skipping sing-box v1.13 binary check: binary not found");
         }
     }
 }
