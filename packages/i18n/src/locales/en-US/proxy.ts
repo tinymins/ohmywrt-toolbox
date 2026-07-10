@@ -43,6 +43,7 @@ export default {
     filter: "Filter",
     customConfig: "Custom Config",
     dnsConfig: "DNS Config",
+    wireguardConfig: "WireGuard",
     servers: "Manual Servers",
   },
   form: {
@@ -104,6 +105,8 @@ export default {
     dnsDnsRules: "DNS Rules",
     dnsNativeHint: "Use platform native DNS configuration format",
     dnsOverrideHint: "Override default DNS configuration",
+    wireguardConfigLabel: "WireGuard Mesh Config (JSONC, comments supported)",
+    wireguardConfigPlaceholder: "WireGuard config JSONC",
   },
   links: {
     title: "Subscribe Links",
@@ -167,6 +170,7 @@ export default {
     groupConfig: "Group Config",
     customConfigRules: "Custom Config Rules",
     dnsConfig: "DNS Config",
+    wireguardConfig: "WireGuard Config",
     configBuild: "Config Build",
     finalConfig: "Final Config",
     totalDuration: "Total Duration",

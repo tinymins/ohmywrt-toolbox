@@ -145,6 +145,18 @@ export const ConfigStepContent = ({
           children: <SyntaxJsonViewer data={data.servers} />,
         },
         {
+          key: "wireguardConfig",
+          label: (
+            <div className="flex gap-2 items-center">
+              <span>{t("proxy.debug.wireguardConfig")}</span>
+              <Tag color={data.wireguardConfig?.enabled ? "green" : "default"}>
+                {data.wireguardConfig?.enabled ? "enabled" : "disabled"}
+              </Tag>
+            </div>
+          ),
+          children: <SyntaxJsonViewer data={data.wireguardConfig} />,
+        },
+        {
           key: "dnsConfig",
           label: (
             <div className="flex gap-2 items-center">

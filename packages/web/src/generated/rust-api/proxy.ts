@@ -34,6 +34,7 @@ export interface ProxySubscribe {
   useSystemCustomConfig: boolean;
   dnsConfig: string | null;
   useSystemDnsConfig: boolean;
+  wireguardConfig: string | null;
   authorizedUserIds: string[];
   cacheTtlMinutes: number | null;
   cachedNodeCount: number;
@@ -60,6 +61,7 @@ export interface CreateProxySubscribeInput {
   useSystemCustomConfig?: boolean;
   dnsConfig?: string | null;
   useSystemDnsConfig?: boolean;
+  wireguardConfig?: string | null;
   authorizedUserIds?: string[] | null;
   cacheTtlMinutes?: number | null;
 }

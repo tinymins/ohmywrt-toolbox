@@ -140,6 +140,7 @@ model ProxySubscribe {
   useSystemCustomConfig Boolean @default(true) @map("use_system_custom_config")
   dnsConfig           String?   @map("dns_config")
   useSystemDnsConfig  Boolean   @default(true) @map("use_system_dns_config")
+  wireguardConfig     String?   @map("wireguard_config")
   authorizedUserIds   Json?     @default("[]") @map("authorized_user_ids")
   cacheTtlMinutes     Int?      @map("cache_ttl_minutes")
   cachedNodeCount     Int?      @default(0) @map("cached_node_count")

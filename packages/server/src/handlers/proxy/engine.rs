@@ -1,4 +1,5 @@
-use serde_json::{json, Map, Value};
+use serde::Deserialize;
+use serde_json::{Map, Value, json};
 use std::net::IpAddr;
 use tracing::warn;
 
@@ -9,8 +10,8 @@ use super::fetch_subscription;
 use super::icons::append_icon;
 use super::types::ClashProxy;
 use super::{
-    DEFAULT_CUSTOM_CONFIG_JSON, DEFAULT_FILTER_JSON,
-    DEFAULT_GROUPS_JSON, DEFAULT_RULE_PROVIDERS_JSON,
+    DEFAULT_CUSTOM_CONFIG_JSON, DEFAULT_FILTER_JSON, DEFAULT_GROUPS_JSON,
+    DEFAULT_RULE_PROVIDERS_JSON,
 };
 
 /// Default User-Agent for fetching subscription URLs.
@@ -90,7 +91,10 @@ pub(super) fn parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: &str, default: 
     serde_json::from_str(&cleaned).unwrap_or(default)
 }
 
-pub(super) fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(jsonc: Option<&str>, default: T) -> T {
+pub(super) fn safe_parse_jsonc<T: serde::de::DeserializeOwned>(
+    jsonc: Option<&str>,
+    default: T,
+) -> T {
     match jsonc {
         Some(s) if !s.is_empty() => parse_jsonc(s, default),
         _ => default,
@@ -105,9 +109,10 @@ pub(super) fn parse_subscribe_url(url: &str) -> Vec<String> {
     }
     // Try as JSON array first (legacy format: ["url1", "url2"])
     if trimmed.starts_with('[')
-        && let Ok(urls) = serde_json::from_str::<Vec<String>>(trimmed) {
-            return urls.into_iter().filter(|u| !u.is_empty()).collect();
-        }
+        && let Ok(urls) = serde_json::from_str::<Vec<String>>(trimmed)
+    {
+        return urls.into_iter().filter(|u| !u.is_empty()).collect();
+    }
     // Plain URL string
     vec![trimmed.to_string()]
 }
@@ -156,10 +161,10 @@ fn normalize_prefix(raw: &str) -> String {
     if raw.is_empty() {
         return String::new();
     }
-    
+
     let separators = ["-", " ", "丨", "|", "｜", "/", "_", "·"];
     let closing_brackets = [")", "）", "]", "】", "}", "》", ">", "」"];
-    
+
     // 检查是否已以分隔符或闭合括号结尾
     if separators.iter().any(|&s| raw.ends_with(s)) {
         return raw.to_string();
@@ -167,7 +172,7 @@ fn normalize_prefix(raw: &str) -> String {
     if closing_brackets.iter().any(|&s| raw.ends_with(s)) {
         return raw.to_string();
     }
-    
+
     // 否则在结尾添加"丨"
     format!("{raw}丨")
 }
@@ -178,19 +183,63 @@ fn dns_shared_from_value(v: &Value) -> DnsShared {
         return d;
     };
     DnsShared {
-        local_dns: obj.get("localDns").and_then(|v| v.as_str()).unwrap_or(&d.local_dns).to_string(),
-        local_dns_port: obj.get("localDnsPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.local_dns_port),
-        fakeip_ipv4_range: obj.get("fakeipIpv4Range").and_then(|v| v.as_str()).unwrap_or(&d.fakeip_ipv4_range).to_string(),
-        fakeip_ipv6_range: obj.get("fakeipIpv6Range").and_then(|v| v.as_str()).unwrap_or(&d.fakeip_ipv6_range).to_string(),
-        fakeip_enabled: obj.get("fakeipEnabled").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.fakeip_enabled),
-        fakeip_ttl: obj.get("fakeipTtl").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.fakeip_ttl),
-        dns_listen_port: obj.get("dnsListenPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.dns_listen_port),
-        tproxy_port: obj.get("tproxyPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.tproxy_port),
-        reject_https: obj.get("rejectHttps").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.reject_https),
-        cn_domain_local_dns: obj.get("cnDomainLocalDns").and_then(sea_orm::JsonValue::as_bool).unwrap_or(d.cn_domain_local_dns),
-        clash_api_port: obj.get("clashApiPort").and_then(sea_orm::JsonValue::as_u64).unwrap_or(d.clash_api_port),
-        clash_api_secret: obj.get("clashApiSecret").and_then(|v| v.as_str()).unwrap_or(&d.clash_api_secret).to_string(),
-        clash_api_ui_path: obj.get("clashApiUiPath").and_then(|v| v.as_str()).unwrap_or(&d.clash_api_ui_path).to_string(),
+        local_dns: obj
+            .get("localDns")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&d.local_dns)
+            .to_string(),
+        local_dns_port: obj
+            .get("localDnsPort")
+            .and_then(sea_orm::JsonValue::as_u64)
+            .unwrap_or(d.local_dns_port),
+        fakeip_ipv4_range: obj
+            .get("fakeipIpv4Range")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&d.fakeip_ipv4_range)
+            .to_string(),
+        fakeip_ipv6_range: obj
+            .get("fakeipIpv6Range")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&d.fakeip_ipv6_range)
+            .to_string(),
+        fakeip_enabled: obj
+            .get("fakeipEnabled")
+            .and_then(sea_orm::JsonValue::as_bool)
+            .unwrap_or(d.fakeip_enabled),
+        fakeip_ttl: obj
+            .get("fakeipTtl")
+            .and_then(sea_orm::JsonValue::as_u64)
+            .unwrap_or(d.fakeip_ttl),
+        dns_listen_port: obj
+            .get("dnsListenPort")
+            .and_then(sea_orm::JsonValue::as_u64)
+            .unwrap_or(d.dns_listen_port),
+        tproxy_port: obj
+            .get("tproxyPort")
+            .and_then(sea_orm::JsonValue::as_u64)
+            .unwrap_or(d.tproxy_port),
+        reject_https: obj
+            .get("rejectHttps")
+            .and_then(sea_orm::JsonValue::as_bool)
+            .unwrap_or(d.reject_https),
+        cn_domain_local_dns: obj
+            .get("cnDomainLocalDns")
+            .and_then(sea_orm::JsonValue::as_bool)
+            .unwrap_or(d.cn_domain_local_dns),
+        clash_api_port: obj
+            .get("clashApiPort")
+            .and_then(sea_orm::JsonValue::as_u64)
+            .unwrap_or(d.clash_api_port),
+        clash_api_secret: obj
+            .get("clashApiSecret")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&d.clash_api_secret)
+            .to_string(),
+        clash_api_ui_path: obj
+            .get("clashApiUiPath")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&d.clash_api_ui_path)
+            .to_string(),
     }
 }
 
@@ -220,13 +269,282 @@ pub(super) fn resolve_dns_config(use_system: bool, dns_config_jsonc: Option<&str
     if let Some(ov) = obj.get("overrides").and_then(|v| v.as_object()) {
         for key in &["singbox", "singboxV12", "clash", "clashMeta"] {
             if let Some(v) = ov.get(*key)
-                && !v.is_null() {
-                    overrides.insert(key.to_string(), v.clone());
-                }
+                && !v.is_null()
+            {
+                overrides.insert(key.to_string(), v.clone());
+            }
         }
     }
 
     ResolvedDns { shared, overrides }
+}
+
+// ─── WireGuard config resolution ───
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WireguardConfig {
+    #[serde(default)]
+    enabled: bool,
+    tag: Option<String>,
+    address: Option<String>,
+    private_key: Option<String>,
+    peer: Option<WireguardPeer>,
+    #[serde(default)]
+    route_cidrs: Vec<String>,
+    #[serde(default)]
+    dns_rules: Vec<WireguardDnsRule>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WireguardPeer {
+    address: Option<String>,
+    port: Option<u16>,
+    public_key: Option<String>,
+    pre_shared_key: Option<String>,
+    #[serde(default)]
+    allowed_ips: Vec<String>,
+    persistent_keepalive_interval: Option<u16>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WireguardDnsRule {
+    tag: Option<String>,
+    domain_suffix: Option<Value>,
+    server: Option<String>,
+    server_port: Option<u16>,
+}
+
+#[derive(Debug)]
+struct ResolvedWireguard {
+    tag: String,
+    endpoint: Value,
+    endpoint_host: String,
+    route_cidrs: Vec<String>,
+    dns_servers: Vec<Value>,
+    dns_rules: Vec<Value>,
+}
+
+fn value_to_string_list(value: Option<&Value>) -> Vec<String> {
+    match value {
+        Some(Value::String(s)) if !s.trim().is_empty() => vec![s.trim().to_string()],
+        Some(Value::Array(items)) => items
+            .iter()
+            .filter_map(|item| item.as_str())
+            .map(str::trim)
+            .filter(|item| !item.is_empty())
+            .map(String::from)
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+fn resolve_wireguard_config(
+    sub: &proxy_subscribes::Model,
+    target: SingboxTarget,
+) -> Option<ResolvedWireguard> {
+    if !target.uses_modern_dns() {
+        return None;
+    }
+
+    let raw = sub.wireguard_config.as_deref()?.trim();
+    if raw.is_empty() {
+        return None;
+    }
+
+    let cleaned = strip_json_comments(raw);
+    let parsed: WireguardConfig = match serde_json::from_str(&cleaned) {
+        Ok(value) => value,
+        Err(err) => {
+            warn!("Ignoring invalid WireGuard config JSONC: {err}");
+            return None;
+        }
+    };
+    if !parsed.enabled {
+        return None;
+    }
+
+    let tag = parsed
+        .tag
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("wg")
+        .to_string();
+    let address = parsed
+        .address
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())?;
+    let private_key = parsed
+        .private_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())?;
+    let peer = parsed.peer?;
+    let endpoint_host = peer
+        .address
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())?
+        .to_string();
+    let endpoint_port = peer.port?;
+    let public_key = peer
+        .public_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())?;
+
+    let mut peer_json = json!({
+        "address": endpoint_host,
+        "port": endpoint_port,
+        "public_key": public_key,
+        "allowed_ips": peer.allowed_ips,
+    });
+    if let Some(pre_shared_key) = peer
+        .pre_shared_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+    {
+        peer_json["pre_shared_key"] = json!(pre_shared_key);
+    }
+    if let Some(keepalive) = peer.persistent_keepalive_interval {
+        peer_json["persistent_keepalive_interval"] = json!(keepalive);
+    }
+
+    let resolver = if target.is_windows() {
+        "bootstrap"
+    } else {
+        "local"
+    };
+    let mut endpoint = json!({
+        "type": "wireguard",
+        "tag": tag,
+        "address": [address],
+        "private_key": private_key,
+        "peers": [peer_json],
+    });
+    if is_domain_name(&endpoint_host) {
+        endpoint["domain_resolver"] = json!({
+            "server": resolver,
+            "strategy": "ipv4_only"
+        });
+    }
+
+    let route_cidrs = parsed
+        .route_cidrs
+        .into_iter()
+        .map(|item| item.trim().to_string())
+        .filter(|item| !item.is_empty())
+        .collect::<Vec<_>>();
+
+    let mut dns_servers = Vec::new();
+    let mut dns_rules = Vec::new();
+    let dns_rule_count = parsed.dns_rules.len();
+    for (idx, rule) in parsed.dns_rules.into_iter().enumerate() {
+        let Some(server) = rule
+            .server
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+        else {
+            continue;
+        };
+        let suffixes = value_to_string_list(rule.domain_suffix.as_ref());
+        if suffixes.is_empty() {
+            continue;
+        }
+        let server_tag = rule
+            .tag
+            .as_deref()
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .map(String::from)
+            .unwrap_or_else(|| {
+                if dns_rule_count == 1 {
+                    format!("{tag}-dns")
+                } else {
+                    format!("{tag}-dns-{}", idx + 1)
+                }
+            });
+        dns_servers.push(json!({
+            "type": "udp",
+            "tag": server_tag,
+            "server": server,
+            "server_port": rule.server_port.unwrap_or(53),
+            "detour": tag,
+        }));
+        dns_rules.push(json!({
+            "domain_suffix": suffixes,
+            "action": "route",
+            "server": server_tag,
+        }));
+    }
+
+    Some(ResolvedWireguard {
+        tag,
+        endpoint,
+        endpoint_host,
+        route_cidrs,
+        dns_servers,
+        dns_rules,
+    })
+}
+
+fn apply_wireguard_dns(dns_section: &mut Value, wireguard: &ResolvedWireguard) {
+    let Some(dns_obj) = dns_section.as_object_mut() else {
+        return;
+    };
+    let Some(servers) = dns_obj.get_mut("servers").and_then(Value::as_array_mut) else {
+        return;
+    };
+    servers.extend(wireguard.dns_servers.iter().cloned());
+
+    let rules = dns_obj
+        .entry("rules")
+        .or_insert_with(|| Value::Array(Vec::new()));
+    if let Some(rules) = rules.as_array_mut() {
+        for rule in wireguard.dns_rules.iter().rev() {
+            rules.insert(0, rule.clone());
+        }
+    }
+}
+
+fn apply_wireguard_routes(route_rules: &mut Value, wireguard: &ResolvedWireguard) {
+    let Some(rules) = route_rules.as_array_mut() else {
+        return;
+    };
+
+    let mut insert_at = rules
+        .iter()
+        .position(|rule| rule.get("ip_is_private").is_some())
+        .unwrap_or(rules.len());
+
+    if is_domain_name(&wireguard.endpoint_host) {
+        rules.insert(
+            insert_at,
+            json!({
+                "domain": [wireguard.endpoint_host],
+                "action": "route",
+                "outbound": "🚀 直接连接"
+            }),
+        );
+        insert_at += 1;
+    }
+
+    if !wireguard.route_cidrs.is_empty() {
+        rules.insert(
+            insert_at,
+            json!({
+                "ip_cidr": wireguard.route_cidrs,
+                "action": "route",
+                "outbound": wireguard.tag
+            }),
+        );
+    }
 }
 
 // ─── Preview node ───
@@ -298,9 +616,16 @@ pub async fn fetch_proxies_preview(
     let items: Vec<SubItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
-        parse_subscribe_url(url).into_iter().map(|u| SubItem {
-            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None, fetch_ua: None,
-        }).collect()
+        parse_subscribe_url(url)
+            .into_iter()
+            .map(|u| SubItem {
+                url: u,
+                prefix: String::new(),
+                enabled: Some(true),
+                cache_ttl_minutes: None,
+                fetch_ua: None,
+            })
+            .collect()
     } else {
         Vec::new()
     };
@@ -320,14 +645,25 @@ pub async fn fetch_proxies_preview(
         .unwrap_or_default();
 
     for (idx, item) in items.iter().enumerate() {
-        if item.enabled == Some(false) { continue; }
+        if item.enabled == Some(false) {
+            continue;
+        }
         let source_index = idx + 1;
-        let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
+        let cache_ttl = item
+            .cache_ttl_minutes
+            .or(sub.cache_ttl_minutes)
+            .unwrap_or(60);
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
-        let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
-        let parsed = if let Some(r) = result { r.proxies } else {
-            warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+        let result =
+            fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
+        let parsed = if let Some(r) = result {
+            r.proxies
+        } else {
+            warn!(
+                "Subscription source returned 0 nodes after retries: {}",
+                item.url
+            );
             continue;
         };
 
@@ -402,9 +738,16 @@ pub async fn fetch_proxies(
     let items: Vec<SubscribeItem> = if let Some(ref si) = sub.subscribe_items {
         serde_json::from_value(si.clone()).unwrap_or_default()
     } else if let Some(ref url) = sub.subscribe_url {
-        parse_subscribe_url(url).into_iter().map(|u| SubscribeItem {
-            url: u, prefix: String::new(), enabled: Some(true), cache_ttl_minutes: None, fetch_ua: None,
-        }).collect()
+        parse_subscribe_url(url)
+            .into_iter()
+            .map(|u| SubscribeItem {
+                url: u,
+                prefix: String::new(),
+                enabled: Some(true),
+                cache_ttl_minutes: None,
+                fetch_ua: None,
+            })
+            .collect()
     } else {
         Vec::new()
     };
@@ -434,12 +777,21 @@ pub async fn fetch_proxies(
             continue;
         }
 
-        let cache_ttl = item.cache_ttl_minutes.or(sub.cache_ttl_minutes).unwrap_or(60);
+        let cache_ttl = item
+            .cache_ttl_minutes
+            .or(sub.cache_ttl_minutes)
+            .unwrap_or(60);
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
-        let result = fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
-        let mut parsed = if let Some(r) = result { r.proxies } else {
-            warn!("Subscription source returned 0 nodes after retries: {}", item.url);
+        let result =
+            fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
+        let mut parsed = if let Some(r) = result {
+            r.proxies
+        } else {
+            warn!(
+                "Subscription source returned 0 nodes after retries: {}",
+                item.url
+            );
             continue;
         };
 
@@ -486,7 +838,11 @@ pub fn build_clash_config(
         default_rp.clone()
     } else {
         let custom: Map<String, Value> = safe_parse_jsonc(sub.rule_list.as_deref(), Map::new());
-        if custom.is_empty() { default_rp.clone() } else { custom }
+        if custom.is_empty() {
+            default_rp.clone()
+        } else {
+            custom
+        }
     };
 
     let mut rule_set: Vec<String> = Vec::new();
@@ -496,7 +852,10 @@ pub fn build_clash_config(
             for item in arr {
                 let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("");
                 let url = item.get("url").and_then(|v| v.as_str()).unwrap_or("");
-                let behavior = item.get("type").and_then(|v| v.as_str()).unwrap_or("classical");
+                let behavior = item
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("classical");
                 rule_set.push(format!("RULE-SET,{name},{group_name}"));
                 rule_providers.insert(
                     name.to_string(),
@@ -518,7 +877,11 @@ pub fn build_clash_config(
         default_groups.clone()
     } else {
         let custom: Vec<Value> = safe_parse_jsonc(sub.group.as_deref(), Vec::new());
-        if custom.is_empty() { default_groups.clone() } else { custom }
+        if custom.is_empty() {
+            default_groups.clone()
+        } else {
+            custom
+        }
     };
 
     let proxy_groups: Vec<Value> = groups
@@ -531,7 +894,10 @@ pub fn build_clash_config(
                 .and_then(|v| v.as_array())
                 .cloned()
                 .unwrap_or_default();
-            let readonly = g.get("readonly").and_then(sea_orm::JsonValue::as_bool).unwrap_or(false);
+            let readonly = g
+                .get("readonly")
+                .and_then(sea_orm::JsonValue::as_bool)
+                .unwrap_or(false);
 
             let mut all_proxies = base_proxies.clone();
             if !readonly {
@@ -745,6 +1111,7 @@ pub fn build_singbox_config(
     public_server_url: &str,
 ) -> Value {
     let dns = resolve_dns_config(sub.use_system_dns_config, sub.dns_config.as_deref());
+    let wireguard = resolve_wireguard_config(sub, target);
     let node_names: Vec<&str> = proxies.iter().map(|p| p.name.as_str()).collect();
     let uses_modern_dns = target.uses_modern_dns();
     let rule_set_version = target.rule_set_version();
@@ -785,7 +1152,11 @@ pub fn build_singbox_config(
         default_groups.clone()
     } else {
         let custom: Vec<Value> = safe_parse_jsonc(sub.group.as_deref(), Vec::new());
-        if custom.is_empty() { default_groups.clone() } else { custom }
+        if custom.is_empty() {
+            default_groups.clone()
+        } else {
+            custom
+        }
     };
 
     // For singbox, filter out builtin tag groups and map keywords
@@ -805,7 +1176,9 @@ pub fn build_singbox_config(
                         json!(singbox_keyword_map(s))
                     })
                     .collect();
-                g.as_object_mut().unwrap().insert("proxies".into(), json!(mapped));
+                g.as_object_mut()
+                    .unwrap()
+                    .insert("proxies".into(), json!(mapped));
             }
             g
         })
@@ -814,7 +1187,10 @@ pub fn build_singbox_config(
     // Build selector outbounds
     for g in &groups {
         let name = g.get("name").and_then(|v| v.as_str()).unwrap_or("");
-        let readonly = g.get("readonly").and_then(sea_orm::JsonValue::as_bool).unwrap_or(false);
+        let readonly = g
+            .get("readonly")
+            .and_then(sea_orm::JsonValue::as_bool)
+            .unwrap_or(false);
         let base_proxies: Vec<String> = g
             .get("proxies")
             .and_then(|v| v.as_array())
@@ -864,7 +1240,11 @@ pub fn build_singbox_config(
         default_rp.clone()
     } else {
         let custom: Map<String, Value> = safe_parse_jsonc(sub.rule_list.as_deref(), Map::new());
-        if custom.is_empty() { default_rp.clone() } else { custom }
+        if custom.is_empty() {
+            default_rp.clone()
+        } else {
+            custom
+        }
     };
 
     let convert_rule_base = match rule_set_version {
@@ -897,11 +1277,14 @@ pub fn build_singbox_config(
         .collect();
 
     // DNS section
-    let dns_section = if target.is_windows() {
+    let mut dns_section = if target.is_windows() {
         build_windows_singbox_dns(&dns, uses_modern_dns, &server_domains)
     } else {
         build_singbox_dns(&dns, uses_modern_dns)
     };
+    if let Some(wireguard) = wireguard.as_ref() {
+        apply_wireguard_dns(&mut dns_section, wireguard);
+    }
 
     // Inbounds
     let inbounds = if target.is_windows() {
@@ -956,7 +1339,7 @@ pub fn build_singbox_config(
     };
 
     // Route rules
-    let route_rules = if target.is_windows() && uses_modern_dns {
+    let mut route_rules = if target.is_windows() && uses_modern_dns {
         let mut rules = vec![
             json!({"action": "sniff"}),
             json!({"protocol": "dns", "action": "hijack-dns"}),
@@ -1009,6 +1392,9 @@ pub fn build_singbox_config(
             }
         ])
     };
+    if let Some(wireguard) = wireguard.as_ref() {
+        apply_wireguard_routes(&mut route_rules, wireguard);
+    }
 
     // Geo rule sets
     let gfwblack_url = match rule_set_version {
@@ -1074,7 +1460,11 @@ pub fn build_singbox_config(
         "final": "⚓️ 其他流量",
     });
     if uses_modern_dns {
-        route["default_domain_resolver"] = json!(if target.is_windows() { "bootstrap" } else { "local" });
+        route["default_domain_resolver"] = json!(if target.is_windows() {
+            "bootstrap"
+        } else {
+            "local"
+        });
     }
     if target.is_windows() {
         route["auto_detect_interface"] = json!(true);
@@ -1108,6 +1498,9 @@ pub fn build_singbox_config(
             }
         }
     });
+    if let Some(wireguard) = wireguard.as_ref() {
+        config["endpoints"] = json!([wireguard.endpoint]);
+    }
 
     // Add custom rules and rule_set rules to route
     let default_custom: Vec<Value> = parse_jsonc(DEFAULT_CUSTOM_CONFIG_JSON, Vec::new());
@@ -1118,62 +1511,59 @@ pub fn build_singbox_config(
     };
 
     if let Some(route_obj) = config.get_mut("route").and_then(|r| r.as_object_mut())
-        && let Some(rules_arr) = route_obj.get_mut("rules").and_then(|r| r.as_array_mut()) {
-            // Add custom rules
-            for item in &custom_config {
-                if let Value::String(s) = item {
-                    let parts: Vec<&str> = s.split(',').collect();
-                    if parts.len() >= 3 {
-                        let mut rule = Map::new();
-                        match parts[0] {
-                            "DOMAIN" => {
-                                rule.insert("domain".into(), json!(parts[1]));
-                            }
-                            "DOMAIN-SUFFIX" => {
-                                rule.insert("domain_suffix".into(), json!(parts[1]));
-                            }
-                            "DOMAIN-KEYWORD" => {
-                                rule.insert("domain_keyword".into(), json!(parts[1]));
-                            }
-                            "DOMAIN-REGEX" => {
-                                rule.insert("domain_regex".into(), json!(parts[1]));
-                            }
-                            "IP-CIDR" => {
-                                rule.insert("ip_cidr".into(), json!(parts[1]));
-                            }
-                            "SRC-IP-CIDR" => {
-                                rule.insert("source_ip_cidr".into(), json!(parts[1]));
-                            }
-                            _ => continue,
+        && let Some(rules_arr) = route_obj.get_mut("rules").and_then(|r| r.as_array_mut())
+    {
+        // Add custom rules
+        for item in &custom_config {
+            if let Value::String(s) = item {
+                let parts: Vec<&str> = s.split(',').collect();
+                if parts.len() >= 3 {
+                    let mut rule = Map::new();
+                    match parts[0] {
+                        "DOMAIN" => {
+                            rule.insert("domain".into(), json!(parts[1]));
                         }
-                        rule.insert("outbound".into(), json!(parts[2]));
-                        rules_arr.push(Value::Object(rule));
+                        "DOMAIN-SUFFIX" => {
+                            rule.insert("domain_suffix".into(), json!(parts[1]));
+                        }
+                        "DOMAIN-KEYWORD" => {
+                            rule.insert("domain_keyword".into(), json!(parts[1]));
+                        }
+                        "DOMAIN-REGEX" => {
+                            rule.insert("domain_regex".into(), json!(parts[1]));
+                        }
+                        "IP-CIDR" => {
+                            rule.insert("ip_cidr".into(), json!(parts[1]));
+                        }
+                        "SRC-IP-CIDR" => {
+                            rule.insert("source_ip_cidr".into(), json!(parts[1]));
+                        }
+                        _ => continue,
                     }
-                } else if item.is_object() {
-                    rules_arr.push(item.clone());
+                    rule.insert("outbound".into(), json!(parts[2]));
+                    rules_arr.push(Value::Object(rule));
                 }
+            } else if item.is_object() {
+                rules_arr.push(item.clone());
             }
+        }
 
-            // Add rule-set routing rules
-            for (group_name, items) in &rule_providers_list {
-                if let Some(arr) = items.as_array() {
-                    let tags: Vec<Value> = arr
-                        .iter()
-                        .filter_map(|item| {
-                            item.get("name")
-                                .and_then(|v| v.as_str())
-                                .map(|s| json!(s))
-                        })
-                        .collect();
-                    if !tags.is_empty() {
-                        rules_arr.push(json!({
-                            "outbound": group_name,
-                            "rule_set": tags,
-                        }));
-                    }
+        // Add rule-set routing rules
+        for (group_name, items) in &rule_providers_list {
+            if let Some(arr) = items.as_array() {
+                let tags: Vec<Value> = arr
+                    .iter()
+                    .filter_map(|item| item.get("name").and_then(|v| v.as_str()).map(|s| json!(s)))
+                    .collect();
+                if !tags.is_empty() {
+                    rules_arr.push(json!({
+                        "outbound": group_name,
+                        "rule_set": tags,
+                    }));
                 }
             }
         }
+    }
 
     config
 }
@@ -1189,16 +1579,21 @@ fn push_unique(items: &mut Vec<String>, item: String) {
 }
 
 fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
-    let override_key = if uses_modern_dns { "singboxV12" } else { "singbox" };
+    let override_key = if uses_modern_dns {
+        "singboxV12"
+    } else {
+        "singbox"
+    };
     let fallback_key = if uses_modern_dns { "singbox" } else { "" };
 
     if let Some(ov) = dns.overrides.get(override_key) {
         return ov.clone();
     }
     if !fallback_key.is_empty()
-        && let Some(ov) = dns.overrides.get(fallback_key) {
-            return ov.clone();
-        }
+        && let Some(ov) = dns.overrides.get(fallback_key)
+    {
+        return ov.clone();
+    }
 
     let s = &dns.shared;
 
@@ -1260,9 +1655,8 @@ fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
         })
     } else {
         // v1.11 DNS format
-        let mut servers = vec![
-            json!({"tag": "local", "address": s.local_dns, "detour": "🚀 直接连接"}),
-        ];
+        let mut servers =
+            vec![json!({"tag": "local", "address": s.local_dns, "detour": "🚀 直接连接"})];
         if s.fakeip_enabled {
             servers.push(json!({"tag": "fakeip", "address": "fakeip", "strategy": "ipv4_only"}));
         }
@@ -1322,7 +1716,11 @@ fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
     }
 }
 
-fn build_windows_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool, server_domains: &[Value]) -> Value {
+fn build_windows_singbox_dns(
+    dns: &ResolvedDns,
+    uses_modern_dns: bool,
+    server_domains: &[Value],
+) -> Value {
     if !uses_modern_dns {
         let s = &dns.shared;
         let mut rules: Vec<Value> = Vec::new();
@@ -1469,6 +1867,7 @@ mod tests {
             use_system_custom_config: true,
             dns_config: None,
             use_system_dns_config: true,
+            wireguard_config: None,
             authorized_user_ids: None,
             cache_ttl_minutes: None,
             cached_node_count: None,
@@ -1503,9 +1902,10 @@ mod tests {
 
     fn singbox_vendor_bin(env_key: &str, vendor_dir: &str) -> Option<PathBuf> {
         if let Ok(bin) = std::env::var(env_key)
-            && !bin.is_empty() {
-                return Some(PathBuf::from(bin));
-            }
+            && !bin.is_empty()
+        {
+            return Some(PathBuf::from(bin));
+        }
 
         let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -1540,6 +1940,37 @@ mod tests {
             .unwrap()
     }
 
+    fn wireguard_subscribe() -> proxy_subscribes::Model {
+        let mut sub = test_subscribe();
+        sub.wireguard_config = Some(
+            r#"{
+              "enabled": true,
+              "tag": "wg-lvmcn",
+              "address": "10.8.29.23/32",
+              "privateKey": "wRGa89tcyKhbZt9fGR6atEru0RFbBbSe16SvjSkAQjE=",
+              "peer": {
+                "address": "ddns.lvmcn.com",
+                "port": 31088,
+                "publicKey": "w2aXEVTOtvOSdclyYMAdNYVzlS2paWdhncNr5HoXBRo=",
+                "preSharedKey": "mV0yytCSc95AhotCiy4wRl0MI/E0CLS06ybRqYS27z4=",
+                "allowedIps": ["10.8.28.0/24", "10.8.29.0/24", "10.254.0.0/24"],
+                "persistentKeepaliveInterval": 25
+              },
+              "routeCidrs": ["10.8.28.0/24"],
+              "dnsRules": [
+                {
+                  "tag": "rpsh-dns",
+                  "domainSuffix": "rpsh.vmins.com",
+                  "server": "10.8.28.1",
+                  "serverPort": 53
+                }
+              ]
+            }"#
+            .to_string(),
+        );
+        sub
+    }
+
     #[test]
     fn windows_targets_use_tun_without_tproxy() {
         let sub = test_subscribe();
@@ -1552,11 +1983,15 @@ mod tests {
             let types = inbound_types(&config);
             assert_eq!(types, vec!["tun"]);
             assert_eq!(
-                config.pointer("/inbounds/0/interface_name").and_then(Value::as_str),
+                config
+                    .pointer("/inbounds/0/interface_name")
+                    .and_then(Value::as_str),
                 Some("sing-box")
             );
             assert_eq!(
-                config.pointer("/route/auto_detect_interface").and_then(Value::as_bool),
+                config
+                    .pointer("/route/auto_detect_interface")
+                    .and_then(Value::as_bool),
                 Some(true)
             );
             assert!(!types.contains(&"tproxy"));
@@ -1580,8 +2015,12 @@ mod tests {
     #[test]
     fn v12_windows_uses_v12_rule_conversion_endpoint() {
         let sub = test_subscribe();
-        let config =
-            build_singbox_config(&sub, &[], SingboxTarget::windows_v12(), "https://example.test");
+        let config = build_singbox_config(
+            &sub,
+            &[],
+            SingboxTarget::windows_v12(),
+            "https://example.test",
+        );
         let rule_sets = config
             .pointer("/route/rule_set")
             .and_then(Value::as_array)
@@ -1618,8 +2057,12 @@ mod tests {
     #[test]
     fn v13_uses_modern_dns_without_dns_outbound() {
         let sub = test_subscribe();
-        let config =
-            build_singbox_config(&sub, &[], SingboxTarget::default_v13(), "https://example.test");
+        let config = build_singbox_config(
+            &sub,
+            &[],
+            SingboxTarget::default_v13(),
+            "https://example.test",
+        );
         let outbound_tags: Vec<&str> = config
             .get("outbounds")
             .and_then(Value::as_array)
@@ -1653,18 +2096,74 @@ mod tests {
             "https://example.test",
         );
 
-        assert_eq!(config.pointer("/dns/servers/0/type").and_then(Value::as_str), Some("tls"));
-        assert_eq!(config.pointer("/dns/servers/0/server").and_then(Value::as_str), Some("223.5.5.5"));
-        assert_eq!(config.pointer("/dns/servers/0/server_port").and_then(Value::as_u64), Some(853));
-        assert_eq!(config.pointer("/dns/servers/0/detour").and_then(Value::as_str), None);
-        assert_eq!(config.pointer("/dns/servers/2/tag").and_then(Value::as_str), Some("bootstrap"));
-        assert_eq!(config.pointer("/dns/servers/3/detour").and_then(Value::as_str), Some("🔰 国外流量"));
-        assert_eq!(config.pointer("/route/default_domain_resolver").and_then(Value::as_str), Some("bootstrap"));
-        assert_eq!(config.pointer("/dns/final").and_then(Value::as_str), Some("remote"));
-        assert_eq!(config.pointer("/dns/reverse_mapping").and_then(Value::as_bool), Some(true));
-        assert_eq!(config.pointer("/experimental/cache_file/store_fakeip").and_then(Value::as_bool), Some(false));
-        assert_eq!(config.pointer("/experimental/clash_api/external_ui").and_then(Value::as_str), Some("./ui"));
-        assert_eq!(config.pointer("/experimental/clash_api/external_controller").and_then(Value::as_str), Some("127.0.0.1:9999"));
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/type")
+                .and_then(Value::as_str),
+            Some("tls")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/server")
+                .and_then(Value::as_str),
+            Some("223.5.5.5")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/server_port")
+                .and_then(Value::as_u64),
+            Some(853)
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/detour")
+                .and_then(Value::as_str),
+            None
+        );
+        assert_eq!(
+            config.pointer("/dns/servers/2/tag").and_then(Value::as_str),
+            Some("bootstrap")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/3/detour")
+                .and_then(Value::as_str),
+            Some("🔰 国外流量")
+        );
+        assert_eq!(
+            config
+                .pointer("/route/default_domain_resolver")
+                .and_then(Value::as_str),
+            Some("bootstrap")
+        );
+        assert_eq!(
+            config.pointer("/dns/final").and_then(Value::as_str),
+            Some("remote")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/reverse_mapping")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert_eq!(
+            config
+                .pointer("/experimental/cache_file/store_fakeip")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            config
+                .pointer("/experimental/clash_api/external_ui")
+                .and_then(Value::as_str),
+            Some("./ui")
+        );
+        assert_eq!(
+            config
+                .pointer("/experimental/clash_api/external_controller")
+                .and_then(Value::as_str),
+            Some("127.0.0.1:9999")
+        );
     }
 
     #[test]
@@ -1684,14 +2183,29 @@ mod tests {
             .iter()
             .find(|outbound| outbound.get("tag").and_then(Value::as_str) == Some("domain node"))
             .unwrap();
-        assert_eq!(node.pointer("/domain_resolver/server").and_then(Value::as_str), Some("bootstrap"));
-        assert_eq!(node.pointer("/domain_resolver/strategy").and_then(Value::as_str), Some("ipv4_only"));
+        assert_eq!(
+            node.pointer("/domain_resolver/server")
+                .and_then(Value::as_str),
+            Some("bootstrap")
+        );
+        assert_eq!(
+            node.pointer("/domain_resolver/strategy")
+                .and_then(Value::as_str),
+            Some("ipv4_only")
+        );
 
-        let rules = config.pointer("/route/rules").and_then(Value::as_array).unwrap();
+        let rules = config
+            .pointer("/route/rules")
+            .and_then(Value::as_array)
+            .unwrap();
         assert!(rules.iter().any(|rule| {
             rule.get("domain")
                 .and_then(Value::as_array)
-                .is_some_and(|domains| domains.iter().any(|d| d.as_str() == Some("node.example.com")))
+                .is_some_and(|domains| {
+                    domains
+                        .iter()
+                        .any(|d| d.as_str() == Some("node.example.com"))
+                })
                 && rule.get("outbound").and_then(Value::as_str) == Some("🚀 直接连接")
         }));
     }
@@ -1708,8 +2222,15 @@ mod tests {
         let selector = outbound_by_tag(&config, "🔰 国外流量");
         let outbounds = selector.get("outbounds").and_then(Value::as_array).unwrap();
 
-        assert_eq!(outbounds.first().and_then(Value::as_str), Some("domain node"));
-        assert!(outbounds.iter().any(|outbound| outbound.as_str() == Some("🚀 直接连接")));
+        assert_eq!(
+            outbounds.first().and_then(Value::as_str),
+            Some("domain node")
+        );
+        assert!(
+            outbounds
+                .iter()
+                .any(|outbound| outbound.as_str() == Some("🚀 直接连接"))
+        );
         assert!(selector.get("default").is_none());
     }
 
@@ -1724,24 +2245,159 @@ mod tests {
         );
         let node = outbound_by_tag(&config, "domain node");
         assert!(node.get("domain_resolver").is_none());
-        assert_eq!(config.pointer("/dns/servers/0/address").and_then(Value::as_str), Some("https://223.5.5.5/dns-query"));
-        assert_eq!(config.pointer("/dns/servers/2/detour").and_then(Value::as_str), Some("🔰 国外流量"));
-        assert_eq!(config.pointer("/dns/final").and_then(Value::as_str), Some("remote"));
+        assert_eq!(
+            config
+                .pointer("/dns/servers/0/address")
+                .and_then(Value::as_str),
+            Some("https://223.5.5.5/dns-query")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/servers/2/detour")
+                .and_then(Value::as_str),
+            Some("🔰 国外流量")
+        );
+        assert_eq!(
+            config.pointer("/dns/final").and_then(Value::as_str),
+            Some("remote")
+        );
 
-        let route_rules = config.pointer("/route/rules").and_then(Value::as_array).unwrap();
-        assert_eq!(route_rules.first().and_then(|rule| rule.get("protocol")).and_then(Value::as_str), Some("dns"));
+        let route_rules = config
+            .pointer("/route/rules")
+            .and_then(Value::as_array)
+            .unwrap();
+        assert_eq!(
+            route_rules
+                .first()
+                .and_then(|rule| rule.get("protocol"))
+                .and_then(Value::as_str),
+            Some("dns")
+        );
         assert!(route_rules.iter().all(|rule| rule.get("action").is_none()));
-        assert!(config.pointer("/dns/rules").and_then(Value::as_array).unwrap().iter().any(|rule| {
-            rule.get("domain")
+        assert!(
+            config
+                .pointer("/dns/rules")
                 .and_then(Value::as_array)
-                .is_some_and(|domains| domains.iter().any(|domain| domain.as_str() == Some("node.example.com")))
-                && rule.get("server").and_then(Value::as_str) == Some("local")
-        }));
+                .unwrap()
+                .iter()
+                .any(|rule| {
+                    rule.get("domain")
+                        .and_then(Value::as_array)
+                        .is_some_and(|domains| {
+                            domains
+                                .iter()
+                                .any(|domain| domain.as_str() == Some("node.example.com"))
+                        })
+                        && rule.get("server").and_then(Value::as_str) == Some("local")
+                })
+        );
     }
 
-    fn assert_singbox_check(bin: &Path, target: SingboxTarget) {
-        let sub = test_subscribe();
-        let config = build_singbox_config(&sub, &[domain_vmess_proxy()], target, "https://example.test");
+    #[test]
+    fn v13_windows_injects_wireguard_endpoint_route_and_dns() {
+        let config = build_singbox_config(
+            &wireguard_subscribe(),
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v13(),
+            "https://example.test",
+        );
+
+        let endpoint = config.pointer("/endpoints/0").unwrap();
+        assert_eq!(
+            endpoint.get("type").and_then(Value::as_str),
+            Some("wireguard")
+        );
+        assert_eq!(
+            endpoint.get("tag").and_then(Value::as_str),
+            Some("wg-lvmcn")
+        );
+        assert_eq!(
+            endpoint
+                .pointer("/peers/0/persistent_keepalive_interval")
+                .and_then(Value::as_u64),
+            Some(25)
+        );
+        assert_eq!(
+            endpoint
+                .pointer("/domain_resolver/server")
+                .and_then(Value::as_str),
+            Some("bootstrap")
+        );
+
+        let rules = config
+            .pointer("/route/rules")
+            .and_then(Value::as_array)
+            .unwrap();
+        assert!(rules.iter().any(|rule| {
+            rule.get("domain")
+                .and_then(Value::as_array)
+                .is_some_and(|domains| {
+                    domains
+                        .iter()
+                        .any(|domain| domain.as_str() == Some("ddns.lvmcn.com"))
+                })
+                && rule.get("outbound").and_then(Value::as_str) == Some("🚀 直接连接")
+        }));
+        assert!(rules.iter().any(|rule| {
+            rule.get("ip_cidr")
+                .and_then(Value::as_array)
+                .is_some_and(|cidrs| {
+                    cidrs
+                        .iter()
+                        .any(|cidr| cidr.as_str() == Some("10.8.28.0/24"))
+                })
+                && rule.get("outbound").and_then(Value::as_str) == Some("wg-lvmcn")
+        }));
+
+        let servers = config
+            .pointer("/dns/servers")
+            .and_then(Value::as_array)
+            .unwrap();
+        assert!(servers.iter().any(|server| {
+            server.get("tag").and_then(Value::as_str) == Some("rpsh-dns")
+                && server.get("server").and_then(Value::as_str) == Some("10.8.28.1")
+                && server.get("detour").and_then(Value::as_str) == Some("wg-lvmcn")
+        }));
+        assert_eq!(
+            config
+                .pointer("/dns/rules/0/server")
+                .and_then(Value::as_str),
+            Some("rpsh-dns")
+        );
+        assert_eq!(
+            config
+                .pointer("/dns/rules/0/domain_suffix/0")
+                .and_then(Value::as_str),
+            Some("rpsh.vmins.com")
+        );
+    }
+
+    #[test]
+    fn v11_ignores_wireguard_endpoint_config() {
+        let config = build_singbox_config(
+            &wireguard_subscribe(),
+            &[],
+            SingboxTarget::windows_v11(),
+            "https://example.test",
+        );
+        assert!(config.get("endpoints").is_none());
+        assert!(
+            !config
+                .pointer("/route/rules")
+                .and_then(Value::as_array)
+                .unwrap()
+                .iter()
+                .any(|rule| rule.get("outbound").and_then(Value::as_str) == Some("wg-lvmcn"))
+        );
+    }
+
+    fn assert_singbox_check_for_sub(
+        bin: &Path,
+        target: SingboxTarget,
+        sub: &proxy_subscribes::Model,
+    ) {
+        let config =
+            build_singbox_config(sub, &[domain_vmess_proxy()], target, "https://example.test");
         let mut file = tempfile::NamedTempFile::new().unwrap();
         write!(file, "{}", serde_json::to_string_pretty(&config).unwrap()).unwrap();
 
@@ -1760,6 +2416,11 @@ mod tests {
         );
     }
 
+    fn assert_singbox_check(bin: &Path, target: SingboxTarget) {
+        let sub = test_subscribe();
+        assert_singbox_check_for_sub(bin, target, &sub);
+    }
+
     #[test]
     fn generated_configs_pass_singbox_binary_check_when_available() {
         if let Some(bin) = singbox_v11_bin() {
@@ -1770,6 +2431,11 @@ mod tests {
 
         if let Some(bin) = singbox_v12_bin() {
             assert_singbox_check(&bin, SingboxTarget::windows_v12());
+            assert_singbox_check_for_sub(
+                &bin,
+                SingboxTarget::windows_v12(),
+                &wireguard_subscribe(),
+            );
         } else {
             eprintln!("skipping sing-box v1.12 binary check: binary not found");
         }
@@ -1778,6 +2444,11 @@ mod tests {
             for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
                 assert_singbox_check(&bin, target);
             }
+            assert_singbox_check_for_sub(
+                &bin,
+                SingboxTarget::windows_v13(),
+                &wireguard_subscribe(),
+            );
         } else {
             eprintln!("skipping sing-box v1.13 binary check: binary not found");
         }

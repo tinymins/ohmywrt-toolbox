@@ -256,8 +256,33 @@ const TABS = [
   { label: "group", value: "group" },
   { label: "customConfig", value: "customConfig" },
   { label: "dnsConfig", value: "dnsConfig" },
+  { label: "wireguardConfig", value: "wireguardConfig" },
   { label: "servers", value: "servers" },
 ];
+
+const DEFAULT_WIREGUARD_CONFIG = `{
+  "enabled": false,
+  "tag": "wg-lvmcn",
+  "address": "10.8.29.23/32",
+  "privateKey": "",
+  "peer": {
+    "address": "ddns.lvmcn.com",
+    "port": 31088,
+    "publicKey": "",
+    "preSharedKey": "",
+    "allowedIps": ["10.8.28.0/24"],
+    "persistentKeepaliveInterval": 25
+  },
+  "routeCidrs": ["10.8.28.0/24"],
+  "dnsRules": [
+    {
+      "tag": "rpsh-dns",
+      "domainSuffix": "rpsh.vmins.com",
+      "server": "10.8.28.1",
+      "serverPort": 53
+    }
+  ]
+}`;
 
 const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
   ({ onSuccess }, ref) => {
@@ -342,6 +367,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             useSystemCustomConfig: true,
             dnsConfig: "",
             useSystemDnsConfig: true,
+            wireguardConfig: DEFAULT_WIREGUARD_CONFIG,
             servers: JSON.stringify([], null, 2),
           });
           setLoading(false);
@@ -410,6 +436,8 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         useSystemCustomConfig: existingData.useSystemCustomConfig,
         dnsConfig: existingData.dnsConfig ?? "",
         useSystemDnsConfig: existingData.useSystemDnsConfig,
+        wireguardConfig:
+          existingData.wireguardConfig ?? DEFAULT_WIREGUARD_CONFIG,
         servers: existingData.servers ?? "",
         authorizedUserIds: existingData.authorizedUserIds,
       });
@@ -440,6 +468,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           "group",
           "customConfig",
           "dnsConfig",
+          "wireguardConfig",
           "servers",
         ];
         for (const field of fields) {
@@ -468,6 +497,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           useSystemCustomConfig: values.useSystemCustomConfig ?? true,
           dnsConfig: values.dnsConfig || null,
           useSystemDnsConfig: values.useSystemDnsConfig ?? true,
+          wireguardConfig: values.wireguardConfig || null,
           servers: values.servers || null,
           authorizedUserIds: values.authorizedUserIds ?? [],
           cacheTtlMinutes: null, // 缓存时间已移至每个订阅源
@@ -661,6 +691,18 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 <DnsConfigEditorField
                   form={form}
                   defaultValue={defaults?.dnsConfig ?? ""}
+                />
+              </Form.Item>
+            </div>
+
+            {/* WireGuard 配置 */}
+            <div className={activeTab === "wireguardConfig" ? "" : "hidden"}>
+              <Form.Item
+                label={t("proxy.form.wireguardConfigLabel")}
+                name="wireguardConfig"
+              >
+                <JsoncEditor
+                  placeholder={t("proxy.form.wireguardConfigPlaceholder")}
                 />
               </Form.Item>
             </div>
