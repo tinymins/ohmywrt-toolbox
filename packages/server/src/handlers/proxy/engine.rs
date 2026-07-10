@@ -1,4 +1,5 @@
 use serde_json::{json, Map, Value};
+use std::net::IpAddr;
 use tracing::warn;
 
 use crate::db::entities::proxy_subscribes;
@@ -757,7 +758,13 @@ pub fn build_singbox_config(
     outbounds.push(json!({"type": "block", "tag": "reject"}));
 
     for p in proxies {
-        if let Some(ob) = convert_clash_proxy_to_singbox(p) {
+        if let Some(mut ob) = convert_clash_proxy_to_singbox(p) {
+            if target.is_windows() && is_domain_name(&p.server) {
+                ob["domain_resolver"] = json!({
+                    "server": "local",
+                    "strategy": "ipv4_only"
+                });
+            }
             outbounds.push(ob);
         }
     }
@@ -868,7 +875,11 @@ pub fn build_singbox_config(
     }
 
     // DNS section
-    let dns_section = build_singbox_dns(&dns, uses_modern_dns);
+    let dns_section = if target.is_windows() {
+        build_windows_singbox_dns(&dns, uses_modern_dns)
+    } else {
+        build_singbox_dns(&dns, uses_modern_dns)
+    };
 
     // Inbounds
     let inbounds = if target.is_windows() {
@@ -924,16 +935,28 @@ pub fn build_singbox_config(
 
     // Route rules
     let route_rules = if target.is_windows() {
-        json!([
-            {"action": "sniff"},
-            {"protocol": "dns", "action": "hijack-dns"},
-            {
-                "action": "route",
-                "outbound": "🚀 直接连接",
-                "rule_set": ["geoip-cn", "geosite-cn"],
-                "ip_is_private": true
-            }
-        ])
+        let server_domains: Vec<Value> = proxies
+            .iter()
+            .filter(|p| is_domain_name(&p.server))
+            .map(|p| json!(p.server))
+            .collect();
+        let mut rules = vec![
+            json!({"action": "sniff"}),
+            json!({"protocol": "dns", "action": "hijack-dns"}),
+        ];
+        if !server_domains.is_empty() {
+            rules.push(json!({
+                "domain": server_domains,
+                "outbound": "🚀 直接连接"
+            }));
+        }
+        rules.push(json!({
+            "action": "route",
+            "outbound": "🚀 直接连接",
+            "rule_set": ["geoip-cn", "geosite-cn"],
+            "ip_is_private": true
+        }));
+        Value::Array(rules)
     } else if uses_modern_dns {
         json!([
             {"inbound": "dns-in", "action": "hijack-dns"},
@@ -1026,6 +1049,13 @@ pub fn build_singbox_config(
         route["auto_detect_interface"] = json!(true);
     }
 
+    let store_fakeip = dns.shared.fakeip_enabled && !target.is_windows();
+    let clash_api_ui_path = if target.is_windows() {
+        "./ui".to_string()
+    } else {
+        dns.shared.clash_api_ui_path.clone()
+    };
+
     let mut config = json!({
         "log": {"disabled": false, "level": "info", "timestamp": true},
         "dns": dns_section,
@@ -1035,12 +1065,12 @@ pub fn build_singbox_config(
         "experimental": {
             "cache_file": {
                 "enabled": true,
-                "store_fakeip": dns.shared.fakeip_enabled,
+                "store_fakeip": store_fakeip,
                 "store_rdrc": false
             },
             "clash_api": {
                 "external_controller": format!("0.0.0.0:{}", dns.shared.clash_api_port),
-                "external_ui": dns.shared.clash_api_ui_path,
+                "external_ui": clash_api_ui_path,
                 "external_ui_download_url": "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
                 "secret": dns.shared.clash_api_secret,
                 "default_mode": "rule"
@@ -1115,6 +1145,10 @@ pub fn build_singbox_config(
         }
 
     config
+}
+
+fn is_domain_name(host: &str) -> bool {
+    !host.is_empty() && host.parse::<IpAddr>().is_err()
 }
 
 fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
@@ -1251,6 +1285,74 @@ fn build_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
     }
 }
 
+fn build_windows_singbox_dns(dns: &ResolvedDns, uses_modern_dns: bool) -> Value {
+    if !uses_modern_dns {
+        return build_singbox_dns(dns, false);
+    }
+
+    let s = &dns.shared;
+    let local_dns = if s.local_dns.is_empty()
+        || s.local_dns == "127.0.0.1"
+        || s.local_dns == "::1"
+        || s.local_dns.eq_ignore_ascii_case("localhost")
+    {
+        "223.5.5.5"
+    } else {
+        s.local_dns.as_str()
+    };
+
+    let mut rules: Vec<Value> = Vec::new();
+    if s.reject_https {
+        rules.push(json!({"query_type": ["HTTPS"], "action": "reject"}));
+    }
+    rules.push(json!({
+        "ip_cidr": ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+        "action": "route",
+        "server": "local"
+    }));
+    if s.cn_domain_local_dns {
+        rules.push(json!({"rule_set": ["geosite-cn"], "action": "route", "server": "local"}));
+        rules.push(json!({
+            "type": "logical",
+            "mode": "and",
+            "rules": [
+                {"rule_set": ["geoip-cn"]},
+                {"rule_set": ["geoip-hk"], "invert": true},
+                {"rule_set": ["geoip-gfwblack"], "invert": true}
+            ],
+            "action": "route",
+            "server": "local"
+        }));
+    }
+
+    json!({
+        "servers": [
+            {
+                "type": "udp",
+                "tag": "local",
+                "server": local_dns,
+                "server_port": s.local_dns_port,
+            },
+            {
+                "type": "udp",
+                "tag": "local_v4",
+                "server": local_dns,
+                "server_port": s.local_dns_port,
+            },
+            {
+                "type": "https",
+                "tag": "remote",
+                "server": "1.1.1.1",
+                "detour": "🔰 国外流量",
+            }
+        ],
+        "rules": rules,
+        "independent_cache": false,
+        "reverse_mapping": true,
+        "final": "remote",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1294,6 +1396,19 @@ mod tests {
             .iter()
             .filter_map(|inbound| inbound.get("type").and_then(Value::as_str))
             .collect()
+    }
+
+    fn domain_vmess_proxy() -> ClashProxy {
+        let mut extra = Map::new();
+        extra.insert("uuid".into(), json!("00000000-0000-0000-0000-000000000000"));
+        extra.insert("cipher".into(), json!("auto"));
+        ClashProxy {
+            name: "domain node".to_string(),
+            proxy_type: "vmess".to_string(),
+            server: "node.example.com".to_string(),
+            port: 443,
+            extra,
+        }
     }
 
     fn singbox_v13_bin() -> Option<PathBuf> {
@@ -1414,6 +1529,53 @@ mod tests {
                 .and_then(Value::as_str),
             Some("local")
         );
+    }
+
+    #[test]
+    fn windows_targets_use_windows_dns_and_ui_defaults() {
+        let sub = test_subscribe();
+        let config = build_singbox_config(
+            &sub,
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v13(),
+            "https://example.test",
+        );
+
+        assert_eq!(config.pointer("/dns/servers/0/type").and_then(Value::as_str), Some("udp"));
+        assert_eq!(config.pointer("/dns/servers/0/server").and_then(Value::as_str), Some("223.5.5.5"));
+        assert_eq!(config.pointer("/dns/final").and_then(Value::as_str), Some("remote"));
+        assert_eq!(config.pointer("/dns/reverse_mapping").and_then(Value::as_bool), Some(true));
+        assert_eq!(config.pointer("/experimental/cache_file/store_fakeip").and_then(Value::as_bool), Some(false));
+        assert_eq!(config.pointer("/experimental/clash_api/external_ui").and_then(Value::as_str), Some("./ui"));
+    }
+
+    #[test]
+    fn windows_targets_resolve_and_route_proxy_server_domains_directly() {
+        let sub = test_subscribe();
+        let config = build_singbox_config(
+            &sub,
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v13(),
+            "https://example.test",
+        );
+
+        let node = config
+            .get("outbounds")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .find(|outbound| outbound.get("tag").and_then(Value::as_str) == Some("domain node"))
+            .unwrap();
+        assert_eq!(node.pointer("/domain_resolver/server").and_then(Value::as_str), Some("local"));
+        assert_eq!(node.pointer("/domain_resolver/strategy").and_then(Value::as_str), Some("ipv4_only"));
+
+        let rules = config.pointer("/route/rules").and_then(Value::as_array).unwrap();
+        assert!(rules.iter().any(|rule| {
+            rule.get("domain")
+                .and_then(Value::as_array)
+                .is_some_and(|domains| domains.iter().any(|d| d.as_str() == Some("node.example.com")))
+                && rule.get("outbound").and_then(Value::as_str) == Some("🚀 直接连接")
+        }));
     }
 
     #[test]
