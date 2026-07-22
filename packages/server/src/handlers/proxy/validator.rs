@@ -1,7 +1,9 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::io::Write;
+use std::process::Output;
 use tempfile::NamedTempFile;
 use tokio::process::Command;
+use tokio::time::{Duration, timeout};
 use tracing::warn;
 
 /// Result of validating a generated config against the real binary.
@@ -48,22 +50,30 @@ impl ValidationResult {
 /// Priority: SINGBOX_BIN env → DATA_LOCAL_PATH/vendors/ → PATH.
 fn find_singbox_bin(format: &str) -> Option<String> {
     // For v13, allow a separate binary via SINGBOX_V13_BIN
-    if format == "sing-box-v13" || format == "sing-box-v13-windows" {
+    if matches!(
+        format,
+        "sing-box-v13" | "sing-box-v13-windows" | "sing-box-v13-macos"
+    ) {
         if let Ok(bin) = std::env::var("SINGBOX_V13_BIN")
-            && !bin.is_empty() {
-                return Some(bin);
-            }
+            && !bin.is_empty()
+        {
+            return Some(bin);
+        }
         // Try vendor directory
         if let Some(vendor) = find_vendor_bin("sing-box-v13", "sing-box") {
             return Some(vendor);
         }
     }
     // For v12, allow a separate binary via SINGBOX_V12_BIN
-    if format == "sing-box-v12" || format == "sing-box-v12-windows" {
+    if matches!(
+        format,
+        "sing-box-v12" | "sing-box-v12-windows" | "sing-box-v12-macos"
+    ) {
         if let Ok(bin) = std::env::var("SINGBOX_V12_BIN")
-            && !bin.is_empty() {
-                return Some(bin);
-            }
+            && !bin.is_empty()
+        {
+            return Some(bin);
+        }
         // Try vendor directory
         if let Some(vendor) = find_vendor_bin("sing-box-v12", "sing-box") {
             return Some(vendor);
@@ -71,9 +81,10 @@ fn find_singbox_bin(format: &str) -> Option<String> {
     }
     // Generic sing-box binary
     if let Ok(bin) = std::env::var("SINGBOX_BIN")
-        && !bin.is_empty() {
-            return Some(bin);
-        }
+        && !bin.is_empty()
+    {
+        return Some(bin);
+    }
     // Try vendor directory for v11
     if let Some(vendor) = find_vendor_bin("sing-box-v11", "sing-box") {
         return Some(vendor);
@@ -132,12 +143,31 @@ fn strip_ansi(s: &str) -> String {
     result
 }
 
+async fn run_with_timeout(bin: &str, args: &[&str]) -> Result<Output, std::io::Error> {
+    let mut command = Command::new(bin);
+    command.kill_on_drop(true).args(args);
+    match timeout(Duration::from_secs(5), command.output()).await {
+        Ok(result) => result,
+        Err(_) => Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "sing-box check timed out after 5s",
+        )),
+    }
+}
+
+fn is_sandbox_error(output: &Output) -> bool {
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    stderr.contains("Operation not permitted")
+        || stderr.contains("Permission denied")
+        || stderr.contains("unshare failed")
+}
+
 /// Validate a sing-box JSON config using the real binary.
 ///
 /// Security: runs with `unshare --user --net` (user + network namespace isolation,
-/// no capabilities required) or `unshare --net` (needs CAP_SYS_ADMIN) with
-/// `timeout 5s` to prevent hangs. Falls back to direct execution only if
-/// `ALLOW_INSECURE_VALIDATION=true` and both unshare variants are unavailable.
+/// no capabilities required) or `unshare --net` (needs CAP_SYS_ADMIN) on Linux.
+/// All executions use a 5s Tokio timeout. Falls back to direct execution only if
+/// `ALLOW_INSECURE_VALIDATION=true` and sandboxed execution is unavailable.
 pub async fn validate_singbox_config(config_json: &str, format: &str) -> ValidationResult {
     let allow_insecure = std::env::var("ALLOW_INSECURE_VALIDATION")
         .map(|v| v.eq_ignore_ascii_case("true") || v == "1")
@@ -168,62 +198,40 @@ pub async fn validate_singbox_config(config_json: &str, format: &str) -> Validat
     // If both fail, fall back to direct exec only when ALLOW_INSECURE_VALIDATION=true.
     let output = if which_exists("unshare") {
         // Try --user --net first (no capabilities needed, just seccomp allowlist)
-        let result = Command::new("timeout")
-            .args([
-                "5s", "unshare", "--user", "--net", "--", &bin, "check", "-c", &tmp_path,
-            ])
-            .output()
-            .await;
+        let result = run_with_timeout(
+            "unshare",
+            &["--user", "--net", "--", &bin, "check", "-c", &tmp_path],
+        )
+        .await;
         let result = match &result {
-            Ok(out) if !out.status.success() => {
-                let stderr = String::from_utf8_lossy(&out.stderr);
-                if stderr.contains("Operation not permitted")
-                    || stderr.contains("Permission denied")
-                    || stderr.contains("unshare failed")
-                {
-                    // Try --net only (needs CAP_SYS_ADMIN)
-                    Command::new("timeout")
-                        .args(["5s", "unshare", "--net", "--", &bin, "check", "-c", &tmp_path])
-                        .output()
-                        .await
-                } else {
-                    result
-                }
+            Ok(out) if !out.status.success() && is_sandbox_error(out) => {
+                // Try --net only (needs CAP_SYS_ADMIN)
+                run_with_timeout("unshare", &["--net", "--", &bin, "check", "-c", &tmp_path]).await
             }
             _ => result,
         };
         // Check if both unshare variants failed
         match &result {
-            Ok(out) if !out.status.success() => {
-                let stderr = String::from_utf8_lossy(&out.stderr);
-                if stderr.contains("Operation not permitted")
-                    || stderr.contains("Permission denied")
-                    || stderr.contains("unshare failed")
-                {
-                    if allow_insecure {
-                        warn!("unshare not permitted, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
-                        Command::new("timeout")
-                            .args(["5s", &bin, "check", "-c", &tmp_path])
-                            .output()
-                            .await
-                    } else {
-                        warn!("unshare not permitted and ALLOW_INSECURE_VALIDATION is not enabled");
-                        return ValidationResult::skipped(
-                            "sandbox unavailable: unshare not permitted (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
-                        );
-                    }
+            Ok(out) if !out.status.success() && is_sandbox_error(out) => {
+                if allow_insecure {
+                    warn!(
+                        "unshare not permitted, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)"
+                    );
+                    run_with_timeout(&bin, &["check", "-c", &tmp_path]).await
                 } else {
-                    result
+                    warn!("unshare not permitted and ALLOW_INSECURE_VALIDATION is not enabled");
+                    return ValidationResult::skipped(
+                        "sandbox unavailable: unshare not permitted (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
+                    );
                 }
             }
             _ => result,
         }
     } else if allow_insecure {
-        warn!("unshare not found, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)");
-        Command::new("timeout")
-            .args(["5s", &bin, "check", "-c", &tmp_path])
-            .output()
-            .await
+        warn!(
+            "unshare not found, falling back to direct execution (ALLOW_INSECURE_VALIDATION=true)"
+        );
+        run_with_timeout(&bin, &["check", "-c", &tmp_path]).await
     } else {
         return ValidationResult::skipped(
             "sandbox unavailable: unshare not found (set ALLOW_INSECURE_VALIDATION=true to allow insecure fallback)",
@@ -313,15 +321,17 @@ pub fn validate_clash_config(config_yaml: &str) -> ValidationResult {
 
             // Check proxy-groups is an array
             if let Some(groups) = doc.get("proxy-groups")
-                && groups.as_array().is_none() {
-                    errors.push("proxy-groups must be an array".to_string());
-                }
+                && groups.as_array().is_none()
+            {
+                errors.push("proxy-groups must be an array".to_string());
+            }
 
             // Check rules is an array
             if let Some(rules) = doc.get("rules")
-                && rules.as_array().is_none() {
-                    errors.push("rules must be an array".to_string());
-                }
+                && rules.as_array().is_none()
+            {
+                errors.push("rules must be an array".to_string());
+            }
 
             let valid = errors.is_empty();
             ValidationResult {
@@ -341,12 +351,13 @@ pub async fn validate_config(config_output: &str, format: &str) -> ValidationRes
     match format {
         "sing-box"
         | "sing-box-windows"
+        | "sing-box-macos"
         | "sing-box-v12"
         | "sing-box-v12-windows"
+        | "sing-box-v12-macos"
         | "sing-box-v13"
-        | "sing-box-v13-windows" => {
-            validate_singbox_config(config_output, format).await
-        }
+        | "sing-box-v13-windows"
+        | "sing-box-v13-macos" => validate_singbox_config(config_output, format).await,
         "clash" | "clash-meta" => validate_clash_config(config_output),
         _ => ValidationResult::skipped(&format!("unknown format: {format}")),
     }

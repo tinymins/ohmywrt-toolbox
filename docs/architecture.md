@@ -211,9 +211,10 @@ docker/docker-compose.yml
 |--------|------|-----------|------|
 | sing-box | v1.11.0 | `/app/data/vendors/sing-box-v11/sing-box` | Sing-box v11 格式校验 |
 | sing-box | v1.12.25 | `/app/data/vendors/sing-box-v12/sing-box` | Sing-box v12 格式校验 |
+| sing-box | v1.13.14 | `/app/data/vendors/sing-box-v13/sing-box` | Sing-box v13 格式校验 |
 | mihomo | v1.19.22 | `/app/data/vendors/mihomo/mihomo` | Clash/Clash-Meta 格式校验（预留） |
 
-校验时通过 `unshare --user --net` 在用户+网络命名空间中执行二进制，实现无特权的网络隔离。Docker 环境需配合自定义 seccomp profile（`docker/seccomp.json`）放行 `unshare` syscall。
+下载脚本会按当前 Linux/macOS 与 amd64/arm64 选择对应资产。Linux 校验时通过 `unshare --user --net` 在用户+网络命名空间中执行二进制，实现无特权的网络隔离；macOS 本地调试只能在 `ALLOW_INSECURE_VALIDATION=true` 时降级为无沙箱校验。Docker 环境需配合自定义 seccomp profile（`docker/seccomp.json`）放行 `unshare` syscall。
 
 ## 开发工作流
 

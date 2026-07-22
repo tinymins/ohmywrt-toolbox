@@ -24,10 +24,13 @@ const DEBUG_FORMAT_MAP: Record<string, ProxyDebugFormat> = {
   clashMeta: "clash-meta",
   "singbox-v11": "sing-box",
   "singbox-v11-windows": "sing-box-windows",
+  "singbox-v11-macos": "sing-box-macos",
   "singbox-v12": "sing-box-v12",
   "singbox-v12-windows": "sing-box-v12-windows",
+  "singbox-v12-macos": "sing-box-v12-macos",
   "singbox-v13": "sing-box-v13",
   "singbox-v13-windows": "sing-box-v13-windows",
+  "singbox-v13-macos": "sing-box-v13-macos",
 };
 
 export interface ProxyLinksModalRef {
@@ -62,10 +65,13 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
   const clashMetaUrl = `${baseUrl}/api/public/proxy/${uuid}/clash-meta`;
   const singboxV11Url = `${baseUrl}/api/public/proxy/${uuid}/sing-box`;
   const singboxV11WindowsUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/windows`;
+  const singboxV11MacosUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/macos`;
   const singboxV12Url = `${baseUrl}/api/public/proxy/${uuid}/sing-box/12`;
   const singboxV12WindowsUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/12/windows`;
+  const singboxV12MacosUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/12/macos`;
   const singboxV13Url = `${baseUrl}/api/public/proxy/${uuid}/sing-box/13`;
   const singboxV13WindowsUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/13/windows`;
+  const singboxV13MacosUrl = `${baseUrl}/api/public/proxy/${uuid}/sing-box/13/macos`;
 
   const handleCopy = (url: string) => {
     navigator.clipboard.writeText(url).then(() => {
@@ -107,6 +113,14 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
       url: singboxV11WindowsUrl,
     },
     {
+      key: "singbox-v11-macos",
+      label: "Sing-box v1.11 macOS",
+      icon: <LinkOutlined />,
+      color: "#047857",
+      tagColor: "green",
+      url: singboxV11MacosUrl,
+    },
+    {
       key: "singbox-v12",
       label: "Sing-box v1.12",
       icon: <LinkOutlined />,
@@ -123,6 +137,14 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
       url: singboxV12WindowsUrl,
     },
     {
+      key: "singbox-v12-macos",
+      label: "Sing-box v1.12 macOS",
+      icon: <LinkOutlined />,
+      color: "#0891b2",
+      tagColor: "cyan",
+      url: singboxV12MacosUrl,
+    },
+    {
       key: "singbox-v13",
       label: "Sing-box v1.13",
       icon: <LinkOutlined />,
@@ -137,6 +159,14 @@ const ProxyLinksModal = forwardRef<ProxyLinksModalRef>((_, ref) => {
       color: "#1d4ed8",
       tagColor: "blue",
       url: singboxV13WindowsUrl,
+    },
+    {
+      key: "singbox-v13-macos",
+      label: "Sing-box v1.13 macOS",
+      icon: <LinkOutlined />,
+      color: "#0f766e",
+      tagColor: "blue",
+      url: singboxV13MacosUrl,
     },
   ];
 

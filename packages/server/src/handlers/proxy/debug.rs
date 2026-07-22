@@ -286,10 +286,13 @@ pub async fn trace_node_logic(
             }
             "sing-box"
             | "sing-box-windows"
+            | "sing-box-macos"
             | "sing-box-v12"
             | "sing-box-v12-windows"
+            | "sing-box-v12-macos"
             | "sing-box-v13"
-            | "sing-box-v13-windows" => {
+            | "sing-box-v13-windows"
+            | "sing-box-v13-macos" => {
                 convert_clash_proxy_to_singbox(proxy)
                     .map(|ob| serde_json::to_string_pretty(&ob).unwrap_or_default())
                     .unwrap_or_default()
@@ -421,7 +424,7 @@ async fn run_debug_stream(
     }
 
     let exclude_types: Vec<&str> = match format {
-        "sing-box" | "sing-box-windows" => vec!["ssr", "anytls"],
+        "sing-box" | "sing-box-windows" | "sing-box-macos" => vec!["ssr", "anytls"],
         _ => vec!["ssr"],
     };
 
@@ -698,10 +701,13 @@ async fn run_debug_stream(
         }
         "sing-box"
         | "sing-box-windows"
+        | "sing-box-macos"
         | "sing-box-v12"
         | "sing-box-v12-windows"
+        | "sing-box-v12-macos"
         | "sing-box-v13"
-        | "sing-box-v13-windows" => {
+        | "sing-box-v13-windows"
+        | "sing-box-v13-macos" => {
             let target = engine::SingboxTarget::from_format(format)
                 .unwrap_or_else(engine::SingboxTarget::default_v11);
             let public_url = std::env::var("PUBLIC_SERVER_URL").unwrap_or_default();

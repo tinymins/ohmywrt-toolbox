@@ -508,7 +508,7 @@ fn resolve_private_access_config(
         return None;
     }
 
-    let resolver = if target.is_windows() {
+    let resolver = if target.is_desktop_tun() {
         "bootstrap"
     } else {
         "local"
@@ -567,7 +567,7 @@ fn resolve_private_access_config(
                 outbound["tag"] = json!(tag);
                 if let Some(host) = outbound_server_domain(&outbound) {
                     push_unique(&mut resolved.direct_domains, host);
-                    if target.is_windows() && outbound.get("domain_resolver").is_none() {
+                    if target.is_desktop_tun() && outbound.get("domain_resolver").is_none() {
                         outbound["domain_resolver"] = json!({
                             "server": "bootstrap",
                             "strategy": "ipv4_only"
@@ -931,7 +931,7 @@ pub async fn fetch_proxies(
 
     // Determine types to exclude
     let exclude_types: Vec<&str> = match format {
-        "sing-box" | "sing-box-windows" => vec!["ssr", "anytls"],
+        "sing-box" | "sing-box-windows" | "sing-box-macos" => vec!["ssr", "anytls"],
         _ => vec!["ssr"],
     };
 
@@ -1180,6 +1180,7 @@ pub enum SingboxVersion {
 pub enum SingboxPlatform {
     DefaultTproxy,
     WindowsTun,
+    MacosTun,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1231,14 +1232,38 @@ impl SingboxTarget {
         }
     }
 
+    pub const fn macos_v11() -> Self {
+        Self {
+            version: SingboxVersion::V11,
+            platform: SingboxPlatform::MacosTun,
+        }
+    }
+
+    pub const fn macos_v12() -> Self {
+        Self {
+            version: SingboxVersion::V12,
+            platform: SingboxPlatform::MacosTun,
+        }
+    }
+
+    pub const fn macos_v13() -> Self {
+        Self {
+            version: SingboxVersion::V13,
+            platform: SingboxPlatform::MacosTun,
+        }
+    }
+
     pub fn from_format(format: &str) -> Option<Self> {
         match format {
             "sing-box" => Some(Self::default_v11()),
             "sing-box-windows" => Some(Self::windows_v11()),
+            "sing-box-macos" => Some(Self::macos_v11()),
             "sing-box-v12" => Some(Self::default_v12()),
             "sing-box-v12-windows" => Some(Self::windows_v12()),
+            "sing-box-v12-macos" => Some(Self::macos_v12()),
             "sing-box-v13" => Some(Self::default_v13()),
             "sing-box-v13-windows" => Some(Self::windows_v13()),
+            "sing-box-v13-macos" => Some(Self::macos_v13()),
             _ => None,
         }
     }
@@ -1259,14 +1284,24 @@ impl SingboxTarget {
         matches!(self.platform, SingboxPlatform::WindowsTun)
     }
 
+    pub const fn is_desktop_tun(self) -> bool {
+        matches!(
+            self.platform,
+            SingboxPlatform::WindowsTun | SingboxPlatform::MacosTun
+        )
+    }
+
     pub const fn format(self) -> &'static str {
         match (self.version, self.platform) {
             (SingboxVersion::V11, SingboxPlatform::DefaultTproxy) => "sing-box",
             (SingboxVersion::V11, SingboxPlatform::WindowsTun) => "sing-box-windows",
+            (SingboxVersion::V11, SingboxPlatform::MacosTun) => "sing-box-macos",
             (SingboxVersion::V12, SingboxPlatform::DefaultTproxy) => "sing-box-v12",
             (SingboxVersion::V12, SingboxPlatform::WindowsTun) => "sing-box-v12-windows",
+            (SingboxVersion::V12, SingboxPlatform::MacosTun) => "sing-box-v12-macos",
             (SingboxVersion::V13, SingboxPlatform::DefaultTproxy) => "sing-box-v13",
             (SingboxVersion::V13, SingboxPlatform::WindowsTun) => "sing-box-v13-windows",
+            (SingboxVersion::V13, SingboxPlatform::MacosTun) => "sing-box-v13-macos",
         }
     }
 }
@@ -1295,7 +1330,7 @@ pub fn build_singbox_config(
 
     for p in proxies {
         if let Some(mut ob) = convert_clash_proxy_to_singbox(p) {
-            if target.is_windows() && uses_modern_dns && is_domain_name(&p.server) {
+            if target.is_desktop_tun() && uses_modern_dns && is_domain_name(&p.server) {
                 ob["domain_resolver"] = json!({
                     "server": "bootstrap",
                     "strategy": "ipv4_only"
@@ -1372,8 +1407,8 @@ pub fn build_singbox_config(
             .unwrap_or_default();
 
         let mut all_outbounds: Vec<String> = Vec::new();
-        let windows_foreign_selector = target.is_windows() && name == "🔰 国外流量";
-        if windows_foreign_selector && !readonly {
+        let desktop_foreign_selector = target.is_desktop_tun() && name == "🔰 国外流量";
+        if desktop_foreign_selector && !readonly {
             for n in &node_names {
                 push_unique(&mut all_outbounds, (*n).to_string());
             }
@@ -1398,7 +1433,7 @@ pub fn build_singbox_config(
             "outbounds": all_outbounds,
             "interrupt_exist_connections": true,
         });
-        if !windows_foreign_selector {
+        if !desktop_foreign_selector {
             selector["default"] = json!(default_ob);
         }
         outbounds.push(selector);
@@ -1448,7 +1483,7 @@ pub fn build_singbox_config(
     server_domains.extend(private_access_direct_domains(&private_access));
 
     // DNS section
-    let mut dns_section = if target.is_windows() {
+    let mut dns_section = if target.is_desktop_tun() {
         build_windows_singbox_dns(&dns, uses_modern_dns, &server_domains)
     } else {
         build_singbox_dns(&dns, uses_modern_dns)
@@ -1458,18 +1493,19 @@ pub fn build_singbox_config(
     }
 
     // Inbounds
-    let inbounds = if target.is_windows() {
-        json!([
-            {
-                "type": "tun",
-                "tag": "tun-in",
-                "interface_name": "sing-box",
-                "address": ["172.19.0.1/30"],
-                "auto_route": true,
-                "strict_route": true,
-                "stack": "mixed",
-            }
-        ])
+    let inbounds = if target.is_desktop_tun() {
+        let mut tun_inbound = json!({
+            "type": "tun",
+            "tag": "tun-in",
+            "address": ["172.19.0.1/30"],
+            "auto_route": true,
+            "strict_route": true,
+            "stack": "mixed",
+        });
+        if target.is_windows() {
+            tun_inbound["interface_name"] = json!("sing-box");
+        }
+        json!([tun_inbound])
     } else if uses_modern_dns {
         json!([
             {
@@ -1510,7 +1546,7 @@ pub fn build_singbox_config(
     };
 
     // Route rules
-    let mut route_rules = if target.is_windows() && uses_modern_dns {
+    let mut route_rules = if target.is_desktop_tun() && uses_modern_dns {
         let mut rules = vec![
             json!({"action": "sniff"}),
             json!({"protocol": "dns", "action": "hijack-dns"}),
@@ -1528,7 +1564,7 @@ pub fn build_singbox_config(
             "ip_is_private": true
         }));
         Value::Array(rules)
-    } else if target.is_windows() {
+    } else if target.is_desktop_tun() {
         let mut rules = vec![json!({"outbound": "dns-out", "protocol": "dns"})];
         if !server_domains.is_empty() {
             rules.push(json!({
@@ -1631,18 +1667,18 @@ pub fn build_singbox_config(
         "final": "⚓️ 其他流量",
     });
     if uses_modern_dns {
-        route["default_domain_resolver"] = json!(if target.is_windows() {
+        route["default_domain_resolver"] = json!(if target.is_desktop_tun() {
             "bootstrap"
         } else {
             "local"
         });
     }
-    if target.is_windows() {
+    if target.is_desktop_tun() {
         route["auto_detect_interface"] = json!(true);
     }
 
-    let store_fakeip = dns.shared.fakeip_enabled && !target.is_windows();
-    let clash_api_ui_path = if target.is_windows() {
+    let store_fakeip = dns.shared.fakeip_enabled && !target.is_desktop_tun();
+    let clash_api_ui_path = if target.is_desktop_tun() {
         "./ui".to_string()
     } else {
         dns.shared.clash_api_ui_path.clone()
@@ -1661,7 +1697,7 @@ pub fn build_singbox_config(
                 "store_rdrc": false
             },
             "clash_api": {
-                "external_controller": format!("{}:{}", if target.is_windows() { "127.0.0.1" } else { "0.0.0.0" }, dns.shared.clash_api_port),
+                "external_controller": format!("{}:{}", if target.is_desktop_tun() { "127.0.0.1" } else { "0.0.0.0" }, dns.shared.clash_api_port),
                 "external_ui": clash_api_ui_path,
                 "external_ui_download_url": "https://gh-proxy.org/https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip",
                 "secret": dns.shared.clash_api_secret,
@@ -2199,6 +2235,28 @@ mod tests {
     }
 
     #[test]
+    fn macos_targets_use_tun_without_tproxy() {
+        let sub = test_subscribe();
+        for target in [
+            SingboxTarget::macos_v11(),
+            SingboxTarget::macos_v12(),
+            SingboxTarget::macos_v13(),
+        ] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let types = inbound_types(&config);
+            assert_eq!(types, vec!["tun"]);
+            assert!(config.pointer("/inbounds/0/interface_name").is_none());
+            assert_eq!(
+                config
+                    .pointer("/route/auto_detect_interface")
+                    .and_then(Value::as_bool),
+                Some(true)
+            );
+            assert!(!types.contains(&"tproxy"));
+        }
+    }
+
+    #[test]
     fn default_targets_keep_tproxy_inbound() {
         let sub = test_subscribe();
         for target in [
@@ -2215,29 +2273,30 @@ mod tests {
     #[test]
     fn v12_windows_uses_v12_rule_conversion_endpoint() {
         let sub = test_subscribe();
-        let config = build_singbox_config(
-            &sub,
-            &[],
-            SingboxTarget::windows_v12(),
-            "https://example.test",
-        );
-        let rule_sets = config
-            .pointer("/route/rule_set")
-            .and_then(Value::as_array)
-            .unwrap();
+        for target in [SingboxTarget::windows_v12(), SingboxTarget::macos_v12()] {
+            let config = build_singbox_config(&sub, &[], target, "https://example.test");
+            let rule_sets = config
+                .pointer("/route/rule_set")
+                .and_then(Value::as_array)
+                .unwrap();
 
-        assert!(rule_sets.iter().any(|rule_set| {
-            rule_set
-                .get("url")
-                .and_then(Value::as_str)
-                .is_some_and(|url| url.contains("/api/proxy/sing-box/convert/rule/12"))
-        }));
+            assert!(rule_sets.iter().any(|rule_set| {
+                rule_set
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .is_some_and(|url| url.contains("/api/proxy/sing-box/convert/rule/12"))
+            }));
+        }
     }
 
     #[test]
     fn v13_uses_v13_rule_conversion_endpoint() {
         let sub = test_subscribe();
-        for target in [SingboxTarget::default_v13(), SingboxTarget::windows_v13()] {
+        for target in [
+            SingboxTarget::default_v13(),
+            SingboxTarget::windows_v13(),
+            SingboxTarget::macos_v13(),
+        ] {
             let config = build_singbox_config(&sub, &[], target, "https://example.test");
             let rule_sets = config
                 .pointer("/route/rule_set")
@@ -2287,83 +2346,85 @@ mod tests {
     }
 
     #[test]
-    fn windows_targets_use_windows_dns_and_ui_defaults() {
+    fn desktop_tun_targets_use_desktop_dns_and_ui_defaults() {
         let sub = test_subscribe();
-        let config = build_singbox_config(
-            &sub,
-            &[domain_vmess_proxy()],
-            SingboxTarget::windows_v13(),
-            "https://example.test",
-        );
+        for target in [SingboxTarget::windows_v13(), SingboxTarget::macos_v13()] {
+            let config = build_singbox_config(
+                &sub,
+                &[domain_vmess_proxy()],
+                target,
+                "https://example.test",
+            );
 
-        assert_eq!(
-            config
-                .pointer("/dns/servers/0/type")
-                .and_then(Value::as_str),
-            Some("tls")
-        );
-        assert_eq!(
-            config
-                .pointer("/dns/servers/0/server")
-                .and_then(Value::as_str),
-            Some("223.5.5.5")
-        );
-        assert_eq!(
-            config
-                .pointer("/dns/servers/0/server_port")
-                .and_then(Value::as_u64),
-            Some(853)
-        );
-        assert_eq!(
-            config
-                .pointer("/dns/servers/0/detour")
-                .and_then(Value::as_str),
-            None
-        );
-        assert_eq!(
-            config.pointer("/dns/servers/2/tag").and_then(Value::as_str),
-            Some("bootstrap")
-        );
-        assert_eq!(
-            config
-                .pointer("/dns/servers/3/detour")
-                .and_then(Value::as_str),
-            Some("🔰 国外流量")
-        );
-        assert_eq!(
-            config
-                .pointer("/route/default_domain_resolver")
-                .and_then(Value::as_str),
-            Some("bootstrap")
-        );
-        assert_eq!(
-            config.pointer("/dns/final").and_then(Value::as_str),
-            Some("remote")
-        );
-        assert_eq!(
-            config
-                .pointer("/dns/reverse_mapping")
-                .and_then(Value::as_bool),
-            Some(true)
-        );
-        assert_eq!(
-            config
-                .pointer("/experimental/cache_file/store_fakeip")
-                .and_then(Value::as_bool),
-            Some(false)
-        );
-        assert_eq!(
-            config
-                .pointer("/experimental/clash_api/external_ui")
-                .and_then(Value::as_str),
-            Some("./ui")
-        );
-        assert_eq!(
-            config
-                .pointer("/experimental/clash_api/external_controller")
-                .and_then(Value::as_str),
-            Some("127.0.0.1:9999")
-        );
+            assert_eq!(
+                config
+                    .pointer("/dns/servers/0/type")
+                    .and_then(Value::as_str),
+                Some("tls")
+            );
+            assert_eq!(
+                config
+                    .pointer("/dns/servers/0/server")
+                    .and_then(Value::as_str),
+                Some("223.5.5.5")
+            );
+            assert_eq!(
+                config
+                    .pointer("/dns/servers/0/server_port")
+                    .and_then(Value::as_u64),
+                Some(853)
+            );
+            assert_eq!(
+                config
+                    .pointer("/dns/servers/0/detour")
+                    .and_then(Value::as_str),
+                None
+            );
+            assert_eq!(
+                config.pointer("/dns/servers/2/tag").and_then(Value::as_str),
+                Some("bootstrap")
+            );
+            assert_eq!(
+                config
+                    .pointer("/dns/servers/3/detour")
+                    .and_then(Value::as_str),
+                Some("🔰 国外流量")
+            );
+            assert_eq!(
+                config
+                    .pointer("/route/default_domain_resolver")
+                    .and_then(Value::as_str),
+                Some("bootstrap")
+            );
+            assert_eq!(
+                config.pointer("/dns/final").and_then(Value::as_str),
+                Some("remote")
+            );
+            assert_eq!(
+                config
+                    .pointer("/dns/reverse_mapping")
+                    .and_then(Value::as_bool),
+                Some(true)
+            );
+            assert_eq!(
+                config
+                    .pointer("/experimental/cache_file/store_fakeip")
+                    .and_then(Value::as_bool),
+                Some(false)
+            );
+            assert_eq!(
+                config
+                    .pointer("/experimental/clash_api/external_ui")
+                    .and_then(Value::as_str),
+                Some("./ui")
+            );
+            assert_eq!(
+                config
+                    .pointer("/experimental/clash_api/external_controller")
+                    .and_then(Value::as_str),
+                Some("127.0.0.1:9999")
+            );
+        }
     }
 
     #[test]

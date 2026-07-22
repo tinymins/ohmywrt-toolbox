@@ -119,6 +119,8 @@ export default {
     privateWgPublicKey: "对端公钥",
     privateWgPresharedKey: "预共享密钥",
     privateWgAllowedIps: "对端 Allowed IPs",
+    privateWgReuseWarning:
+      "WireGuard 是对等组网，同一套地址和密钥不支持多点连接；多人或多设备请分别创建独立配置。",
     privateOutboundServer: "服务器",
     privateOutboundPort: "端口",
     privateOutboundUuid: "UUID",

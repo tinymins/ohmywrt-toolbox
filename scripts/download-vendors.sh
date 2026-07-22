@@ -68,6 +68,19 @@ detect_arch() {
   esac
 }
 
+detect_os() {
+  local system
+  system="$(uname -s)"
+  case "$system" in
+    Linux) echo "linux" ;;
+    Darwin) echo "darwin" ;;
+    *)
+      echo "WARN: Unsupported OS: $system" >&2
+      return 1
+      ;;
+  esac
+}
+
 # Check if a vendor binary is already the correct version
 check_version_marker() {
   local dir="$1" expected_version="$2"
@@ -86,22 +99,24 @@ write_version_marker() {
 
 # Download and extract sing-box
 download_singbox() {
-  local version="$1" target_dir="$2" arch="$3"
-  local url="https://github.com/SagerNet/sing-box/releases/download/v${version}/sing-box-${version}-linux-${arch}.tar.gz"
+  local version="$1" target_dir="$2" os="$3" arch="$4"
+  local asset="sing-box-${version}-${os}-${arch}"
+  local marker="${version}-${os}-${arch}"
+  local url="https://github.com/SagerNet/sing-box/releases/download/v${version}/${asset}.tar.gz"
   local tmp_file
 
-  if check_version_marker "$target_dir" "$version" && [ -x "$target_dir/sing-box" ]; then
-    echo "  ✓ sing-box $version already exists, skipping"
+  if check_version_marker "$target_dir" "$marker" && [ -x "$target_dir/sing-box" ]; then
+    echo "  ✓ sing-box $version (${os}/${arch}) already exists, skipping"
     return 0
   fi
 
-  echo "  ↓ Downloading sing-box v${version} (${arch})..."
+  echo "  ↓ Downloading sing-box v${version} (${os}/${arch})..."
   mkdir -p "$target_dir"
   tmp_file="$(mktemp)"
   if curl -fsSL --connect-timeout 15 --max-time 120 "$url" -o "$tmp_file"; then
-    tar -xzf "$tmp_file" -C "$target_dir" --strip-components=1 "sing-box-${version}-linux-${arch}/sing-box"
+    tar -xzf "$tmp_file" -C "$target_dir" --strip-components=1 "${asset}/sing-box"
     chmod +x "$target_dir/sing-box"
-    write_version_marker "$target_dir" "$version"
+    write_version_marker "$target_dir" "$marker"
     rm -f "$tmp_file"
     echo "  ✓ sing-box v${version} installed"
   else
@@ -113,22 +128,32 @@ download_singbox() {
 
 # Download and extract mihomo
 download_mihomo() {
-  local version="$1" target_dir="$2" arch="$3"
-  local url="https://github.com/MetaCubeX/mihomo/releases/download/v${version}/mihomo-linux-${arch}-v${version}.gz"
+  local version="$1" target_dir="$2" os="$3" arch="$4"
+  local asset
+  case "$os" in
+    linux) asset="mihomo-linux-${arch}-v${version}.gz" ;;
+    darwin) asset="mihomo-darwin-${arch}-v${version}.gz" ;;
+    *)
+      echo "  ⚠ mihomo is unsupported on ${os}/${arch}, skipping"
+      return 0
+      ;;
+  esac
+  local marker="${version}-${os}-${arch}"
+  local url="https://github.com/MetaCubeX/mihomo/releases/download/v${version}/${asset}"
   local tmp_file
 
-  if check_version_marker "$target_dir" "$version" && [ -x "$target_dir/mihomo" ]; then
-    echo "  ✓ mihomo $version already exists, skipping"
+  if check_version_marker "$target_dir" "$marker" && [ -x "$target_dir/mihomo" ]; then
+    echo "  ✓ mihomo $version (${os}/${arch}) already exists, skipping"
     return 0
   fi
 
-  echo "  ↓ Downloading mihomo v${version} (${arch})..."
+  echo "  ↓ Downloading mihomo v${version} (${os}/${arch})..."
   mkdir -p "$target_dir"
   tmp_file="$(mktemp)"
   if curl -fsSL --connect-timeout 15 --max-time 120 "$url" -o "$tmp_file"; then
     gunzip -c "$tmp_file" > "$target_dir/mihomo"
     chmod +x "$target_dir/mihomo"
-    write_version_marker "$target_dir" "$version"
+    write_version_marker "$target_dir" "$marker"
     rm -f "$tmp_file"
     echo "  ✓ mihomo v${version} installed"
   else
@@ -146,25 +171,29 @@ ARCH="$(detect_arch)" || {
   echo "WARN: Skipping vendor binary download (unsupported architecture)" >&2
   exit 0
 }
+OS="$(detect_os)" || {
+  echo "WARN: Skipping vendor binary download (unsupported OS)" >&2
+  exit 0
+}
 
 # Track failures but don't abort — validation gracefully handles missing binaries
 failures=0
 
 echo ""
 echo "sing-box v${SINGBOX_V11_VER} (v1.11 format):"
-download_singbox "$SINGBOX_V11_VER" "$VENDORS_DIR/sing-box-v11" "$ARCH" || ((failures++))
+download_singbox "$SINGBOX_V11_VER" "$VENDORS_DIR/sing-box-v11" "$OS" "$ARCH" || ((failures++))
 
 echo ""
 echo "sing-box v${SINGBOX_V12_VER} (v1.12 format):"
-download_singbox "$SINGBOX_V12_VER" "$VENDORS_DIR/sing-box-v12" "$ARCH" || ((failures++))
+download_singbox "$SINGBOX_V12_VER" "$VENDORS_DIR/sing-box-v12" "$OS" "$ARCH" || ((failures++))
 
 echo ""
 echo "sing-box v${SINGBOX_V13_VER} (v1.13 format):"
-download_singbox "$SINGBOX_V13_VER" "$VENDORS_DIR/sing-box-v13" "$ARCH" || ((failures++))
+download_singbox "$SINGBOX_V13_VER" "$VENDORS_DIR/sing-box-v13" "$OS" "$ARCH" || ((failures++))
 
 echo ""
 echo "mihomo v${MIHOMO_VER} (clash/clash-meta format):"
-download_mihomo "$MIHOMO_VER" "$VENDORS_DIR/mihomo" "$ARCH" || ((failures++))
+download_mihomo "$MIHOMO_VER" "$VENDORS_DIR/mihomo" "$OS" "$ARCH" || ((failures++))
 
 echo ""
 if [ "$failures" -gt 0 ]; then

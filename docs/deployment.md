@@ -60,10 +60,10 @@ docker-entrypoint.sh
 配置校验在隔离的网络命名空间中执行第三方二进制，防止 RCE 攻击：
 
 ```bash
-timeout 5s unshare --user --net -- sing-box check -c config.json
+unshare --user --net -- sing-box check -c config.json
 ```
 
-Docker 默认 seccomp profile 禁止 `unshare` syscall。通过自定义 seccomp profile（`docker/seccomp.json`）仅额外放行 `unshare` 一个 syscall，配合 `--user` 参数通过用户命名空间获得权限，无需给容器添加 `CAP_SYS_ADMIN`。
+服务端用 Tokio 5 秒超时包裹校验进程，防止挂死且不依赖系统 `timeout` 命令。Docker 默认 seccomp profile 禁止 `unshare` syscall。通过自定义 seccomp profile（`docker/seccomp.json`）仅额外放行 `unshare` 一个 syscall，配合 `--user` 参数通过用户命名空间获得权限，无需给容器添加 `CAP_SYS_ADMIN`。
 
 ## 环境变量参考
 

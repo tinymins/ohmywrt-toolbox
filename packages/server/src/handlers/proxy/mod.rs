@@ -971,6 +971,14 @@ pub async fn public_sing_box_windows(
     handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v11()).await
 }
 
+pub async fn public_sing_box_macos(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::macos_v11()).await
+}
+
 pub async fn public_sing_box_v12(
     State(state): State<Arc<AppState>>,
     Path(uuid): Path<String>,
@@ -987,6 +995,14 @@ pub async fn public_sing_box_v12_windows(
     handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v12()).await
 }
 
+pub async fn public_sing_box_v12_macos(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::macos_v12()).await
+}
+
 pub async fn public_sing_box_v13(
     State(state): State<Arc<AppState>>,
     Path(uuid): Path<String>,
@@ -1001,6 +1017,14 @@ pub async fn public_sing_box_v13_windows(
     headers: HeaderMap,
 ) -> Response {
     handle_singbox(state, uuid, headers, engine::SingboxTarget::windows_v13()).await
+}
+
+pub async fn public_sing_box_v13_macos(
+    State(state): State<Arc<AppState>>,
+    Path(uuid): Path<String>,
+    headers: HeaderMap,
+) -> Response {
+    handle_singbox(state, uuid, headers, engine::SingboxTarget::macos_v13()).await
 }
 
 async fn handle_singbox(

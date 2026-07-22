@@ -224,10 +224,13 @@ const ProxyDebugModal = forwardRef<ProxyDebugModalRef>((_, ref) => {
     "clash-meta": "Clash Meta",
     "sing-box": "Sing-box",
     "sing-box-windows": "Sing-box Windows",
+    "sing-box-macos": "Sing-box macOS",
     "sing-box-v12": "Sing-box v1.12",
     "sing-box-v12-windows": "Sing-box v1.12 Windows",
+    "sing-box-v12-macos": "Sing-box v1.12 macOS",
     "sing-box-v13": "Sing-box v1.13",
     "sing-box-v13-windows": "Sing-box v1.13 Windows",
+    "sing-box-v13-macos": "Sing-box v1.13 macOS",
   };
 
   /** Render step content */

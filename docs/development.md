@@ -136,9 +136,10 @@ ls -la ${DATA_LOCAL_PATH}/vendors/*/
 下载到 `DATA_LOCAL_PATH/vendors/` 目录（默认 `.data/vendors/`），包含：
 - `sing-box-v11/sing-box` — v1.11.0
 - `sing-box-v12/sing-box` — v1.12.25
+- `sing-box-v13/sing-box` — v1.13.14
 - `mihomo/mihomo` — v1.19.22
 
-脚本通过 `.version` 标记文件实现幂等——版本匹配时跳过下载。
+脚本会按当前 Linux/macOS 与 amd64/arm64 下载对应二进制，并通过 `.version` 标记文件实现幂等——版本、系统和架构匹配时跳过下载。
 
 ### 类型生成
 

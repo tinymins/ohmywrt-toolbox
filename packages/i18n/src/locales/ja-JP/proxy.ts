@@ -121,6 +121,8 @@ export default {
     privateWgPublicKey: "Peer public key",
     privateWgPresharedKey: "Preshared key",
     privateWgAllowedIps: "Peer allowed IPs",
+    privateWgReuseWarning:
+      "WireGuard is peer-to-peer networking. One address/key pair should not be reused by multiple clients; create separate configs for each person or device.",
     privateOutboundServer: "Server",
     privateOutboundPort: "Port",
     privateOutboundUuid: "UUID",
