@@ -8,9 +8,10 @@ import {
   Select,
   TextArea,
   Tooltip,
+  WarningOutlined,
 } from "@acme/components";
 import { parse as parseJsonc } from "jsonc-parser";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { message } from "@/lib/message";
 
@@ -85,6 +86,12 @@ const splitList = (value: string): string[] =>
     .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean);
+
+const withDefaultCidrPrefix = (value: string): string =>
+  value.includes("/") ? value : `${value}/${value.includes(":") ? 128 : 32}`;
+
+const splitCidrList = (value: string): string[] =>
+  splitList(value).map(withDefaultCidrPrefix);
 
 const joinList = (value: unknown): string => {
   if (Array.isArray(value)) {
@@ -246,7 +253,7 @@ const parseConfig = (value?: string) => {
 const serializeConfig = (enabled: boolean, connectors: PrivateConnectorForm[]) => {
   const outputConnectors = connectors.map((connector) => {
     const routes: Record<string, string[]> = {};
-    const routeCidrs = splitList(connector.routeCidrs);
+    const routeCidrs = splitCidrList(connector.routeCidrs);
     const routeDomainSuffixes = splitList(connector.routeDomainSuffixes);
     if (routeCidrs.length > 0) routes.ipCidrs = routeCidrs;
     if (routeDomainSuffixes.length > 0) {
@@ -277,7 +284,7 @@ const serializeConfig = (enabled: boolean, connectors: PrivateConnectorForm[]) =
 
     if (connector.type === "wireguard") {
       base.endpoint = {
-        address: splitList(connector.address),
+        address: splitCidrList(connector.address),
         privateKey: connector.privateKey.trim(),
         peers: [
           {
@@ -285,7 +292,7 @@ const serializeConfig = (enabled: boolean, connectors: PrivateConnectorForm[]) =
             port: connector.peerPort ?? 0,
             publicKey: connector.publicKey.trim(),
             preSharedKey: connector.preSharedKey.trim(),
-            allowedIps: splitList(connector.allowedIps),
+            allowedIps: splitCidrList(connector.allowedIps),
             persistentKeepaliveInterval:
               connector.persistentKeepaliveInterval ?? 25,
           },
@@ -335,12 +342,59 @@ const FieldLabel = ({ children }: { children: string }) => (
   <span className="text-xs text-gray-500 dark:text-gray-400">{children}</span>
 );
 
+const connectorTypeLabel = (
+  type: ConnectorType,
+  wireguardWarning: string,
+) => {
+  if (type !== "wireguard") return type;
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <span>WireGuard</span>
+      <Tooltip title={wireguardWarning}>
+        <span className="inline-flex text-amber-500">
+          <WarningOutlined />
+        </span>
+      </Tooltip>
+    </span>
+  );
+};
+
 const PrivateAccessEditor = ({ value, onChange }: Props) => {
   const { t } = useTranslation();
-  const state = useMemo(() => parseConfig(value), [value]);
+  const [state, setState] = useState(() => parseConfig(value));
+  const connectorKeysRef = useRef<string[]>([]);
+  const nextConnectorKeyRef = useRef(0);
+  const lastEmittedValueRef = useRef<string | undefined>(undefined);
+  const connectorTypeOptions = useMemo(
+    () =>
+      CONNECTOR_TYPES.map((type) => ({
+        value: type,
+        label: connectorTypeLabel(type, t("proxy.form.privateWgReuseWarning")),
+      })),
+    [t],
+  );
+
+  useEffect(() => {
+    if (value === lastEmittedValueRef.current) return;
+    setState(parseConfig(value));
+    connectorKeysRef.current = [];
+    nextConnectorKeyRef.current = 0;
+  }, [value]);
+
+  while (connectorKeysRef.current.length < state.connectors.length) {
+    connectorKeysRef.current.push(
+      `private-connector-${nextConnectorKeyRef.current++}`,
+    );
+  }
+  if (connectorKeysRef.current.length > state.connectors.length) {
+    connectorKeysRef.current.length = state.connectors.length;
+  }
 
   const emit = (enabled: boolean, connectors: PrivateConnectorForm[]) => {
-    onChange?.(serializeConfig(enabled, connectors));
+    setState({ enabled, connectors });
+    const nextValue = serializeConfig(enabled, connectors);
+    lastEmittedValueRef.current = nextValue;
+    onChange?.(nextValue);
   };
 
   const updateConnector = (
@@ -356,11 +410,15 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
   };
 
   const removeConnector = (index: number) => {
+    connectorKeysRef.current.splice(index, 1);
     const next = state.connectors.filter((_, itemIndex) => itemIndex !== index);
     emit(state.enabled, next.length > 0 ? next : [emptyConnector(0)]);
   };
 
   const addConnector = () => {
+    connectorKeysRef.current.push(
+      `private-connector-${nextConnectorKeyRef.current++}`,
+    );
     emit(state.enabled, [
       ...state.connectors,
       emptyConnector(state.connectors.length),
@@ -380,7 +438,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
 
       {state.connectors.map((connector, index) => (
         <div
-          key={`${connector.tag}-${index}`}
+          key={connectorKeysRef.current[index]}
           className={`rounded-lg border p-3 transition-colors ${
             connector.enabled
               ? "border-gray-200 bg-white dark:border-gray-600 dark:bg-[#1a1a1a]"
@@ -415,10 +473,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
               <Select
                 size="small"
                 value={connector.type}
-                options={CONNECTOR_TYPES.map((type) => ({
-                  value: type,
-                  label: type === "wireguard" ? "WireGuard" : type,
-                }))}
+                options={connectorTypeOptions}
                 onChange={(nextType) =>
                   updateConnector(index, { type: nextType as ConnectorType })
                 }
@@ -441,7 +496,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   <Input
                     size="small"
                     value={connector.address}
-                    placeholder="10.8.29.23/32"
+                    placeholder="10.8.29.23/32, 10.8.29.24"
                     onChange={(event) =>
                       updateConnector(index, { address: event.target.value })
                     }
@@ -526,7 +581,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                     rows={2}
                     size="small"
                     value={connector.allowedIps}
-                    placeholder="10.8.28.0/24"
+                    placeholder={"1.1.1.1/23, 2.2.2.2/11 , 3.3.3.3/9, 4.4.4.4\n5.5.5.5"}
                     onChange={(event) =>
                       updateConnector(index, { allowedIps: event.target.value })
                     }
@@ -612,7 +667,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   rows={2}
                   size="small"
                   value={connector.routeCidrs}
-                  placeholder="10.8.28.0/24"
+                  placeholder={"10.8.28.0/24, 10.8.29.10\n10.8.30.0/24"}
                   onChange={(event) =>
                     updateConnector(index, { routeCidrs: event.target.value })
                   }
@@ -624,7 +679,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   rows={2}
                   size="small"
                   value={connector.routeDomainSuffixes}
-                  placeholder="corp.example.com"
+                  placeholder={"corp.example.com, internal.example.com\nhome.arpa"}
                   onChange={(event) =>
                     updateConnector(index, {
                       routeDomainSuffixes: event.target.value,
@@ -638,7 +693,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   rows={2}
                   size="small"
                   value={connector.dnsDomainSuffixes}
-                  placeholder="rpsh.vmins.com"
+                  placeholder={"a.com, b.com, c.com\nd.com"}
                   onChange={(event) =>
                     updateConnector(index, {
                       dnsDomainSuffixes: event.target.value,
