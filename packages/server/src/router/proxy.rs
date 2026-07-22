@@ -1,9 +1,9 @@
-use axum::routing::{get, post};
 use axum::Router;
+use axum::routing::{get, post};
 use std::sync::Arc;
 
-use crate::handlers::proxy;
 use crate::AppState;
+use crate::handlers::proxy;
 
 pub fn build_proxy_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -37,10 +37,7 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
         .route("/api/proxy/clear-cache", post(proxy::clear_cache))
         .route("/api/proxy/test-source", post(proxy::test_source))
         // Public endpoints (no auth) — /{uuid}/{format}
-        .route(
-            "/api/public/proxy/{uuid}/clash",
-            get(proxy::public_clash),
-        )
+        .route("/api/public/proxy/{uuid}/clash", get(proxy::public_clash))
         .route(
             "/api/public/proxy/{uuid}/clash-meta",
             get(proxy::public_clash_meta),
@@ -82,10 +79,7 @@ pub fn build_proxy_routes() -> Router<Arc<AppState>> {
             get(proxy::public_sing_box_v13_macos),
         )
         // Rule conversion endpoints (no auth) — Clash YAML → Sing-box JSON
-        .route(
-            "/api/proxy/sing-box/convert/rule",
-            get(proxy::convert_rule),
-        )
+        .route("/api/proxy/sing-box/convert/rule", get(proxy::convert_rule))
         .route(
             "/api/proxy/sing-box/convert/rule/12",
             get(proxy::convert_rule_v12),

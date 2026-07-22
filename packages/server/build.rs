@@ -23,8 +23,8 @@ fn main() {
         .unwrap_or_default();
     println!("cargo:rustc-env=APPS_WORKSPACE_ROOT={workspace_root}");
 
-    let git_commit = git_stdout(["rev-parse", "--short=12", "HEAD"])
-        .unwrap_or_else(|| "unknown".to_string());
+    let git_commit =
+        git_stdout(["rev-parse", "--short=12", "HEAD"]).unwrap_or_else(|| "unknown".to_string());
     println!("cargo:rustc-env=APPS_GIT_COMMIT={git_commit}");
 
     // Build timestamp (local time, human-readable)

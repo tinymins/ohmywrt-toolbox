@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Serialize;
 
+use crate::AppState;
 use crate::db::entities::workspaces;
-use crate::db::repos::workspace_repo::{WorkspaceRepo, SYSTEM_SHARED_SLUG};
+use crate::db::repos::workspace_repo::{SYSTEM_SHARED_SLUG, WorkspaceRepo};
 use crate::error::{ApiResponse, AppError};
 use crate::handlers::auth::AuthUser;
-use crate::AppState;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,10 +30,7 @@ impl From<workspaces::Model> for WorkspaceOutput {
             name: w.name,
             description: w.description,
             owner_id: w.owner_id.map(|id| id.to_string()),
-            created_at: w
-                .created_at
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default(),
+            created_at: w.created_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
         }
     }
 }
@@ -48,10 +45,7 @@ fn slugify(value: &str) -> String {
     s.trim_matches('-').to_string()
 }
 
-pub async fn list_workspaces(
-    State(state): State<Arc<AppState>>,
-    auth_user: AuthUser,
-) -> Response {
+pub async fn list_workspaces(State(state): State<Arc<AppState>>, auth_user: AuthUser) -> Response {
     // In single workspace mode, ensure user has access to the shared workspace
     {
         use crate::db::entities::system_settings;
@@ -139,22 +133,19 @@ pub async fn create_workspace(
             .collect()
     });
 
-    let ws = match WorkspaceRepo::create_with_owner(
-        &state.db,
-        &body.name,
-        &slug,
-        &auth_user.user_id,
-    )
-    .await
-    {
-        Ok(ws) => ws,
-        Err(e) => {
-            if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
-                return AppError::Conflict("workspace slug already exists".into()).into_response();
+    let ws =
+        match WorkspaceRepo::create_with_owner(&state.db, &body.name, &slug, &auth_user.user_id)
+            .await
+        {
+            Ok(ws) => ws,
+            Err(e) => {
+                if e.to_string().contains("duplicate") || e.to_string().contains("unique") {
+                    return AppError::Conflict("workspace slug already exists".into())
+                        .into_response();
+                }
+                return e.into_response();
             }
-            return e.into_response();
-        }
-    };
+        };
 
     Json(ApiResponse {
         success: true,
@@ -176,8 +167,7 @@ pub async fn get_workspace_by_slug(
     };
 
     let ws_id_str = workspace.id.to_string();
-    let is_member = match WorkspaceRepo::is_member(&state.db, &ws_id_str, &auth_user.user_id)
-        .await
+    let is_member = match WorkspaceRepo::is_member(&state.db, &ws_id_str, &auth_user.user_id).await
     {
         Ok(b) => b,
         Err(e) => return e.into_response(),

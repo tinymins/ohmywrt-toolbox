@@ -36,9 +36,7 @@ pub async fn upload_avatar(
     let field = match multipart.next_field().await {
         Ok(Some(f)) => f,
         Ok(None) => return err_json(StatusCode::BAD_REQUEST, "No file provided".into()),
-        Err(e) => {
-            return err_json(StatusCode::BAD_REQUEST, format!("Multipart error: {e}"))
-        }
+        Err(e) => return err_json(StatusCode::BAD_REQUEST, format!("Multipart error: {e}")),
     };
 
     let content_type = field
@@ -55,9 +53,7 @@ pub async fn upload_avatar(
 
     let data = match field.bytes().await {
         Ok(b) => b,
-        Err(e) => {
-            return err_json(StatusCode::BAD_REQUEST, format!("Failed to read file: {e}"))
-        }
+        Err(e) => return err_json(StatusCode::BAD_REQUEST, format!("Failed to read file: {e}")),
     };
 
     // Max 5MB

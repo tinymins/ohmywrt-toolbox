@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::fmt::Write;
 
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use super::types::ClashProxy;
 
@@ -38,9 +38,10 @@ fn convert_transport(proxy: &ClashProxy) -> Option<Value> {
     if let Some(Value::Object(http_opts)) = proxy.extra.get("http-opts") {
         let mut t = json!({"type": "http"});
         if let Some(Value::Array(paths)) = http_opts.get("path")
-            && let Some(first) = paths.first().and_then(|v| v.as_str()) {
-                t["path"] = json!(first);
-            }
+            && let Some(first) = paths.first().and_then(|v| v.as_str())
+        {
+            t["path"] = json!(first);
+        }
         if let Some(Value::String(method)) = http_opts.get("method") {
             t["method"] = json!(method);
         }
@@ -48,9 +49,10 @@ fn convert_transport(proxy: &ClashProxy) -> Option<Value> {
             let mut h = Map::new();
             for (k, v) in headers {
                 if let Value::Array(arr) = v
-                    && let Some(first) = arr.first().and_then(|v| v.as_str()) {
-                        h.insert(k.clone(), json!(first));
-                    }
+                    && let Some(first) = arr.first().and_then(|v| v.as_str())
+                {
+                    h.insert(k.clone(), json!(first));
+                }
             }
             if !h.is_empty() {
                 t["headers"] = Value::Object(h);
@@ -229,9 +231,10 @@ fn convert_vless(proxy: &ClashProxy) -> Value {
     });
 
     if let Some(flow) = proxy.str_field("flow")
-        && !flow.is_empty() {
-            out["flow"] = json!(flow);
-        }
+        && !flow.is_empty()
+    {
+        out["flow"] = json!(flow);
+    }
     if let Some(t) = transport {
         out["transport"] = t;
     }
@@ -373,13 +376,15 @@ fn convert_hysteria2(proxy: &ClashProxy) -> Value {
     // Bandwidth hints: Clash uses "up"/"down" (e.g. "200 Mbps"),
     // Sing-box uses "up_mbps"/"down_mbps" (integer)
     if let Some(up) = proxy.str_field("up")
-        && let Some(mbps) = parse_mbps(up) {
-            out["up_mbps"] = json!(mbps);
-        }
+        && let Some(mbps) = parse_mbps(up)
+    {
+        out["up_mbps"] = json!(mbps);
+    }
     if let Some(down) = proxy.str_field("down")
-        && let Some(mbps) = parse_mbps(down) {
-            out["down_mbps"] = json!(mbps);
-        }
+        && let Some(mbps) = parse_mbps(down)
+    {
+        out["down_mbps"] = json!(mbps);
+    }
 
     // NOTE: hysteria2 uses QUIC-based native multiplexing — sing-box does NOT
     // support the smux `multiplex` field on hysteria2 outbounds.  Any smux/multiplex
@@ -399,9 +404,7 @@ fn parse_mbps(s: &str) -> Option<u64> {
 }
 
 fn convert_hysteria(proxy: &ClashProxy) -> Value {
-    let sni = proxy
-        .str_field("sni")
-        .unwrap_or(&proxy.server);
+    let sni = proxy.str_field("sni").unwrap_or(&proxy.server);
 
     let mut tls = json!({"enabled": true, "server_name": sni});
     if let Some(Value::Array(alpn)) = proxy.extra.get("alpn") {

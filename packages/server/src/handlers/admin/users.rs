@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::{Deserialize, Serialize};
 
+use crate::AppState;
 use crate::db::repos::admin_repo::AdminRepo;
 use crate::error::{ApiResponse, AppError};
 use crate::handlers::auth::AuthUser;
-use crate::AppState;
 
 use super::{require_admin, require_superadmin};
 
@@ -83,8 +83,8 @@ pub async fn create_user(
         None => "user",
     };
 
-    let user = AdminRepo::create_user(&state.db, &input.name, &input.email, &input.password, role)
-        .await?;
+    let user =
+        AdminRepo::create_user(&state.db, &input.name, &input.email, &input.password, role).await?;
 
     let output = AdminUserOutput {
         id: user.id.to_string(),
@@ -121,9 +121,7 @@ pub async fn update_user_role(
     require_superadmin(&auth_user)?;
 
     if input.user_id == auth_user.user_id {
-        return Err(AppError::BadRequest(
-            "Cannot change your own role".into(),
-        ));
+        return Err(AppError::BadRequest("Cannot change your own role".into()));
     }
 
     let role = validate_role(&input.role)?;

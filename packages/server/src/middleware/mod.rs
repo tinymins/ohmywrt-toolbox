@@ -4,11 +4,11 @@
 use std::{env, sync::OnceLock, time::Duration};
 
 use axum::{
+    Json,
     extract::Request,
     http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 
 use crate::error::ApiResponse;

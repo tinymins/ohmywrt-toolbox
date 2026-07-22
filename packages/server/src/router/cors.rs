@@ -1,8 +1,8 @@
 use axum::http::{
+    HeaderName, HeaderValue, Method,
     header::{
         ACCEPT, ACCEPT_LANGUAGE, AUTHORIZATION, CONTENT_LANGUAGE, CONTENT_TYPE, ORIGIN, RANGE,
     },
-    HeaderName, HeaderValue, Method,
 };
 use std::env;
 use tower_http::cors::{AllowOrigin, CorsLayer};

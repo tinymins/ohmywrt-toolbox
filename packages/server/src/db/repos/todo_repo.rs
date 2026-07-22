@@ -3,7 +3,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::db::entities::todos;
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 
 pub struct TodoRepo;
 

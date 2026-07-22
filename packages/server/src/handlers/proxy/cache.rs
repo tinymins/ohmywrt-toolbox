@@ -14,7 +14,6 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
 
-
 struct CacheEntry {
     text: String,
     #[allow(dead_code)]

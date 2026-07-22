@@ -3,7 +3,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::db::entities::test_requirements;
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 
 /// Maximum number of retries when a generated code collides.
 const CODE_GEN_MAX_RETRIES: u32 = 5;
@@ -58,10 +58,7 @@ impl TestRequirementRepo {
             .await?)
     }
 
-    pub async fn has_children(
-        db: &DatabaseConnection,
-        id: &str,
-    ) -> Result<bool, AppError> {
+    pub async fn has_children(db: &DatabaseConnection, id: &str) -> Result<bool, AppError> {
         let uid = parse_uuid(id)?;
         let count = test_requirements::Entity::find()
             .filter(test_requirements::Column::ParentId.eq(uid))
@@ -175,9 +172,7 @@ impl TestRequirementRepo {
                         .one(db)
                         .await?
                         .ok_or_else(|| {
-                            AppError::Internal(
-                                "failed to fetch created test requirement".into(),
-                            )
+                            AppError::Internal("failed to fetch created test requirement".into())
                         });
                 }
                 Err(e) => {
@@ -247,9 +242,7 @@ impl TestRequirementRepo {
                     let parent_model = test_requirements::Entity::find_by_id(pid)
                         .one(db)
                         .await?
-                        .ok_or_else(|| {
-                            AppError::NotFound("Parent requirement not found".into())
-                        })?;
+                        .ok_or_else(|| AppError::NotFound("Parent requirement not found".into()))?;
                     if parent_model.workspace_id != record.workspace_id {
                         return Err(AppError::BadRequest(
                             "Parent requirement must be in the same workspace".into(),

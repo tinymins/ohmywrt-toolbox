@@ -1,9 +1,9 @@
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use std::{env, sync::Arc};
 use tower_http::services::{ServeDir, ServeFile};
 
-use crate::middleware::request_timeout;
 use crate::AppState;
+use crate::middleware::request_timeout;
 
 mod admin;
 mod auth;

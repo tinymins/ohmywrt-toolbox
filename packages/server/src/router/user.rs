@@ -1,9 +1,9 @@
-use axum::routing::{delete, get, patch, post};
 use axum::Router;
+use axum::routing::{delete, get, patch, post};
 use std::sync::Arc;
 
-use crate::handlers::user;
 use crate::AppState;
+use crate::handlers::user;
 
 pub fn build_user_routes() -> Router<Arc<AppState>> {
     Router::new()

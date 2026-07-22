@@ -3,7 +3,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::db::entities::{workspace_members, workspaces};
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 
 /// Slug used for the shared workspace in single workspace mode
 pub const SYSTEM_SHARED_SLUG: &str = "::SYSTEM_SHARED::";
@@ -78,7 +78,9 @@ impl WorkspaceRepo {
             .await?;
 
         match member {
-            Some(m) => Ok(workspaces::Entity::find_by_id(m.workspace_id).one(db).await?),
+            Some(m) => Ok(workspaces::Entity::find_by_id(m.workspace_id)
+                .one(db)
+                .await?),
             None => Ok(None),
         }
     }

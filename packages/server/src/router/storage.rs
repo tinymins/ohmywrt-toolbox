@@ -1,9 +1,9 @@
-use axum::routing::{get, post};
 use axum::Router;
+use axum::routing::{get, post};
 use std::sync::Arc;
 
-use crate::handlers::storage::{storage_proxy, upload_avatar};
 use crate::AppState;
+use crate::handlers::storage::{storage_proxy, upload_avatar};
 
 pub fn build_storage_routes() -> Router<Arc<AppState>> {
     Router::new()

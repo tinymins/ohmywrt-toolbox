@@ -12,20 +12,20 @@ pub mod validator;
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::AppState;
 use crate::db::entities::{proxy_access_logs, proxy_subscribes, users};
 use crate::db::repos::proxy_access_log_repo::ProxyAccessLogRepo;
 use crate::db::repos::proxy_subscribe_repo::ProxySubscribeRepo;
 use crate::error::{ApiResponse, AppError};
 use crate::handlers::auth::AuthUser;
-use crate::AppState;
 
 // ─── Output types ───
 
@@ -90,10 +90,7 @@ impl From<proxy_access_logs::Model> for AccessLogOutput {
             ip: l.ip,
             user_agent: l.user_agent,
             node_count: l.node_count,
-            created_at: l
-                .created_at
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default(),
+            created_at: l.created_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
         }
     }
 }
@@ -204,14 +201,8 @@ fn enrich_subscribe(
         cached_node_count: sub.cached_node_count.unwrap_or(0),
         total_access_count,
         last_access_at: sub.last_access_at.map(|dt| dt.to_rfc3339()),
-        created_at: sub
-            .created_at
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_default(),
-        updated_at: sub
-            .updated_at
-            .map(|dt| dt.to_rfc3339())
-            .unwrap_or_default(),
+        created_at: sub.created_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
+        updated_at: sub.updated_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
         user,
         authorized_users,
     }
@@ -318,10 +309,7 @@ pub async fn list_users_brief(
     .into_response()
 }
 
-pub async fn list_subscribes(
-    State(state): State<Arc<AppState>>,
-    auth_user: AuthUser,
-) -> Response {
+pub async fn list_subscribes(State(state): State<Arc<AppState>>, auth_user: AuthUser) -> Response {
     let subs = match ProxySubscribeRepo::list_by_user(&state.db, &auth_user.user_id).await {
         Ok(v) => v,
         Err(e) => return e.into_response(),
@@ -579,23 +567,20 @@ pub async fn get_subscribe_stats(
     let page = query.page.unwrap_or(1);
     let page_size = query.page_size.unwrap_or(20);
 
-    let total_access =
-        match ProxyAccessLogRepo::count_by_subscribe(&state.db, &id).await {
-            Ok(c) => c,
-            Err(e) => return e.into_response(),
-        };
+    let total_access = match ProxyAccessLogRepo::count_by_subscribe(&state.db, &id).await {
+        Ok(c) => c,
+        Err(e) => return e.into_response(),
+    };
 
-    let today_access =
-        match ProxyAccessLogRepo::count_today_by_subscribe(&state.db, sub.id).await {
-            Ok(c) => c,
-            Err(e) => return e.into_response(),
-        };
+    let today_access = match ProxyAccessLogRepo::count_today_by_subscribe(&state.db, sub.id).await {
+        Ok(c) => c,
+        Err(e) => return e.into_response(),
+    };
 
-    let access_by_type =
-        match ProxyAccessLogRepo::count_by_access_type(&state.db, sub.id).await {
-            Ok(v) => v,
-            Err(e) => return e.into_response(),
-        };
+    let access_by_type = match ProxyAccessLogRepo::count_by_access_type(&state.db, sub.id).await {
+        Ok(v) => v,
+        Err(e) => return e.into_response(),
+    };
 
     let recent =
         match ProxyAccessLogRepo::recent_by_subscribe_paginated(&state.db, sub.id, page, page_size)
@@ -629,10 +614,7 @@ pub async fn get_subscribe_stats(
     .into_response()
 }
 
-pub async fn get_defaults(
-    State(_state): State<Arc<AppState>>,
-    _auth_user: AuthUser,
-) -> Response {
+pub async fn get_defaults(State(_state): State<Arc<AppState>>, _auth_user: AuthUser) -> Response {
     Json(ApiResponse {
         success: true,
         data: Some(serde_json::json!({
@@ -647,10 +629,7 @@ pub async fn get_defaults(
     .into_response()
 }
 
-pub async fn get_user_stats(
-    State(state): State<Arc<AppState>>,
-    auth_user: AuthUser,
-) -> Response {
+pub async fn get_user_stats(State(state): State<Arc<AppState>>, auth_user: AuthUser) -> Response {
     let subs = match ProxySubscribeRepo::list_by_user(&state.db, &auth_user.user_id).await {
         Ok(v) => v,
         Err(e) => return e.into_response(),
@@ -701,7 +680,7 @@ pub async fn preview_nodes(
                 data: None::<serde_json::Value>,
                 error: Some(e),
             })
-            .into_response()
+            .into_response();
         }
     };
 
@@ -775,10 +754,7 @@ pub async fn clear_cache(_auth_user: AuthUser) -> Response {
 }
 
 /// Test a single subscription source URL with a given UA (bypasses cache).
-pub async fn test_source(
-    _auth_user: AuthUser,
-    Json(body): Json<TestSourceInput>,
-) -> Response {
+pub async fn test_source(_auth_user: AuthUser, Json(body): Json<TestSourceInput>) -> Response {
     let ua = engine::resolve_ua(Some(&body.ua));
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
@@ -786,12 +762,7 @@ pub async fn test_source(
         .unwrap_or_default();
 
     let start = std::time::Instant::now();
-    let resp = match client
-        .get(&body.url)
-        .header("User-Agent", &ua)
-        .send()
-        .await
-    {
+    let resp = match client.get(&body.url).header("User-Agent", &ua).send().await {
         Ok(r) => r,
         Err(e) => {
             return Json(ApiResponse {
@@ -1076,9 +1047,10 @@ async fn handle_singbox(
 
 fn get_public_server_url(headers: &HeaderMap) -> String {
     if let Ok(url) = std::env::var("PUBLIC_SERVER_URL")
-        && !url.is_empty() {
-            return url;
-        }
+        && !url.is_empty()
+    {
+        return url;
+    }
     let proto = headers
         .get("x-forwarded-proto")
         .and_then(|v| v.to_str().ok())
@@ -1123,12 +1095,10 @@ async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
         Ok(resp) => match resp.text().await {
             Ok(t) => t,
             Err(e) => {
-                return AppError::Internal(format!("Failed to read response: {e}")).into_response()
+                return AppError::Internal(format!("Failed to read response: {e}")).into_response();
             }
         },
-        Err(e) => {
-            return AppError::Internal(format!("Failed to fetch rule: {e}")).into_response()
-        }
+        Err(e) => return AppError::Internal(format!("Failed to fetch rule: {e}")).into_response(),
     };
 
     let parsed: serde_yaml::Value = match serde_yaml::from_str(&text) {

@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use axum::routing::{delete, get, patch, post};
 use axum::Router;
+use axum::routing::{delete, get, patch, post};
 
-use crate::handlers::admin;
 use crate::AppState;
+use crate::handlers::admin;
 
 pub fn build_admin_routes() -> Router<Arc<AppState>> {
     Router::new()

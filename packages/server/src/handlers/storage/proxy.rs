@@ -26,7 +26,10 @@ pub async fn storage_proxy(
         .first_raw()
         .unwrap_or("application/octet-stream");
 
-    debug!("storage_proxy: key={key}, size={}, type={content_type}", data.len());
+    debug!(
+        "storage_proxy: key={key}, size={}, type={content_type}",
+        data.len()
+    );
 
     Response::builder()
         .status(StatusCode::OK)

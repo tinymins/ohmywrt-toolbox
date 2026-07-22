@@ -2,7 +2,7 @@ mod login;
 mod register;
 pub mod settings;
 
-pub use login::{login, AuthOutput, UserDto};
+pub use login::{AuthOutput, UserDto, login};
 pub use register::register;
 pub use settings::{logout, registration_status, system_settings};
 
@@ -11,10 +11,10 @@ use std::sync::Arc;
 use axum::extract::FromRequestParts;
 use axum::http::HeaderMap;
 
+use crate::AppState;
 use crate::db::repos::auth_repo::AuthRepo;
 use crate::db::repos::user_repo::UserRepo;
 use crate::error::AppError;
-use crate::AppState;
 
 pub struct SessionAuth {
     pub user_id: String,

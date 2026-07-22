@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::db::entities::{
     invitation_codes, sessions, system_settings, users, workspace_members, workspaces,
 };
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 use crate::services::auth::hash_password;
 
 pub struct AdminRepo;
@@ -272,8 +272,8 @@ impl AdminRepo {
         let id = Uuid::new_v4();
         let code = Uuid::new_v4().to_string();
         let now = Utc::now();
-        let expires_at = expires_in_hours
-            .map(|h| (now + chrono::Duration::seconds((h * 3600.0) as i64)).into());
+        let expires_at =
+            expires_in_hours.map(|h| (now + chrono::Duration::seconds((h * 3600.0) as i64)).into());
 
         let active = invitation_codes::ActiveModel {
             id: Set(id),

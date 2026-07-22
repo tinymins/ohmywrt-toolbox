@@ -5,7 +5,7 @@ use sea_orm::*;
 use uuid::Uuid;
 
 use crate::db::entities::proxy_access_logs;
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 
 pub struct ProxyAccessLogRepo;
 
@@ -67,9 +67,7 @@ impl ProxyAccessLogRepo {
             .select_only()
             .column(proxy_access_logs::Column::SubscribeId)
             .column_as(proxy_access_logs::Column::Id.count(), "cnt")
-            .filter(
-                proxy_access_logs::Column::SubscribeId.is_in(subscribe_ids.to_vec()),
-            )
+            .filter(proxy_access_logs::Column::SubscribeId.is_in(subscribe_ids.to_vec()))
             .group_by(proxy_access_logs::Column::SubscribeId)
             .into_model::<CountRow>()
             .all(db)

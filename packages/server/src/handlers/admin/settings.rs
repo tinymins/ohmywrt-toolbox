@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::{Deserialize, Serialize};
 
+use crate::AppState;
 use crate::db::repos::admin_repo::AdminRepo;
 use crate::error::{ApiResponse, AppError};
-use crate::handlers::auth::settings::resolve_single_workspace_mode;
 use crate::handlers::auth::AuthUser;
-use crate::AppState;
+use crate::handlers::auth::settings::resolve_single_workspace_mode;
 
 use super::require_admin;
 

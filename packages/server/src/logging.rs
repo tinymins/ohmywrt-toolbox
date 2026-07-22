@@ -5,8 +5,8 @@ use std::fmt;
 use tracing::field::{Field, Visit};
 use tracing::{Event, Level, Subscriber};
 use tracing_log::NormalizeEvent;
-use tracing_subscriber::fmt::format::{FormatEvent, FormatFields, Writer};
 use tracing_subscriber::fmt::FmtContext;
+use tracing_subscriber::fmt::format::{FormatEvent, FormatFields, Writer};
 use tracing_subscriber::registry::LookupSpan;
 
 /// 自定义事件格式化器：
@@ -60,7 +60,7 @@ where
             if ansi {
                 let kw_color = sql_keyword_color(&keyword);
                 let elapsed_color = elapsed_secs_color(v.elapsed_secs);
-                write!(writer, "  {kw_color}{keyword:<6}\x1b[0m ", )?;
+                write!(writer, "  {kw_color}{keyword:<6}\x1b[0m ",)?;
                 if let Some(t) = &table {
                     write!(writer, "\x1b[1;37m{t}\x1b[0m ")?;
                 }
@@ -72,7 +72,7 @@ where
                     v.elapsed,
                 )?;
             } else {
-                write!(writer, "  {keyword:<6} ", )?;
+                write!(writer, "  {keyword:<6} ",)?;
                 if let Some(t) = &table {
                     write!(writer, "{t} ")?;
                 }
@@ -107,10 +107,7 @@ where
             if v.db_statement.is_empty() {
                 Ok(())
             } else {
-                let sql = v
-                    .db_statement
-                    .replace("\\\"", "\"")
-                    .replace("\\n", " ");
+                let sql = v.db_statement.replace("\\\"", "\"").replace("\\n", " ");
                 let sql_oneline: String = sql.split_whitespace().collect::<Vec<_>>().join(" ");
                 if ansi {
                     writeln!(writer, "         \x1b[2m{sql_oneline}\x1b[0m")
@@ -131,7 +128,7 @@ where
             if ansi {
                 write!(writer, "{}{level:>5}\x1b[0m ", level_color(level))?;
             } else {
-                write!(writer, "{level:>5} ", )?;
+                write!(writer, "{level:>5} ",)?;
             }
 
             // 模块路径（dim）
@@ -242,7 +239,10 @@ fn elapsed_secs_color(secs: f64) -> &'static str {
 fn file_location(file: &str) -> (&str, &'static str) {
     const WS_ROOT: &str = env!("APPS_WORKSPACE_ROOT");
 
-    if let Some(rel) = file.strip_prefix(WS_ROOT).map(|s| s.trim_start_matches('/')) {
+    if let Some(rel) = file
+        .strip_prefix(WS_ROOT)
+        .map(|s| s.trim_start_matches('/'))
+    {
         // workspace 路径（其他 crate 编译时嵌入绝对路径）
         if let Some(after_pkgs) = rel.strip_prefix("packages/")
             && let Some(slash) = after_pkgs.find('/')
@@ -260,7 +260,9 @@ fn file_location(file: &str) -> (&str, &'static str) {
         // cargo registry 依赖，去掉 .cargo/registry/src/<index-hash>/<crate-ver>/src/
         let after = &file[i + "/.cargo/registry/src/".len()..];
         let without_index = after.find('/').map_or(after, |j| &after[j + 1..]);
-        let in_crate = without_index.find('/').map_or(without_index, |j| &without_index[j + 1..]);
+        let in_crate = without_index
+            .find('/')
+            .map_or(without_index, |j| &without_index[j + 1..]);
         let path = in_crate.strip_prefix("src/").unwrap_or(in_crate);
         return (path, "\x1b[2m"); // dim — 外部库不重要
     }
@@ -274,20 +276,20 @@ fn file_location(file: &str) -> (&str, &'static str) {
 fn pkg_color(name: &str) -> &'static str {
     // 避免红色（ERROR 用）和绿色（INFO 用），其余颜色供内部包使用
     const PALETTE: &[&str] = &[
-        "\x1b[36m",  // cyan
-        "\x1b[33m",  // yellow
-        "\x1b[35m",  // magenta
-        "\x1b[34m",  // blue
-        "\x1b[96m",  // bright cyan
-        "\x1b[93m",  // bright yellow
-        "\x1b[95m",  // bright magenta
-        "\x1b[94m",  // bright blue
-        "\x1b[37m",  // white
-        "\x1b[91m",  // bright red
+        "\x1b[36m", // cyan
+        "\x1b[33m", // yellow
+        "\x1b[35m", // magenta
+        "\x1b[34m", // blue
+        "\x1b[96m", // bright cyan
+        "\x1b[93m", // bright yellow
+        "\x1b[95m", // bright magenta
+        "\x1b[94m", // bright blue
+        "\x1b[37m", // white
+        "\x1b[91m", // bright red
     ];
-    let hash = name
-        .bytes()
-        .fold(5381usize, |h, b| h.wrapping_mul(33).wrapping_add(b as usize));
+    let hash = name.bytes().fold(5381usize, |h, b| {
+        h.wrapping_mul(33).wrapping_add(b as usize)
+    });
     PALETTE[hash % PALETTE.len()]
 }
 #[derive(Default)]

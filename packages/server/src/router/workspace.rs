@@ -1,9 +1,9 @@
-use axum::routing::{get, post};
 use axum::Router;
+use axum::routing::{get, post};
 use std::sync::Arc;
 
-use crate::handlers::workspace;
 use crate::AppState;
+use crate::handlers::workspace;
 
 pub fn build_workspace_routes() -> Router<Arc<AppState>> {
     Router::new()

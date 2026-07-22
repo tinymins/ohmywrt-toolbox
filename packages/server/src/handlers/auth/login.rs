@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::{Deserialize, Serialize};
 
+use crate::AppState;
 use crate::db::entities::users;
 use crate::db::repos::auth_repo::AuthRepo;
 use crate::db::repos::workspace_repo::WorkspaceRepo;
 use crate::error::{ApiResponse, AppError};
 use crate::services::auth::verify_password;
-use crate::AppState;
 
 #[derive(Deserialize)]
 pub struct LoginInput {
@@ -47,10 +47,7 @@ impl From<users::Model> for UserDto {
     }
 }
 
-pub async fn login(
-    State(state): State<Arc<AppState>>,
-    Json(body): Json<LoginInput>,
-) -> Response {
+pub async fn login(State(state): State<Arc<AppState>>, Json(body): Json<LoginInput>) -> Response {
     let user = match AuthRepo::find_user_by_email(&state.db, &body.email).await {
         Ok(Some(u)) => u,
         Ok(None) => return AppError::BadRequest("邮箱或密码错误".into()).into_response(),
@@ -71,13 +68,8 @@ pub async fn login(
         Ok(Some(ws)) => ws,
         Ok(None) => {
             // No workspace — create a default one
-            match WorkspaceRepo::create_with_owner(
-                &state.db,
-                "Default",
-                "default",
-                &user_id_str,
-            )
-            .await
+            match WorkspaceRepo::create_with_owner(&state.db, "Default", "default", &user_id_str)
+                .await
             {
                 Ok(ws) => ws,
                 Err(e) => return e.into_response(),

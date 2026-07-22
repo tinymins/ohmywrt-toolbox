@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use axum::extract::State;
-use axum::http::{header, HeaderMap};
-use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum::extract::State;
+use axum::http::{HeaderMap, header};
+use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 
+use crate::AppState;
 use crate::db::entities::system_settings;
 use crate::db::repos::admin_repo::AdminRepo;
 use crate::db::repos::auth_repo::AuthRepo;
 use crate::error::ApiResponse;
-use crate::AppState;
 
 use super::parse_session_cookie;
 
@@ -20,8 +20,7 @@ pub async fn logout(State(state): State<Arc<AppState>>, headers: HeaderMap) -> R
         let _ = AuthRepo::delete_session(&state.db, &sid).await;
     }
 
-    let clear_cookie =
-        "SESSION_ID=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    let clear_cookie = "SESSION_ID=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
     let body = Json(ApiResponse {
         success: true,
         data: Some(serde_json::json!({ "success": true })),
@@ -45,7 +44,10 @@ pub struct SystemSettingsOutput {
 /// Check if SINGLE_WORKSPACE_MODE_OVERRIDE env var is set.
 /// Returns (effective_value, is_overridden).
 pub fn resolve_single_workspace_mode(db_value: bool) -> (bool, bool) {
-    match std::env::var("SINGLE_WORKSPACE_MODE_OVERRIDE").ok().as_deref() {
+    match std::env::var("SINGLE_WORKSPACE_MODE_OVERRIDE")
+        .ok()
+        .as_deref()
+    {
         Some("true") => (true, true),
         Some("false") => (false, true),
         _ => (db_value, false),

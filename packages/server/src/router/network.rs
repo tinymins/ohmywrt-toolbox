@@ -1,9 +1,9 @@
-use axum::routing::get;
 use axum::Router;
+use axum::routing::get;
 use std::sync::Arc;
 
-use crate::handlers::network;
 use crate::AppState;
+use crate::handlers::network;
 
 pub fn build_network_routes() -> Router<Arc<AppState>> {
     Router::new()

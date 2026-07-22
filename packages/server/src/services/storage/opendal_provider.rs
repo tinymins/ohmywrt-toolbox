@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use opendal::{services::Fs, Operator};
+use opendal::{Operator, services::Fs};
 
 use super::types::{StorageObject, StorageProvider, UploadOptions};
 

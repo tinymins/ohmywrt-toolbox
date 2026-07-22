@@ -72,8 +72,7 @@ async fn async_main() {
         eprintln!("{}", build_info::startup_banner());
     }
 
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL is required");
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is required");
 
     let db = sea_orm::Database::connect(&database_url)
         .await

@@ -1,22 +1,19 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::Deserialize;
 
+use crate::AppState;
 use crate::db::repos::auth_repo::AuthRepo;
 use crate::db::repos::user_repo::UserRepo;
 use crate::error::{ApiResponse, AppError};
-use crate::handlers::auth::UserDto;
 use crate::handlers::auth::AuthUser;
+use crate::handlers::auth::UserDto;
 use crate::services::auth::{hash_password, verify_password};
-use crate::AppState;
 
-pub async fn get_profile(
-    State(state): State<Arc<AppState>>,
-    auth_user: AuthUser,
-) -> Response {
+pub async fn get_profile(State(state): State<Arc<AppState>>, auth_user: AuthUser) -> Response {
     let user = match UserRepo::get_by_id(&state.db, &auth_user.user_id).await {
         Ok(Some(u)) => u,
         Ok(None) => return AppError::NotFound("user not found".into()).into_response(),
@@ -64,10 +61,7 @@ pub async fn update_profile(
     .into_response()
 }
 
-pub async fn delete_avatar(
-    State(state): State<Arc<AppState>>,
-    auth_user: AuthUser,
-) -> Response {
+pub async fn delete_avatar(State(state): State<Arc<AppState>>, auth_user: AuthUser) -> Response {
     let user = match UserRepo::clear_avatar_key(&state.db, &auth_user.user_id).await {
         Ok(u) => u,
         Err(e) => return e.into_response(),
@@ -117,8 +111,7 @@ pub async fn change_password(
 
     // Invalidate other sessions (keep current)
     if let Err(e) =
-        AuthRepo::delete_other_sessions(&state.db, &auth_user.user_id, &auth_user.session_id)
-            .await
+        AuthRepo::delete_other_sessions(&state.db, &auth_user.user_id, &auth_user.session_id).await
     {
         return e.into_response();
     }

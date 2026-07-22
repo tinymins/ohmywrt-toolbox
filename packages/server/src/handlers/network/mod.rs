@@ -1,13 +1,13 @@
 use std::sync::Arc;
 use std::time::Instant;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use tokio::sync::RwLock;
 
-use crate::error::ApiResponse;
 use crate::AppState;
+use crate::error::ApiResponse;
 
 // ─── Cache structures ───
 
@@ -16,9 +16,11 @@ struct CacheEntry {
     fetched_at: Instant,
 }
 
-static GEOIP_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> = std::sync::LazyLock::new(|| RwLock::new(None));
+static GEOIP_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> =
+    std::sync::LazyLock::new(|| RwLock::new(None));
 
-static GEOSITE_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> = std::sync::LazyLock::new(|| RwLock::new(None));
+static GEOSITE_CACHE: std::sync::LazyLock<RwLock<Option<CacheEntry>>> =
+    std::sync::LazyLock::new(|| RwLock::new(None));
 
 const CACHE_TTL_SECS: u64 = 24 * 60 * 60; // 24 hours
 
@@ -119,9 +121,10 @@ async fn get_cached_or_fetch(
     {
         let guard = cache.read().await;
         if let Some(entry) = guard.as_ref()
-            && entry.fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
-                return Ok(entry.data.clone());
-            }
+            && entry.fetched_at.elapsed().as_secs() < CACHE_TTL_SECS
+        {
+            return Ok(entry.data.clone());
+        }
     }
 
     // Cache miss or expired — fetch and update

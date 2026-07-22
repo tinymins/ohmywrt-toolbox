@@ -1,9 +1,9 @@
-use axum::routing::{get, post};
 use axum::Router;
+use axum::routing::{get, post};
 use std::sync::Arc;
 
-use crate::handlers::auth;
 use crate::AppState;
+use crate::handlers::auth;
 
 pub fn build_auth_routes() -> Router<Arc<AppState>> {
     Router::new()

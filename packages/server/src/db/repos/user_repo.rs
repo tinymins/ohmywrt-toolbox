@@ -1,7 +1,7 @@
 use sea_orm::*;
 
 use crate::db::entities::users;
-use crate::error::{parse_uuid, AppError};
+use crate::error::{AppError, parse_uuid};
 
 pub struct UserRepo;
 

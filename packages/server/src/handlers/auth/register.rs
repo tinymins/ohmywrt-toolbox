@@ -1,19 +1,19 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use chrono::Utc;
 use serde::Deserialize;
 
+use crate::AppState;
 use crate::db::repos::admin_repo::AdminRepo;
 use crate::db::repos::auth_repo::AuthRepo;
 use crate::db::repos::workspace_repo::WorkspaceRepo;
 use crate::error::AppError;
 use crate::services::auth::hash_password;
-use crate::AppState;
 
-use super::login::{build_session_response, AuthOutput, UserDto};
+use super::login::{AuthOutput, UserDto, build_session_response};
 use super::settings::resolve_single_workspace_mode;
 
 #[derive(Deserialize)]
@@ -31,8 +31,7 @@ async fn is_single_workspace_mode(db: &sea_orm::DatabaseConnection) -> bool {
     use sea_orm::EntityTrait;
 
     let row = system_settings::Entity::find().one(db).await.ok().flatten();
-    let db_value = row
-        .is_some_and(|s| s.single_workspace_mode);
+    let db_value = row.is_some_and(|s| s.single_workspace_mode);
     let (effective, _) = resolve_single_workspace_mode(db_value);
     effective
 }
@@ -96,19 +95,14 @@ pub async fn register(
     };
 
     // First user becomes superadmin
-    let role = if is_first_user {
-        "superadmin"
-    } else {
-        "user"
-    };
+    let role = if is_first_user { "superadmin" } else { "user" };
 
-    let user =
-        match AuthRepo::create_user(&state.db, &body.name, &body.email, &password_hash, role)
-            .await
-        {
-            Ok(u) => u,
-            Err(e) => return e.into_response(),
-        };
+    let user = match AuthRepo::create_user(&state.db, &body.name, &body.email, &password_hash, role)
+        .await
+    {
+        Ok(u) => u,
+        Err(e) => return e.into_response(),
+    };
 
     let user_id_str = user.id.to_string();
 
@@ -126,13 +120,9 @@ pub async fn register(
         match WorkspaceRepo::get_or_create_shared(&state.db, &user_id_str).await {
             Ok(ws) => {
                 // First member = owner (handled by get_or_create_shared), rest = member
-                if let Err(e) = WorkspaceRepo::add_member(
-                    &state.db,
-                    &ws.id.to_string(),
-                    &user_id_str,
-                    "member",
-                )
-                .await
+                if let Err(e) =
+                    WorkspaceRepo::add_member(&state.db, &ws.id.to_string(), &user_id_str, "member")
+                        .await
                 {
                     return e.into_response();
                 }

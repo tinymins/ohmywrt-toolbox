@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde::{Deserialize, Serialize};
 
+use crate::AppState;
 use crate::db::repos::admin_repo::AdminRepo;
 use crate::error::{ApiResponse, AppError};
 use crate::handlers::auth::AuthUser;
-use crate::AppState;
 
 use super::require_superadmin;
 
@@ -46,10 +46,7 @@ pub async fn list_codes(
             used_by: c.used_by.map(|u| u.to_string()),
             used_at: c.used_at.map(|dt| dt.to_rfc3339()),
             expires_at: c.expires_at.map(|dt| dt.to_rfc3339()),
-            created_at: c
-                .created_at
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default(),
+            created_at: c.created_at.map(|dt| dt.to_rfc3339()).unwrap_or_default(),
         })
         .collect();
 
