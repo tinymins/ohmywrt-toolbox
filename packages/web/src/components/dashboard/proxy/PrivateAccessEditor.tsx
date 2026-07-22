@@ -97,7 +97,7 @@ const joinList = (value: unknown): string => {
   if (Array.isArray(value)) {
     return value
       .filter((item): item is string => typeof item === "string")
-      .join("\n");
+      .join(", ");
   }
   if (typeof value === "string") return value;
   return "";
