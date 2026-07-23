@@ -131,6 +131,8 @@ export default {
     privateRouteCidrs: "Route CIDRs",
     privateRouteDomains: "Route domain suffixes",
     privateDnsDomains: "Private DNS domain suffixes",
+    privateDnsGlobalWarning:
+      "Without private DNS domain suffixes, this server will handle all DNS queries and may break internal service resolution.",
     privateDnsServer: "Private DNS server",
     privateDnsPort: "DNS port",
   },

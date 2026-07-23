@@ -130,6 +130,8 @@ export default {
     privateRouteCidrs: "分流 IP 段",
     privateRouteDomains: "分流域名后缀",
     privateDnsDomains: "专用 DNS 域名后缀",
+    privateDnsGlobalWarning:
+      "未填写专用 DNS 域名后缀时，该 DNS 将接管所有域名解析，可能导致内网服务解析异常。",
     privateDnsServer: "专用 DNS 服务器",
     privateDnsPort: "DNS 端口",
   },

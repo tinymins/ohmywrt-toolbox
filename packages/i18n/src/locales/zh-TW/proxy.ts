@@ -130,6 +130,8 @@ export default {
     privateRouteCidrs: "分流 IP 網段",
     privateRouteDomains: "分流網域後綴",
     privateDnsDomains: "專用 DNS 網域後綴",
+    privateDnsGlobalWarning:
+      "未填寫專用 DNS 網域後綴時，此 DNS 將接管所有網域解析，可能導致內網服務解析異常。",
     privateDnsServer: "專用 DNS 伺服器",
     privateDnsPort: "DNS 連接埠",
   },

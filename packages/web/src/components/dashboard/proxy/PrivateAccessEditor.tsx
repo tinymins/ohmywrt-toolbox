@@ -735,6 +735,15 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   />
                 </label>
               </div>
+              {connector.dnsServer.trim() &&
+                splitList(connector.dnsDomainSuffixes).length === 0 && (
+                  <div className="flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/20 dark:text-amber-300 md:col-span-2">
+                    <span className="mt-0.5 inline-flex shrink-0">
+                      <WarningOutlined />
+                    </span>
+                    <span>{t("proxy.form.privateDnsGlobalWarning")}</span>
+                  </div>
+                )}
             </div>
           </div>
         </div>

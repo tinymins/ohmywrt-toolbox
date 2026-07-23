@@ -643,12 +643,24 @@ fn resolve_private_access_config(
     }
 }
 
-fn apply_private_access_dns(dns_section: &mut Value, private_access: &ResolvedPrivateAccess) {
+fn apply_private_access_dns(
+    dns_section: &mut Value,
+    private_access: &ResolvedPrivateAccess,
+    direct_domains: &[Value],
+) {
     let Some(dns_obj) = dns_section.as_object_mut() else {
         return;
     };
     let Some(servers) = dns_obj.get_mut("servers").and_then(Value::as_array_mut) else {
         return;
+    };
+    let direct_resolver = if servers
+        .iter()
+        .any(|server| server.get("tag").and_then(Value::as_str) == Some("bootstrap"))
+    {
+        "bootstrap"
+    } else {
+        "local"
     };
     servers.extend(private_access.dns_servers.iter().cloned());
 
@@ -658,6 +670,19 @@ fn apply_private_access_dns(dns_section: &mut Value, private_access: &ResolvedPr
     if let Some(rules) = rules.as_array_mut() {
         for rule in private_access.dns_rules.iter().rev() {
             rules.insert(0, rule.clone());
+        }
+        // A private DNS rule without matchers intentionally captures every query.
+        // Resolve proxy and private-connector/DDNS endpoints first through a
+        // direct resolver so establishing a tunnel never depends on DNS inside it.
+        if !direct_domains.is_empty() {
+            rules.insert(
+                0,
+                json!({
+                    "domain": direct_domains,
+                    "action": "route",
+                    "server": direct_resolver,
+                }),
+            );
         }
     }
 }
@@ -1490,7 +1515,7 @@ pub fn build_singbox_config(
         build_singbox_dns(&dns, uses_modern_dns)
     };
     if let Some(private_access) = private_access.as_ref() {
-        apply_private_access_dns(&mut dns_section, private_access);
+        apply_private_access_dns(&mut dns_section, private_access, &server_domains);
     }
 
     // Inbounds
@@ -2647,11 +2672,32 @@ mod tests {
             config
                 .pointer("/dns/rules/0/server")
                 .and_then(Value::as_str),
+            Some("bootstrap")
+        );
+        assert!(
+            config
+                .pointer("/dns/rules/0/domain")
+                .and_then(Value::as_array)
+                .is_some_and(|domains| {
+                    domains
+                        .iter()
+                        .any(|domain| domain.as_str() == Some("vpn.example.com"))
+                })
+        );
+        let private_dns_rule = config
+            .pointer("/dns/rules")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .find(|rule| rule.get("server").and_then(Value::as_str) == Some("private-dns"))
+            .unwrap();
+        assert_eq!(
+            private_dns_rule.get("server").and_then(Value::as_str),
             Some("private-dns")
         );
         assert_eq!(
-            config
-                .pointer("/dns/rules/0/domain_suffix/0")
+            private_dns_rule
+                .pointer("/domain_suffix/0")
                 .and_then(Value::as_str),
             Some("service.example.com")
         );
@@ -2670,14 +2716,15 @@ mod tests {
         let config = build_singbox_config(
             &sub,
             &[domain_vmess_proxy()],
-            SingboxTarget::windows_v13(),
+            SingboxTarget::macos_v13(),
             "https://example.test",
         );
 
-        let rule = config
+        let rules = config
             .pointer("/dns/rules")
             .and_then(Value::as_array)
-            .unwrap()
+            .unwrap();
+        let rule = rules
             .iter()
             .find(|rule| rule.get("server").and_then(Value::as_str) == Some("private-dns"))
             .unwrap();
@@ -2687,6 +2734,32 @@ mod tests {
                 "action": "route",
                 "server": "private-dns"
             })
+        );
+        let direct_dns_rule = rules.first().unwrap();
+        assert_eq!(
+            direct_dns_rule.get("server").and_then(Value::as_str),
+            Some("bootstrap")
+        );
+        assert_eq!(
+            direct_dns_rule.get("action").and_then(Value::as_str),
+            Some("route")
+        );
+        assert!(
+            direct_dns_rule
+                .get("domain")
+                .and_then(Value::as_array)
+                .is_some_and(|domains| {
+                    domains
+                        .iter()
+                        .any(|domain| domain.as_str() == Some("vpn.example.com"))
+                })
+        );
+        assert!(
+            rules
+                .iter()
+                .position(|rule| rule.get("server").and_then(Value::as_str) == Some("private-dns"))
+                .unwrap()
+                > 0
         );
     }
 
