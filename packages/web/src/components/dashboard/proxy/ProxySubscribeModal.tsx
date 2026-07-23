@@ -261,42 +261,6 @@ const TABS = [
   { label: "servers", value: "servers" },
 ];
 
-const DEFAULT_PRIVATE_ACCESS_CONFIG = `{
-  "enabled": false,
-  "connectors": [
-    {
-      "enabled": true,
-      "tag": "wg-lvmcn",
-      "type": "wireguard",
-      "endpoint": {
-        "address": ["10.8.29.23/32"],
-        "privateKey": "",
-        "peers": [
-          {
-            "address": "ddns.lvmcn.com",
-            "port": 31088,
-            "publicKey": "",
-            "preSharedKey": "",
-            "allowedIps": ["10.8.28.0/24"],
-            "persistentKeepaliveInterval": 25
-          }
-        ]
-      },
-      "routes": {
-        "ipCidrs": ["10.8.28.0/24"]
-      },
-      "dns": [
-        {
-          "tag": "rpsh-dns",
-          "domainSuffixes": ["rpsh.vmins.com"],
-          "server": "10.8.28.1",
-          "serverPort": 53
-        }
-      ]
-    }
-  ]
-}`;
-
 const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
   ({ onSuccess }, ref) => {
     const { t } = useTranslation();
@@ -380,7 +344,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             useSystemCustomConfig: true,
             dnsConfig: "",
             useSystemDnsConfig: true,
-            privateAccessConfig: DEFAULT_PRIVATE_ACCESS_CONFIG,
+            privateAccessConfig: "",
             servers: JSON.stringify([], null, 2),
           });
           setLoading(false);
@@ -449,8 +413,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         useSystemCustomConfig: existingData.useSystemCustomConfig,
         dnsConfig: existingData.dnsConfig ?? "",
         useSystemDnsConfig: existingData.useSystemDnsConfig,
-        privateAccessConfig:
-          existingData.privateAccessConfig ?? DEFAULT_PRIVATE_ACCESS_CONFIG,
+        privateAccessConfig: existingData.privateAccessConfig ?? "",
         servers: existingData.servers ?? "",
         authorizedUserIds: existingData.authorizedUserIds,
       });

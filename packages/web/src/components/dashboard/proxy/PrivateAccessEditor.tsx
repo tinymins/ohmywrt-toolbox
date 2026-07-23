@@ -103,9 +103,9 @@ const joinList = (value: unknown): string => {
   return "";
 };
 
-const emptyConnector = (index: number): PrivateConnectorForm => ({
+const emptyConnector = (): PrivateConnectorForm => ({
   enabled: true,
-  tag: index === 0 ? "wg-lvmcn" : `private-access-${index + 1}`,
+  tag: "",
   type: "wireguard",
   address: "",
   privateKey: "",
@@ -130,7 +130,7 @@ const emptyConnector = (index: number): PrivateConnectorForm => ({
 
 const parseConfig = (value?: string) => {
   if (!value?.trim()) {
-    return { enabled: false, connectors: [emptyConnector(0)] };
+    return { enabled: false, connectors: [] };
   }
 
   try {
@@ -172,7 +172,7 @@ const parseConfig = (value?: string) => {
         }
 
         return {
-          ...emptyConnector(index),
+          ...emptyConnector(),
           enabled: connector.enabled !== false,
           tag:
             typeof connector.tag === "string"
@@ -243,10 +243,10 @@ const parseConfig = (value?: string) => {
 
     return {
       enabled: parsed.enabled === true,
-      connectors: connectors.length > 0 ? connectors : [emptyConnector(0)],
+      connectors,
     };
   } catch {
-    return { enabled: false, connectors: [emptyConnector(0)] };
+    return { enabled: false, connectors: [] };
   }
 };
 
@@ -271,13 +271,21 @@ const serializeConfig = (enabled: boolean, connectors: PrivateConnectorForm[]) =
     }
 
     const dnsDomainSuffixes = splitList(connector.dnsDomainSuffixes);
-    if (connector.dnsServer.trim() && dnsDomainSuffixes.length > 0) {
+    const dnsServer = connector.dnsServer.trim();
+    const dnsServerPort = connector.dnsServerPort ?? 53;
+    // Every DNS field is user-owned state: keep partial input instead of
+    // silently dropping it while the connector is being configured.
+    const hasDnsConfig =
+      dnsServer.length > 0 ||
+      dnsDomainSuffixes.length > 0 ||
+      dnsServerPort !== 53;
+    if (hasDnsConfig) {
       base.dns = [
         {
           tag: `${connector.tag.trim() || "private-access"}-dns`,
           domainSuffixes: dnsDomainSuffixes,
-          server: connector.dnsServer.trim(),
-          serverPort: connector.dnsServerPort ?? 53,
+          server: dnsServer,
+          serverPort: dnsServerPort,
         },
       ];
     }
@@ -412,7 +420,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
   const removeConnector = (index: number) => {
     connectorKeysRef.current.splice(index, 1);
     const next = state.connectors.filter((_, itemIndex) => itemIndex !== index);
-    emit(state.enabled, next.length > 0 ? next : [emptyConnector(0)]);
+    emit(state.enabled, next);
   };
 
   const addConnector = () => {
@@ -421,7 +429,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
     );
     emit(state.enabled, [
       ...state.connectors,
-      emptyConnector(state.connectors.length),
+      emptyConnector(),
     ]);
   };
 
@@ -464,7 +472,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
               <Input
                 size="small"
                 value={connector.tag}
-                placeholder={t("proxy.form.privateConnectorTag")}
+                placeholder={`private-access-${index + 1}`}
                 onChange={(event) =>
                   updateConnector(index, { tag: event.target.value })
                 }
@@ -496,7 +504,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   <Input
                     size="small"
                     value={connector.address}
-                    placeholder="10.8.29.23/32, 10.8.29.24"
+                    placeholder="192.0.2.2/32, 2001:db8::2/128"
                     onChange={(event) =>
                       updateConnector(index, { address: event.target.value })
                     }
@@ -517,7 +525,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   <Input
                     size="small"
                     value={connector.peerAddress}
-                    placeholder="ddns.example.com"
+                    placeholder="vpn.example.com"
                     onChange={(event) =>
                       updateConnector(index, {
                         peerAddress: event.target.value,
@@ -581,7 +589,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                     rows={2}
                     size="small"
                     value={connector.allowedIps}
-                    placeholder={"1.1.1.1/23, 2.2.2.2/11 , 3.3.3.3/9, 4.4.4.4\n5.5.5.5"}
+                    placeholder={"192.0.2.0/24, 2001:db8::/32"}
                     onChange={(event) =>
                       updateConnector(index, { allowedIps: event.target.value })
                     }
@@ -667,7 +675,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   rows={2}
                   size="small"
                   value={connector.routeCidrs}
-                  placeholder={"10.8.28.0/24, 10.8.29.10\n10.8.30.0/24"}
+                  placeholder={"198.51.100.0/24, 2001:db8:1::/48"}
                   onChange={(event) =>
                     updateConnector(index, { routeCidrs: event.target.value })
                   }
@@ -693,7 +701,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   rows={2}
                   size="small"
                   value={connector.dnsDomainSuffixes}
-                  placeholder={"a.com, b.com, c.com\nd.com"}
+                  placeholder={"service.example.com, home.arpa"}
                   onChange={(event) =>
                     updateConnector(index, {
                       dnsDomainSuffixes: event.target.value,
@@ -707,7 +715,7 @@ const PrivateAccessEditor = ({ value, onChange }: Props) => {
                   <Input
                     size="small"
                     value={connector.dnsServer}
-                    placeholder="10.8.28.1"
+                    placeholder="192.0.2.53"
                     onChange={(event) =>
                       updateConnector(index, { dnsServer: event.target.value })
                     }

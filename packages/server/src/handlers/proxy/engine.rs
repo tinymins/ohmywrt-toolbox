@@ -617,9 +617,10 @@ fn resolve_private_access_config(
                 "action": "route",
                 "server": server_tag,
             });
-            if !add_dns_matchers(&mut dns_rule, &dns) {
-                continue;
-            }
+            // With matchers this is a split-DNS rule. Without matchers it is
+            // intentionally an unconditional rule, so a DNS server configured
+            // on its own remains meaningful instead of being discarded.
+            add_dns_matchers(&mut dns_rule, &dns);
             resolved.dns_servers.push(json!({
                 "type": "udp",
                 "tag": server_tag,
@@ -2156,30 +2157,30 @@ mod tests {
               "connectors": [
                 {
                   "enabled": true,
-                  "tag": "wg-lvmcn",
+                  "tag": "private-wg",
                   "type": "wireguard",
                   "endpoint": {
-                    "address": ["10.8.29.23/32"],
+                    "address": ["192.0.2.2/32"],
                     "privateKey": "wRGa89tcyKhbZt9fGR6atEru0RFbBbSe16SvjSkAQjE=",
                     "peers": [
                       {
-                        "address": "ddns.lvmcn.com",
-                        "port": 31088,
+                        "address": "vpn.example.com",
+                        "port": 51820,
                         "publicKey": "w2aXEVTOtvOSdclyYMAdNYVzlS2paWdhncNr5HoXBRo=",
                         "preSharedKey": "mV0yytCSc95AhotCiy4wRl0MI/E0CLS06ybRqYS27z4=",
-                        "allowedIps": ["10.8.28.0/24", "10.8.29.0/24", "10.254.0.0/24"],
+                        "allowedIps": ["198.51.100.0/24", "192.0.2.0/24", "203.0.113.0/24"],
                         "persistentKeepaliveInterval": 25
                       }
                     ]
                   },
                   "routes": {
-                    "ipCidrs": ["10.8.28.0/24"]
+                    "ipCidrs": ["198.51.100.0/24"]
                   },
                   "dns": [
                     {
-                      "tag": "rpsh-dns",
-                      "domainSuffixes": ["rpsh.vmins.com"],
-                      "server": "10.8.28.1",
+                      "tag": "private-dns",
+                      "domainSuffixes": ["service.example.com"],
+                      "server": "192.0.2.53",
                       "serverPort": 53
                     }
                   ]
@@ -2570,7 +2571,7 @@ mod tests {
         );
         assert_eq!(
             endpoint.get("tag").and_then(Value::as_str),
-            Some("wg-lvmcn")
+            Some("private-wg")
         );
         assert_eq!(
             endpoint
@@ -2595,7 +2596,7 @@ mod tests {
                 .is_some_and(|domains| {
                     domains
                         .iter()
-                        .any(|domain| domain.as_str() == Some("ddns.lvmcn.com"))
+                        .any(|domain| domain.as_str() == Some("vpn.example.com"))
                 })
                 && rule.get("outbound").and_then(Value::as_str) == Some("🚀 直接连接")
         }));
@@ -2605,9 +2606,9 @@ mod tests {
                 .is_some_and(|cidrs| {
                     cidrs
                         .iter()
-                        .any(|cidr| cidr.as_str() == Some("10.8.28.0/24"))
+                        .any(|cidr| cidr.as_str() == Some("198.51.100.0/24"))
                 })
-                && rule.get("outbound").and_then(Value::as_str) == Some("wg-lvmcn")
+                && rule.get("outbound").and_then(Value::as_str) == Some("private-wg")
         }));
         assert!(rules.iter().any(|rule| {
             rule.get("domain_suffix")
@@ -2638,21 +2639,54 @@ mod tests {
             .and_then(Value::as_array)
             .unwrap();
         assert!(servers.iter().any(|server| {
-            server.get("tag").and_then(Value::as_str) == Some("rpsh-dns")
-                && server.get("server").and_then(Value::as_str) == Some("10.8.28.1")
-                && server.get("detour").and_then(Value::as_str) == Some("wg-lvmcn")
+            server.get("tag").and_then(Value::as_str) == Some("private-dns")
+                && server.get("server").and_then(Value::as_str) == Some("192.0.2.53")
+                && server.get("detour").and_then(Value::as_str) == Some("private-wg")
         }));
         assert_eq!(
             config
                 .pointer("/dns/rules/0/server")
                 .and_then(Value::as_str),
-            Some("rpsh-dns")
+            Some("private-dns")
         );
         assert_eq!(
             config
                 .pointer("/dns/rules/0/domain_suffix/0")
                 .and_then(Value::as_str),
-            Some("rpsh.vmins.com")
+            Some("service.example.com")
+        );
+    }
+
+    #[test]
+    fn v13_private_dns_server_without_matchers_is_preserved() {
+        let mut sub = private_access_subscribe();
+        let mut private_access: Value =
+            serde_json::from_str(sub.private_access_config.as_deref().unwrap()).unwrap();
+        *private_access
+            .pointer_mut("/connectors/0/dns/0/domainSuffixes")
+            .unwrap() = json!([]);
+        sub.private_access_config = Some(private_access.to_string());
+
+        let config = build_singbox_config(
+            &sub,
+            &[domain_vmess_proxy()],
+            SingboxTarget::windows_v13(),
+            "https://example.test",
+        );
+
+        let rule = config
+            .pointer("/dns/rules")
+            .and_then(Value::as_array)
+            .unwrap()
+            .iter()
+            .find(|rule| rule.get("server").and_then(Value::as_str) == Some("private-dns"))
+            .unwrap();
+        assert_eq!(
+            rule,
+            &json!({
+                "action": "route",
+                "server": "private-dns"
+            })
         );
     }
 
@@ -2671,7 +2705,7 @@ mod tests {
                 .and_then(Value::as_array)
                 .unwrap()
                 .iter()
-                .any(|rule| rule.get("outbound").and_then(Value::as_str) == Some("wg-lvmcn"))
+                .any(|rule| rule.get("outbound").and_then(Value::as_str) == Some("private-wg"))
         );
     }
 
