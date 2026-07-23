@@ -49,6 +49,14 @@ export default {
   form: {
     remark: "Remark",
     remarkPlaceholder: "Enter a remark name",
+    logLevel: "Protokollstufe",
+    logLevelTip:
+      "Steuert Laufzeitprotokolle in generierten Konfigurationen; Aus deaktiviert die Ausgabe",
+    logLevelOff: "Aus",
+    logLevelError: "Fehler",
+    logLevelWarn: "Warnung",
+    logLevelInfo: "Info",
+    logLevelDebug: "Debug",
     subscribeUrlLabel: "Subscribe URL",
     addSubscribeItem: "Add Subscribe Source",
     subscribeItemUrl: "URL",

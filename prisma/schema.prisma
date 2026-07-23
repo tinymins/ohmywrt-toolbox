@@ -127,6 +127,7 @@ model ProxySubscribe {
   userId              String    @map("user_id") @db.Uuid
   url                 String    @unique
   remark              String?
+  logLevel            String    @default("info") @map("log_level")
   subscribeUrl        String?   @map("subscribe_url")
   subscribeItems      Json?     @map("subscribe_items")
   ruleList            String?   @map("rule_list")

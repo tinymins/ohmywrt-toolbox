@@ -44,6 +44,7 @@ pub struct ProxySubscribeOutput {
     pub user_id: String,
     pub url: String,
     pub remark: Option<String>,
+    pub log_level: String,
     pub subscribe_url: Option<String>,
     pub subscribe_items: Option<serde_json::Value>,
     pub rule_list: Option<String>,
@@ -182,6 +183,7 @@ fn enrich_subscribe(
         user_id: user_id_str,
         url: sub.url,
         remark: sub.remark,
+        log_level: sub.log_level,
         subscribe_url: sub.subscribe_url,
         subscribe_items: sub.subscribe_items,
         rule_list: sub.rule_list,
@@ -361,6 +363,7 @@ pub async fn get_subscribe(
 #[serde(rename_all = "camelCase")]
 pub struct CreateSubscribeInput {
     pub remark: Option<String>,
+    pub log_level: Option<String>,
     pub subscribe_url: Option<String>,
     pub subscribe_items: Option<serde_json::Value>,
     pub rule_list: Option<String>,
@@ -388,6 +391,7 @@ pub async fn create_subscribe(
         &state.db,
         &auth_user.user_id,
         body.remark.as_deref(),
+        body.log_level.as_deref(),
         body.subscribe_url.as_deref(),
         body.subscribe_items,
         body.rule_list.as_deref(),
@@ -428,6 +432,7 @@ pub async fn create_subscribe(
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSubscribeInput {
     pub remark: Option<Option<String>>,
+    pub log_level: Option<String>,
     pub subscribe_url: Option<Option<String>>,
     pub subscribe_items: Option<Option<serde_json::Value>>,
     pub rule_list: Option<Option<String>>,
@@ -477,6 +482,7 @@ pub async fn update_subscribe(
         &state.db,
         &id,
         body.remark,
+        body.log_level,
         body.subscribe_url,
         body.subscribe_items,
         body.rule_list,

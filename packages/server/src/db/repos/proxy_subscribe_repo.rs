@@ -28,6 +28,16 @@ fn normalize_authorized_user_ids(
     }
 }
 
+fn normalize_log_level(value: Option<&str>) -> Result<String, AppError> {
+    let level = value.unwrap_or("info").trim().to_ascii_lowercase();
+    match level.as_str() {
+        "off" | "error" | "warn" | "info" | "debug" => Ok(level),
+        _ => Err(AppError::BadRequest(
+            "log_level must be one of: off, error, warn, info, debug".into(),
+        )),
+    }
+}
+
 pub struct ProxySubscribeRepo;
 
 impl ProxySubscribeRepo {
@@ -108,6 +118,7 @@ impl ProxySubscribeRepo {
         db: &DatabaseConnection,
         user_id: &str,
         remark: Option<&str>,
+        log_level: Option<&str>,
         subscribe_url: Option<&str>,
         subscribe_items: Option<serde_json::Value>,
         rule_list: Option<&str>,
@@ -130,12 +141,14 @@ impl ProxySubscribeRepo {
         // Auto-generate an opaque random token — never accepted from user input
         let url_token = Uuid::new_v4().to_string();
         let auth_ids = normalize_authorized_user_ids(authorized_user_ids)?;
+        let log_level = normalize_log_level(log_level)?;
 
         let record = proxy_subscribes::ActiveModel {
             id: Set(id),
             user_id: Set(uid),
             url: Set(url_token),
             remark: Set(remark.map(String::from)),
+            log_level: Set(log_level),
             subscribe_url: Set(subscribe_url.map(String::from)),
             subscribe_items: Set(subscribe_items),
             rule_list: Set(rule_list.map(String::from)),
@@ -170,6 +183,7 @@ impl ProxySubscribeRepo {
         db: &DatabaseConnection,
         id: &str,
         remark: Option<Option<String>>,
+        log_level: Option<String>,
         subscribe_url: Option<Option<String>>,
         subscribe_items: Option<Option<serde_json::Value>>,
         rule_list: Option<Option<String>>,
@@ -197,6 +211,9 @@ impl ProxySubscribeRepo {
 
         if let Some(v) = remark {
             active.remark = Set(v);
+        }
+        if let Some(v) = log_level {
+            active.log_level = Set(normalize_log_level(Some(&v))?);
         }
         if let Some(v) = subscribe_url {
             active.subscribe_url = Set(v);

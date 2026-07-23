@@ -123,11 +123,22 @@ export const SubscribeItemsSchema = z.array(SubscribeItemSchema);
 // 代理订阅
 // ============================================
 
+export const ProxyLogLevelSchema = z.enum([
+  "off",
+  "error",
+  "warn",
+  "info",
+  "debug",
+]);
+
+export type ProxyLogLevel = z.infer<typeof ProxyLogLevelSchema>;
+
 export const ProxySubscribeSchema = z.object({
   id: z.string(),
   userId: z.string(),
   url: z.string(),
   remark: z.string().nullable(),
+  logLevel: ProxyLogLevelSchema,
   // JSONC 字符串（前端编辑器直接显示）— 旧字段，保留兼容
   subscribeUrl: z.string().nullable(),
   // 结构化订阅源列表（新字段，优先使用）
@@ -180,6 +191,7 @@ export type ProxySubscribeWithUser = z.infer<
 
 export const CreateProxySubscribeInputSchema = z.object({
   remark: z.string().nullable().optional(),
+  logLevel: ProxyLogLevelSchema.optional(),
   subscribeUrl: z.string().nullable().optional(),
   subscribeItems: z.array(SubscribeItemSchema).nullable().optional(),
   ruleList: z.string().nullable().optional(),
@@ -205,6 +217,7 @@ export type CreateProxySubscribeInput = z.infer<
 export const UpdateProxySubscribeInputSchema = z.object({
   id: z.string(),
   remark: z.string().nullable().optional(),
+  logLevel: ProxyLogLevelSchema.optional(),
   subscribeUrl: z.string().nullable().optional(),
   subscribeItems: z.array(SubscribeItemSchema).nullable().optional(),
   ruleList: z.string().nullable().optional(),

@@ -1018,6 +1018,30 @@ pub async fn fetch_proxies(
 
 // ─── Build Clash config ───
 
+fn normalized_log_level(log_level: &str) -> &str {
+    match log_level {
+        "off" | "error" | "warn" | "info" | "debug" => log_level,
+        _ => "info",
+    }
+}
+
+fn clash_log_level(log_level: &str) -> &str {
+    match normalized_log_level(log_level) {
+        "off" => "silent",
+        "warn" => "warning",
+        level => level,
+    }
+}
+
+fn singbox_log_config(log_level: &str) -> Value {
+    let level = normalized_log_level(log_level);
+    json!({
+        "disabled": level == "off",
+        "level": if level == "off" { "info" } else { level },
+        "timestamp": true
+    })
+}
+
 /// Build a complete Clash or Clash-Meta YAML config string.
 pub fn build_clash_config(
     sub: &proxy_subscribes::Model,
@@ -1138,7 +1162,7 @@ pub fn build_clash_config(
     data.insert("tproxy-port".into(), json!(dns.shared.tproxy_port));
     data.insert("allow-lan".into(), json!(true));
     data.insert("mode".into(), json!("Rule"));
-    data.insert("log-level".into(), json!("info"));
+    data.insert("log-level".into(), json!(clash_log_level(&sub.log_level)));
     data.insert("secret".into(), json!(dns.shared.clash_api_secret));
 
     if is_meta {
@@ -1711,7 +1735,7 @@ pub fn build_singbox_config(
     };
 
     let mut config = json!({
-        "log": {"disabled": false, "level": "info", "timestamp": true},
+        "log": singbox_log_config(&sub.log_level),
         "dns": dns_section,
         "inbounds": inbounds,
         "outbounds": outbounds,
@@ -2088,6 +2112,7 @@ mod tests {
             user_id: uuid::Uuid::new_v4(),
             url: "test-subscribe".to_string(),
             remark: None,
+            log_level: "info".to_string(),
             subscribe_url: None,
             subscribe_items: None,
             rule_list: None,
@@ -2231,6 +2256,51 @@ mod tests {
             .to_string(),
         );
         sub
+    }
+
+    #[test]
+    fn generated_configs_apply_selected_log_level() {
+        let mut sub = test_subscribe();
+        sub.log_level = "off".to_string();
+
+        let clash: Value = serde_yaml::from_str(&build_clash_config(&sub, &[], true)).unwrap();
+        assert_eq!(
+            clash.get("log-level").and_then(Value::as_str),
+            Some("silent")
+        );
+
+        let singbox = build_singbox_config(
+            &sub,
+            &[],
+            SingboxTarget::macos_v13(),
+            "https://example.test",
+        );
+        assert_eq!(
+            singbox.pointer("/log/disabled").and_then(Value::as_bool),
+            Some(true)
+        );
+
+        sub.log_level = "debug".to_string();
+        let clash: Value = serde_yaml::from_str(&build_clash_config(&sub, &[], true)).unwrap();
+        assert_eq!(
+            clash.get("log-level").and_then(Value::as_str),
+            Some("debug")
+        );
+
+        let singbox = build_singbox_config(
+            &sub,
+            &[],
+            SingboxTarget::macos_v13(),
+            "https://example.test",
+        );
+        assert_eq!(
+            singbox.pointer("/log/disabled").and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            singbox.pointer("/log/level").and_then(Value::as_str),
+            Some("debug")
+        );
     }
 
     #[test]

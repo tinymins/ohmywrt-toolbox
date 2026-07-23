@@ -11,6 +11,8 @@ pub struct Model {
     pub url: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub remark: Option<String>,
+    #[sea_orm(column_type = "Text")]
+    pub log_level: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub subscribe_url: Option<String>,
     #[sea_orm(column_type = "JsonBinary", nullable)]

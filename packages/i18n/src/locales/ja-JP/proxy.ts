@@ -49,6 +49,14 @@ export default {
   form: {
     remark: "Remark",
     remarkPlaceholder: "Enter a remark name",
+    logLevel: "ログレベル",
+    logLevelTip:
+      "生成する設定の実行ログを制御します。オフにすると出力されません",
+    logLevelOff: "オフ",
+    logLevelError: "エラー",
+    logLevelWarn: "警告",
+    logLevelInfo: "情報",
+    logLevelDebug: "デバッグ",
     subscribeUrlLabel: "Subscribe URL",
     addSubscribeItem: "Add Subscribe Source",
     subscribeItemUrl: "URL",

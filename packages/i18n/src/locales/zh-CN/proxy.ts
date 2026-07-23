@@ -48,6 +48,13 @@ export default {
   form: {
     remark: "备注",
     remarkPlaceholder: "请输入备注名称",
+    logLevel: "日志级别",
+    logLevelTip: "控制生成配置的运行日志；关闭后不输出日志",
+    logLevelOff: "关闭输出",
+    logLevelError: "错误",
+    logLevelWarn: "警告",
+    logLevelInfo: "信息",
+    logLevelDebug: "调试",
     subscribeUrlLabel: "订阅地址",
     addSubscribeItem: "添加订阅源",
     subscribeItemUrl: "订阅地址",

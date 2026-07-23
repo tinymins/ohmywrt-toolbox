@@ -21,6 +21,7 @@ export interface ProxySubscribe {
   userId: string;
   url: string;
   remark: string | null;
+  logLevel: "off" | "error" | "warn" | "info" | "debug";
   subscribeUrl: string | null;
   subscribeItems: unknown[] | null;
   ruleList: string | null;
@@ -48,6 +49,7 @@ export interface ProxySubscribe {
 
 export interface CreateProxySubscribeInput {
   remark?: string | null;
+  logLevel?: "off" | "error" | "warn" | "info" | "debug";
   subscribeUrl?: string | null;
   subscribeItems?: unknown[] | null;
   ruleList?: string | null;

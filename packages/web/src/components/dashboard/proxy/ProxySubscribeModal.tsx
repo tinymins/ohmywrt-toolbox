@@ -331,6 +331,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           setIsOwner(true); // 新建时一定是创建者
           form.resetFields();
           form.setFieldsValue({
+            logLevel: "info",
             subscribeItems: [
               { enabled: true, url: "", prefix: "", remark: "" },
             ],
@@ -402,6 +403,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
 
       form.setFieldsValue({
         remark: existingData.remark ?? "",
+        logLevel: existingData.logLevel ?? "info",
         subscribeItems: items,
         ruleList: existingData.ruleList ?? "",
         useSystemRuleList: existingData.useSystemRuleList,
@@ -461,6 +463,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
         // 直接发送原始字符串（包含注释）
         const data = {
           remark: values.remark || null,
+          logLevel: values.logLevel ?? "info",
           subscribeUrl: null, // 清空旧字段
           subscribeItems: cleanedItems.length > 0 ? cleanedItems : null,
           ruleList: values.ruleList || null,
@@ -556,6 +559,36 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 <TextArea
                   rows={3}
                   placeholder={t("proxy.form.remarkPlaceholder")}
+                />
+              </Form.Item>
+              <Form.Item
+                label={t("proxy.form.logLevel")}
+                name="logLevel"
+                tooltip={t("proxy.form.logLevelTip")}
+              >
+                <Select
+                  options={[
+                    {
+                      value: "off",
+                      label: t("proxy.form.logLevelOff"),
+                    },
+                    {
+                      value: "error",
+                      label: t("proxy.form.logLevelError"),
+                    },
+                    {
+                      value: "warn",
+                      label: t("proxy.form.logLevelWarn"),
+                    },
+                    {
+                      value: "info",
+                      label: t("proxy.form.logLevelInfo"),
+                    },
+                    {
+                      value: "debug",
+                      label: t("proxy.form.logLevelDebug"),
+                    },
+                  ]}
                 />
               </Form.Item>
               <Form.Item
@@ -672,7 +705,9 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             </div>
 
             {/* 内网访问配置 */}
-            <div className={activeTab === "privateAccessConfig" ? "" : "hidden"}>
+            <div
+              className={activeTab === "privateAccessConfig" ? "" : "hidden"}
+            >
               <Form.Item
                 label={t("proxy.form.privateAccessConfigLabel")}
                 name="privateAccessConfig"

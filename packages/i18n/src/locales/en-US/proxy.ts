@@ -49,6 +49,14 @@ export default {
   form: {
     remark: "Remark",
     remarkPlaceholder: "Enter a remark name",
+    logLevel: "Log level",
+    logLevelTip:
+      "Controls runtime logs in generated configs; Off disables output",
+    logLevelOff: "Off",
+    logLevelError: "Error",
+    logLevelWarn: "Warning",
+    logLevelInfo: "Info",
+    logLevelDebug: "Debug",
     subscribeUrlLabel: "Subscribe URL",
     addSubscribeItem: "Add Subscribe Source",
     subscribeItemUrl: "URL",
