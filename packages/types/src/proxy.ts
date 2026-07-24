@@ -569,6 +569,43 @@ export const ProxySourceDebugAttemptStartStepSchema = z.object({
   }),
 });
 
+export const ProxySourceDebugNetworkStepSchema = z.object({
+  type: z.literal("network"),
+  data: z.object({
+    scheme: z.string().nullable(),
+    host: z.string().nullable(),
+    port: z.number().nullable(),
+    resolverConfig: z.array(z.string()),
+    proxyEnvironmentVariables: z.array(z.string()),
+    dnsDurationMs: z.number(),
+    resolvedAddresses: z.array(z.string()),
+    dnsError: z.string().nullable(),
+    tcpProbes: z.array(
+      z.object({
+        address: z.string(),
+        success: z.boolean(),
+        durationMs: z.number(),
+        localAddress: z.string().nullable(),
+        remoteAddress: z.string().nullable(),
+        error: z.string().nullable(),
+      }),
+    ),
+  }),
+});
+
+export const ProxySourceDebugRequestErrorSchema = z.object({
+  message: z.string(),
+  debug: z.string(),
+  chain: z.array(z.string()),
+  isTimeout: z.boolean(),
+  isConnect: z.boolean(),
+  isRequest: z.boolean(),
+  isBody: z.boolean(),
+  isDecode: z.boolean(),
+  status: z.number().nullable(),
+  url: z.string().nullable(),
+});
+
 export const ProxySourceDebugAttemptResultStepSchema = z.object({
   type: z.literal("attempt-result"),
   data: z.object({
@@ -580,6 +617,10 @@ export const ProxySourceDebugAttemptResultStepSchema = z.object({
     httpHeaders: z.record(z.string(), z.string()),
     fetchDurationMs: z.number(),
     error: z.string().nullable(),
+    requestError: ProxySourceDebugRequestErrorSchema.nullable(),
+    remoteAddress: z.string().nullable(),
+    httpVersion: z.string().nullable(),
+    tlsPeerCertificateBytes: z.number().nullable(),
     payload: ProxySourceDebugPayloadSchema,
   }),
 });
@@ -605,6 +646,7 @@ export const ProxySourceDebugDoneStepSchema = z.object({
 export const ProxySourceDebugStepSchema = z.discriminatedUnion("type", [
   ProxySourceDebugConfigStepSchema,
   ProxySourceDebugCacheStepSchema,
+  ProxySourceDebugNetworkStepSchema,
   ProxySourceDebugAttemptStartStepSchema,
   ProxySourceDebugAttemptResultStepSchema,
   ProxySourceDebugFallbackStepSchema,

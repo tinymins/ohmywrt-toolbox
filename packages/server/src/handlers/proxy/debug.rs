@@ -1,10 +1,13 @@
 use std::convert::Infallible;
+use std::error::Error as _;
 use std::time::{Duration, Instant};
 
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
 use serde_json::{Map, Value, json};
+use tokio::net::{TcpStream, lookup_host};
 use tokio::sync::mpsc;
+use tokio::task::JoinSet;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::db::entities::proxy_subscribes;
@@ -133,6 +136,7 @@ fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> V
 fn build_http_client() -> reqwest::Client {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
+        .tls_info(true)
         .build()
         .unwrap_or_default()
 }
@@ -438,6 +442,167 @@ async fn send_source_done(
     if sent { Ok(()) } else { Err(()) }
 }
 
+fn request_error_details(error: &reqwest::Error) -> Value {
+    let mut chain = vec![error.to_string()];
+    let mut source = error.source();
+    while let Some(cause) = source {
+        chain.push(cause.to_string());
+        source = cause.source();
+    }
+
+    json!({
+        "message": error.to_string(),
+        "debug": format!("{error:?}"),
+        "chain": chain,
+        "isTimeout": error.is_timeout(),
+        "isConnect": error.is_connect(),
+        "isRequest": error.is_request(),
+        "isBody": error.is_body(),
+        "isDecode": error.is_decode(),
+        "status": error.status().map(|status| status.as_u16()),
+        "url": error.url().map(ToString::to_string),
+    })
+}
+
+async fn inspect_source_network(url: &str) -> Value {
+    let resolver_config = std::fs::read_to_string("/etc/resolv.conf")
+        .unwrap_or_default()
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let proxy_environment_variables = [
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "NO_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+        "no_proxy",
+    ]
+    .into_iter()
+    .filter(|name| std::env::var_os(name).is_some())
+    .map(ToString::to_string)
+    .collect::<Vec<_>>();
+
+    let Ok(parsed_url) = reqwest::Url::parse(url) else {
+        return json!({
+            "scheme": null,
+            "host": null,
+            "port": null,
+            "resolverConfig": resolver_config,
+            "proxyEnvironmentVariables": proxy_environment_variables,
+            "dnsDurationMs": 0,
+            "resolvedAddresses": [],
+            "dnsError": "Invalid request URL",
+            "tcpProbes": [],
+        });
+    };
+    let scheme = parsed_url.scheme().to_string();
+    let Some(host) = parsed_url.host_str().map(ToString::to_string) else {
+        return json!({
+            "scheme": scheme,
+            "host": null,
+            "port": null,
+            "resolverConfig": resolver_config,
+            "proxyEnvironmentVariables": proxy_environment_variables,
+            "dnsDurationMs": 0,
+            "resolvedAddresses": [],
+            "dnsError": "Request URL has no host",
+            "tcpProbes": [],
+        });
+    };
+    let port = parsed_url.port_or_known_default();
+    let Some(port) = port else {
+        return json!({
+            "scheme": scheme,
+            "host": host,
+            "port": null,
+            "resolverConfig": resolver_config,
+            "proxyEnvironmentVariables": proxy_environment_variables,
+            "dnsDurationMs": 0,
+            "resolvedAddresses": [],
+            "dnsError": "Unable to determine target port",
+            "tcpProbes": [],
+        });
+    };
+
+    let dns_start = Instant::now();
+    let lookup_result = lookup_host((host.as_str(), port)).await;
+    let dns_duration_ms = dns_start.elapsed().as_millis() as u64;
+    let (addresses, dns_error) = match lookup_result {
+        Ok(addresses) => {
+            let mut addresses = addresses.collect::<Vec<_>>();
+            addresses.sort_unstable();
+            addresses.dedup();
+            (addresses, None)
+        }
+        Err(error) => (Vec::new(), Some(error.to_string())),
+    };
+    let resolved_addresses = addresses
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+
+    let mut probe_tasks = JoinSet::new();
+    for address in addresses.into_iter().take(8) {
+        probe_tasks.spawn(async move {
+            let probe_start = Instant::now();
+            match tokio::time::timeout(Duration::from_secs(3), TcpStream::connect(address)).await {
+                Ok(Ok(stream)) => json!({
+                    "address": address.to_string(),
+                    "success": true,
+                    "durationMs": probe_start.elapsed().as_millis() as u64,
+                    "localAddress": stream.local_addr().ok().map(|value| value.to_string()),
+                    "remoteAddress": stream.peer_addr().ok().map(|value| value.to_string()),
+                    "error": null,
+                }),
+                Ok(Err(error)) => json!({
+                    "address": address.to_string(),
+                    "success": false,
+                    "durationMs": probe_start.elapsed().as_millis() as u64,
+                    "localAddress": null,
+                    "remoteAddress": null,
+                    "error": error.to_string(),
+                }),
+                Err(_) => json!({
+                    "address": address.to_string(),
+                    "success": false,
+                    "durationMs": probe_start.elapsed().as_millis() as u64,
+                    "localAddress": null,
+                    "remoteAddress": null,
+                    "error": "TCP connect timed out after 3000 ms",
+                }),
+            }
+        });
+    }
+    let mut probes = Vec::new();
+    while let Some(result) = probe_tasks.join_next().await {
+        if let Ok(probe) = result {
+            probes.push(probe);
+        }
+    }
+    probes.sort_by(|left, right| {
+        left.get("address")
+            .and_then(Value::as_str)
+            .cmp(&right.get("address").and_then(Value::as_str))
+    });
+
+    json!({
+        "scheme": scheme,
+        "host": host,
+        "port": port,
+        "resolverConfig": resolver_config,
+        "proxyEnvironmentVariables": proxy_environment_variables,
+        "dnsDurationMs": dns_duration_ms,
+        "resolvedAddresses": resolved_addresses,
+        "dnsError": dns_error,
+        "tcpProbes": probes,
+    })
+}
+
 #[allow(clippy::too_many_lines)]
 async fn run_debug_source_stream(
     url: &str,
@@ -555,10 +720,27 @@ async fn run_debug_source_stream(
 
         let fetch_start = Instant::now();
         let response = client.get(url).header("User-Agent", ua).send().await;
-        let (http_status, final_url, http_headers, raw_text, request_error) = match response {
+        let (
+            http_status,
+            final_url,
+            http_headers,
+            raw_text,
+            request_error,
+            request_error_details,
+            remote_address,
+            http_version,
+            tls_peer_certificate_bytes,
+        ) = match response {
             Ok(response) => {
                 let status = response.status().as_u16();
                 let final_url = response.url().to_string();
+                let remote_address = response.remote_addr().map(|value| value.to_string());
+                let http_version = Some(format!("{:?}", response.version()));
+                let tls_peer_certificate_bytes = response
+                    .extensions()
+                    .get::<reqwest::tls::TlsInfo>()
+                    .and_then(reqwest::tls::TlsInfo::peer_certificate)
+                    .map(|certificate| certificate.len());
                 let headers: Map<String, Value> = response
                     .headers()
                     .iter()
@@ -570,13 +752,27 @@ async fn run_debug_source_stream(
                     })
                     .collect();
                 match response.text().await {
-                    Ok(text) => (Some(status), Some(final_url), headers, text, None),
+                    Ok(text) => (
+                        Some(status),
+                        Some(final_url),
+                        headers,
+                        text,
+                        None,
+                        None,
+                        remote_address,
+                        http_version,
+                        tls_peer_certificate_bytes,
+                    ),
                     Err(error) => (
                         Some(status),
                         Some(final_url),
                         headers,
                         String::new(),
                         Some(format!("Failed to read response: {error}")),
+                        Some(request_error_details(&error)),
+                        remote_address,
+                        http_version,
+                        tls_peer_certificate_bytes,
                     ),
                 }
             }
@@ -586,6 +782,10 @@ async fn run_debug_source_stream(
                 Map::new(),
                 String::new(),
                 Some(format!("Request failed: {error}")),
+                Some(request_error_details(&error)),
+                None,
+                None,
+                None,
             ),
         };
 
@@ -612,6 +812,10 @@ async fn run_debug_source_stream(
                     "httpHeaders": http_headers,
                     "fetchDurationMs": fetch_start.elapsed().as_millis() as u64,
                     "error": error,
+                    "requestError": request_error_details,
+                    "remoteAddress": remote_address,
+                    "httpVersion": http_version,
+                    "tlsPeerCertificateBytes": tls_peer_certificate_bytes,
                     "payload": payload,
                 }
             }),
@@ -632,6 +836,18 @@ async fn run_debug_source_stream(
             }
             return send_source_done(tx, true, Some("live"), node_count, start_time).await;
         }
+    }
+
+    if !send_event(
+        tx,
+        json!({
+            "type": "network",
+            "data": inspect_source_network(url).await,
+        }),
+    )
+    .await
+    {
+        return Err(());
     }
 
     if production_mode {
@@ -1638,6 +1854,9 @@ proxies:
 
         assert_eq!(requests.load(Ordering::SeqCst), 3);
         assert_eq!(output.matches(r#""type":"attempt-result""#).count(), 3);
+        assert!(output.contains(r#""type":"network""#));
+        assert!(output.contains(r#""dnsError":null"#));
+        assert!(output.contains(r#""success":true"#));
         assert!(output.contains(r#""resultSource":"stale-cache""#));
         server.abort();
     }
@@ -1656,5 +1875,27 @@ proxies:
             Some(LIVE_SUBSCRIPTION)
         );
         server.abort();
+    }
+
+    #[tokio::test]
+    async fn failed_connection_reports_error_chain_and_network_diagnostics() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("reserve unavailable test port");
+        let address = listener.local_addr().expect("read test address");
+        drop(listener);
+
+        let output = collect_debug_stream(
+            &format!("http://{address}/"),
+            "source-debug-error-test",
+            60,
+            false,
+        )
+        .await;
+
+        assert!(output.contains(r#""requestError":{"#));
+        assert!(output.contains(r#""isConnect":true"#));
+        assert!(output.contains(r#""type":"network""#));
+        assert!(output.contains("Connection refused"));
     }
 }

@@ -324,6 +324,8 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
         return t("proxy.sourceDebug.requestConfig");
       case "cache":
         return t("proxy.sourceDebug.cacheCheck");
+      case "network":
+        return t("proxy.sourceDebug.networkDiagnostics");
       case "attempt-start":
       case "attempt-result":
         return t("proxy.sourceDebug.requestAttempt", {
@@ -342,6 +344,12 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
   ): "process" | "finish" | "error" | "warning" => {
     if (step.type === "attempt-start") return "process";
     if (step.type === "attempt-result" && !step.data.success) return "error";
+    if (
+      step.type === "network" &&
+      (step.data.dnsError ||
+        step.data.tcpProbes.some((probe) => !probe.success))
+    )
+      return "error";
     if (
       step.type === "cache" &&
       (step.data.status === "expired" || step.data.status === "unusable")
@@ -481,6 +489,22 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
                   ),
                   span: isMobile ? 1 : 4,
                 },
+                {
+                  label: t("proxy.sourceDebug.remoteAddress"),
+                  children: step.data.remoteAddress ?? "-",
+                },
+                {
+                  label: t("proxy.sourceDebug.httpVersion"),
+                  children: step.data.httpVersion ?? "-",
+                },
+                {
+                  label: t("proxy.sourceDebug.tlsCertificate"),
+                  children:
+                    step.data.tlsPeerCertificateBytes === null
+                      ? "-"
+                      : `${step.data.tlsPeerCertificateBytes} B`,
+                  span: isMobile ? 1 : 2,
+                },
               ]}
             />
             {step.data.error && (
@@ -488,9 +512,184 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
                 {step.data.error}
               </div>
             )}
+            {step.data.requestError && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+                <div className="mb-2 font-semibold">
+                  {t("proxy.sourceDebug.requestErrorDetails")}
+                </div>
+                <div className="mb-2 flex flex-wrap gap-1">
+                  {(
+                    [
+                      ["timeout", step.data.requestError.isTimeout],
+                      ["connect", step.data.requestError.isConnect],
+                      ["request", step.data.requestError.isRequest],
+                      ["body", step.data.requestError.isBody],
+                      ["decode", step.data.requestError.isDecode],
+                    ] as const
+                  )
+                    .filter(([, enabled]) => enabled)
+                    .map(([category]) => (
+                      <Tag key={category} color="error">
+                        {category}
+                      </Tag>
+                    ))}
+                </div>
+                <ol className="m-0 list-decimal space-y-1 pl-5">
+                  {[...new Set(step.data.requestError.chain)].map((cause) => (
+                    <li key={cause} className="break-all">
+                      {cause}
+                    </li>
+                  ))}
+                </ol>
+                <Collapse
+                  className="mt-2"
+                  size="small"
+                  items={[
+                    {
+                      key: "debug",
+                      label: t("proxy.sourceDebug.rawError"),
+                      children: (
+                        <SmartCodeBlock
+                          content={step.data.requestError.debug}
+                          maxHeight={320}
+                        />
+                      ),
+                    },
+                  ]}
+                />
+              </div>
+            )}
             <PayloadDetails
               payload={step.data.payload}
               headers={step.data.httpHeaders}
+            />
+          </div>
+        );
+      case "network":
+        return (
+          <div className="flex flex-col gap-2">
+            <Descriptions
+              size="small"
+              column={isMobile ? 1 : 4}
+              bordered
+              items={[
+                {
+                  label: t("proxy.sourceDebug.targetHost"),
+                  children: (
+                    <span className="break-all text-xs">
+                      {step.data.host
+                        ? `${step.data.host}:${step.data.port ?? "-"}`
+                        : "-"}
+                    </span>
+                  ),
+                  span: isMobile ? 1 : 2,
+                },
+                {
+                  label: t("proxy.sourceDebug.scheme"),
+                  children: step.data.scheme ?? "-",
+                },
+                {
+                  label: t("proxy.sourceDebug.dnsDuration"),
+                  children: `${step.data.dnsDurationMs} ms`,
+                },
+                {
+                  label: t("proxy.sourceDebug.resolvedAddresses"),
+                  children:
+                    step.data.resolvedAddresses.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {step.data.resolvedAddresses.map((address) => (
+                          <Tag key={address} color="blue">
+                            {address}
+                          </Tag>
+                        ))}
+                      </div>
+                    ) : (
+                      "-"
+                    ),
+                  span: isMobile ? 1 : 4,
+                },
+                {
+                  label: t("proxy.sourceDebug.proxyEnvironment"),
+                  children:
+                    step.data.proxyEnvironmentVariables.length > 0
+                      ? step.data.proxyEnvironmentVariables.join(", ")
+                      : t("proxy.sourceDebug.none"),
+                  span: isMobile ? 1 : 4,
+                },
+              ]}
+            />
+            {step.data.dnsError && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300">
+                {t("proxy.sourceDebug.dnsError")}: {step.data.dnsError}
+              </div>
+            )}
+            <Collapse
+              size="small"
+              defaultActiveKey={["tcp"]}
+              items={[
+                {
+                  key: "resolver",
+                  label: t("proxy.sourceDebug.resolverConfig"),
+                  children: (
+                    <SmartCodeBlock
+                      content={
+                        step.data.resolverConfig.join("\n") ||
+                        t("proxy.sourceDebug.none")
+                      }
+                      maxHeight={220}
+                    />
+                  ),
+                },
+                {
+                  key: "tcp",
+                  label: `${t("proxy.sourceDebug.tcpProbes")} (${step.data.tcpProbes.length})`,
+                  children: (
+                    <Table
+                      size="small"
+                      pagination={false}
+                      scroll={{ x: 760 }}
+                      dataSource={step.data.tcpProbes}
+                      rowKey="address"
+                      columns={[
+                        {
+                          title: t("proxy.sourceDebug.address"),
+                          dataIndex: "address",
+                          width: 190,
+                        },
+                        {
+                          title: t("proxy.sourceDebug.result"),
+                          dataIndex: "success",
+                          width: 80,
+                          render: (success: boolean) => (
+                            <Tag color={success ? "success" : "error"}>
+                              {success
+                                ? t("proxy.sourceDebug.success")
+                                : t("proxy.sourceDebug.failed")}
+                            </Tag>
+                          ),
+                        },
+                        {
+                          title: t("proxy.sourceDebug.duration"),
+                          dataIndex: "durationMs",
+                          width: 90,
+                          render: (duration: number) => `${duration} ms`,
+                        },
+                        {
+                          title: t("proxy.sourceDebug.localAddress"),
+                          dataIndex: "localAddress",
+                          width: 190,
+                          render: (value: string | null) => value ?? "-",
+                        },
+                        {
+                          title: t("proxy.sourceDebug.error"),
+                          dataIndex: "error",
+                          render: (value: string | null) => value ?? "-",
+                        },
+                      ]}
+                    />
+                  ),
+                },
+              ]}
             />
           </div>
         );
