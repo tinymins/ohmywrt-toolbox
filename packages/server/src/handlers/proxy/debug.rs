@@ -346,9 +346,333 @@ pub fn debug_proxy_stream(sub: proxy_subscribes::Model, format: String) -> Respo
         .into_response()
 }
 
+pub fn debug_source_stream(
+    url: String,
+    ua: String,
+    prefix: String,
+    cache_ttl_minutes: i32,
+    production_mode: bool,
+) -> Response {
+    let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(32);
+
+    tokio::spawn(async move {
+        let _ =
+            run_debug_source_stream(&url, &ua, &prefix, cache_ttl_minutes, production_mode, &tx)
+                .await;
+    });
+
+    let stream = ReceiverStream::new(rx);
+    Sse::new(stream)
+        .keep_alive(KeepAlive::default())
+        .into_response()
+}
+
 async fn send_event(tx: &mpsc::Sender<Result<Event, Infallible>>, data: Value) -> bool {
     let json_str = serde_json::to_string(&data).unwrap_or_default();
     tx.send(Ok(Event::default().data(json_str))).await.is_ok()
+}
+
+fn inspect_source_text(text: &str, url: &str, prefix: &str) -> (Value, usize) {
+    let details = parser::parse_subscription_detailed(text);
+    let normalized_prefix = normalize_prefix(prefix);
+
+    let nodes: Vec<Value> = details
+        .nodes
+        .into_iter()
+        .map(|mut proxy| {
+            if !normalized_prefix.is_empty() {
+                proxy.name = format!("{normalized_prefix}{}", proxy.name);
+            }
+            proxy.name = append_icon(&proxy.name);
+            make_preview_node(&proxy, 1, url)
+        })
+        .collect();
+    let discarded_placeholder_nodes: Vec<Value> = details
+        .discarded_placeholder_nodes
+        .into_iter()
+        .map(|mut proxy| {
+            if !normalized_prefix.is_empty() {
+                proxy.name = format!("{normalized_prefix}{}", proxy.name);
+            }
+            proxy.name = append_icon(&proxy.name);
+            make_preview_node(&proxy, 1, url)
+        })
+        .collect();
+    let node_count = nodes.len();
+
+    (
+        json!({
+            "format": details.format,
+            "rawText": text,
+            "decodedText": details.decoded_text,
+            "bodyBytes": text.len(),
+            "parsedNodeCount": node_count,
+            "nodes": nodes,
+            "discardedPlaceholderNodes": discarded_placeholder_nodes,
+            "diagnostics": details.diagnostics,
+        }),
+        node_count,
+    )
+}
+
+async fn send_source_done(
+    tx: &mpsc::Sender<Result<Event, Infallible>>,
+    success: bool,
+    result_source: Option<&str>,
+    node_count: usize,
+    start_time: Instant,
+) -> Result<(), ()> {
+    let sent = send_event(
+        tx,
+        json!({
+            "type": "done",
+            "data": {
+                "success": success,
+                "resultSource": result_source,
+                "nodeCount": node_count,
+                "totalDurationMs": start_time.elapsed().as_millis() as u64,
+            }
+        }),
+    )
+    .await;
+    if sent { Ok(()) } else { Err(()) }
+}
+
+#[allow(clippy::too_many_lines)]
+async fn run_debug_source_stream(
+    url: &str,
+    ua: &str,
+    prefix: &str,
+    cache_ttl_minutes: i32,
+    production_mode: bool,
+    tx: &mpsc::Sender<Result<Event, Infallible>>,
+) -> Result<(), ()> {
+    const TIMEOUT_MS: u64 = 15_000;
+    let start_time = Instant::now();
+    let max_attempts = if production_mode { 3 } else { 1 };
+    let mode = if production_mode {
+        "production"
+    } else {
+        "bypass-cache"
+    };
+
+    if !send_event(
+        tx,
+        json!({
+            "type": "config",
+            "data": {
+                "url": url,
+                "ua": ua,
+                "prefix": prefix,
+                "cacheTtlMinutes": cache_ttl_minutes,
+                "mode": mode,
+                "maxAttempts": max_attempts,
+                "timeoutMs": TIMEOUT_MS,
+            }
+        }),
+    )
+    .await
+    {
+        return Err(());
+    }
+
+    if production_mode {
+        if let Some(cached_text) = cache::get(url, ua, cache_ttl_minutes) {
+            let (payload, node_count) = inspect_source_text(&cached_text, url, prefix);
+            let status = if node_count > 0 { "hit" } else { "unusable" };
+            if !send_event(
+                tx,
+                json!({
+                    "type": "cache",
+                    "data": {
+                        "status": status,
+                        "cacheTtlMinutes": cache_ttl_minutes,
+                        "payload": payload,
+                    }
+                }),
+            )
+            .await
+            {
+                return Err(());
+            }
+            if node_count > 0 {
+                return send_source_done(tx, true, Some("cache"), node_count, start_time).await;
+            }
+        } else {
+            let status = if cache::get_fallback(url, ua).is_some() {
+                "expired"
+            } else {
+                "miss"
+            };
+            if !send_event(
+                tx,
+                json!({
+                    "type": "cache",
+                    "data": {
+                        "status": status,
+                        "cacheTtlMinutes": cache_ttl_minutes,
+                        "payload": null,
+                    }
+                }),
+            )
+            .await
+            {
+                return Err(());
+            }
+        }
+    } else if !send_event(
+        tx,
+        json!({
+            "type": "cache",
+            "data": {
+                "status": "skipped",
+                "cacheTtlMinutes": cache_ttl_minutes,
+                "payload": null,
+            }
+        }),
+    )
+    .await
+    {
+        return Err(());
+    }
+
+    let client = build_http_client();
+    for attempt in 1..=max_attempts {
+        if !send_event(
+            tx,
+            json!({
+                "type": "attempt-start",
+                "data": {
+                    "attempt": attempt,
+                    "maxAttempts": max_attempts,
+                }
+            }),
+        )
+        .await
+        {
+            return Err(());
+        }
+
+        let fetch_start = Instant::now();
+        let response = client.get(url).header("User-Agent", ua).send().await;
+        let (http_status, final_url, http_headers, raw_text, request_error) = match response {
+            Ok(response) => {
+                let status = response.status().as_u16();
+                let final_url = response.url().to_string();
+                let headers: Map<String, Value> = response
+                    .headers()
+                    .iter()
+                    .filter_map(|(key, value)| {
+                        value
+                            .to_str()
+                            .ok()
+                            .map(|value| (key.to_string(), Value::String(value.to_string())))
+                    })
+                    .collect();
+                match response.text().await {
+                    Ok(text) => (Some(status), Some(final_url), headers, text, None),
+                    Err(error) => (
+                        Some(status),
+                        Some(final_url),
+                        headers,
+                        String::new(),
+                        Some(format!("Failed to read response: {error}")),
+                    ),
+                }
+            }
+            Err(error) => (
+                None,
+                None,
+                Map::new(),
+                String::new(),
+                Some(format!("Request failed: {error}")),
+            ),
+        };
+
+        let (payload, node_count) = inspect_source_text(&raw_text, url, prefix);
+        let success = request_error.is_none() && node_count > 0;
+        let error = request_error.or_else(|| {
+            if node_count == 0 {
+                Some("Response parsed 0 valid proxy nodes".to_string())
+            } else {
+                None
+            }
+        });
+
+        if !send_event(
+            tx,
+            json!({
+                "type": "attempt-result",
+                "data": {
+                    "attempt": attempt,
+                    "maxAttempts": max_attempts,
+                    "success": success,
+                    "httpStatus": http_status,
+                    "finalUrl": final_url,
+                    "httpHeaders": http_headers,
+                    "fetchDurationMs": fetch_start.elapsed().as_millis() as u64,
+                    "error": error,
+                    "payload": payload,
+                }
+            }),
+        )
+        .await
+        {
+            return Err(());
+        }
+
+        if success {
+            if production_mode {
+                cache::set(
+                    url,
+                    ua,
+                    raw_text,
+                    http_status.unwrap_or(reqwest::StatusCode::OK.as_u16()),
+                );
+            }
+            return send_source_done(tx, true, Some("live"), node_count, start_time).await;
+        }
+    }
+
+    if production_mode {
+        if let Some(fallback_text) = cache::get_fallback(url, ua) {
+            let (payload, node_count) = inspect_source_text(&fallback_text, url, prefix);
+            let status = if node_count > 0 { "hit" } else { "unusable" };
+            if !send_event(
+                tx,
+                json!({
+                    "type": "fallback",
+                    "data": {
+                        "status": status,
+                        "payload": payload,
+                    }
+                }),
+            )
+            .await
+            {
+                return Err(());
+            }
+            if node_count > 0 {
+                return send_source_done(tx, true, Some("stale-cache"), node_count, start_time)
+                    .await;
+            }
+        } else if !send_event(
+            tx,
+            json!({
+                "type": "fallback",
+                "data": {
+                    "status": "miss",
+                    "payload": null,
+                }
+            }),
+        )
+        .await
+        {
+            return Err(());
+        }
+    }
+
+    send_source_done(tx, false, None, 0, start_time).await
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1198,4 +1522,139 @@ fn parse_singbox_ruleset_json(text: &str) -> Vec<String> {
         }
     }
     result
+}
+
+#[cfg(test)]
+mod source_debug_tests {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use axum::Router;
+    use axum::body::to_bytes;
+    use axum::routing::get;
+
+    use super::*;
+
+    const CACHED_SUBSCRIPTION: &str = r"
+proxies:
+  - name: cached
+    type: ss
+    server: cached.example.com
+    port: 443
+";
+    const LIVE_SUBSCRIPTION: &str = r"
+proxies:
+  - name: live
+    type: ss
+    server: live.example.com
+    port: 443
+";
+
+    async fn start_upstream(
+        body: &'static str,
+    ) -> (String, Arc<AtomicUsize>, tokio::task::JoinHandle<()>) {
+        let requests = Arc::new(AtomicUsize::new(0));
+        let request_counter = Arc::clone(&requests);
+        let app = Router::new().route(
+            "/",
+            get(move || {
+                let request_counter = Arc::clone(&request_counter);
+                async move {
+                    request_counter.fetch_add(1, Ordering::SeqCst);
+                    body
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind test upstream");
+        let address = listener.local_addr().expect("read test address");
+        let task = tokio::spawn(async move {
+            axum::serve(listener, app)
+                .await
+                .expect("serve test upstream");
+        });
+        (format!("http://{address}/"), requests, task)
+    }
+
+    async fn collect_debug_stream(
+        url: &str,
+        ua: &str,
+        cache_ttl_minutes: i32,
+        production_mode: bool,
+    ) -> String {
+        let response = debug_source_stream(
+            url.to_string(),
+            ua.to_string(),
+            String::new(),
+            cache_ttl_minutes,
+            production_mode,
+        );
+        let bytes = to_bytes(response.into_body(), 2 * 1024 * 1024)
+            .await
+            .expect("collect debug SSE response");
+        String::from_utf8(bytes.to_vec()).expect("debug SSE is UTF-8")
+    }
+
+    #[tokio::test]
+    async fn bypass_mode_ignores_and_does_not_replace_cache() {
+        let (url, requests, server) = start_upstream(LIVE_SUBSCRIPTION).await;
+        let ua = "source-debug-bypass-test";
+        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+
+        let output = collect_debug_stream(&url, ua, 60, false).await;
+
+        assert_eq!(requests.load(Ordering::SeqCst), 1);
+        assert!(output.contains(r#""status":"skipped""#));
+        assert!(output.contains(r#""resultSource":"live""#));
+        assert_eq!(
+            cache::get_fallback(&url, ua).as_deref(),
+            Some(CACHED_SUBSCRIPTION)
+        );
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn production_mode_short_circuits_on_valid_cache() {
+        let (url, requests, server) = start_upstream(LIVE_SUBSCRIPTION).await;
+        let ua = "source-debug-cache-hit-test";
+        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+
+        let output = collect_debug_stream(&url, ua, 60, true).await;
+
+        assert_eq!(requests.load(Ordering::SeqCst), 0);
+        assert!(output.contains(r#""status":"hit""#));
+        assert!(output.contains(r#""resultSource":"cache""#));
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn production_mode_retries_then_uses_stale_cache() {
+        let (url, requests, server) = start_upstream("not a subscription").await;
+        let ua = "source-debug-stale-fallback-test";
+        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+
+        let output = collect_debug_stream(&url, ua, 0, true).await;
+
+        assert_eq!(requests.load(Ordering::SeqCst), 3);
+        assert_eq!(output.matches(r#""type":"attempt-result""#).count(), 3);
+        assert!(output.contains(r#""resultSource":"stale-cache""#));
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn production_mode_writes_successful_live_response() {
+        let (url, requests, server) = start_upstream(LIVE_SUBSCRIPTION).await;
+        let ua = "source-debug-cache-write-test";
+
+        let output = collect_debug_stream(&url, ua, 60, true).await;
+
+        assert_eq!(requests.load(Ordering::SeqCst), 1);
+        assert!(output.contains(r#""resultSource":"live""#));
+        assert_eq!(
+            cache::get_fallback(&url, ua).as_deref(),
+            Some(LIVE_SUBSCRIPTION)
+        );
+        server.abort();
+    }
 }

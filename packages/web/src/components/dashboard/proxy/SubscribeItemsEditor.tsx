@@ -6,7 +6,6 @@ import {
   HolderOutlined,
   Input,
   InputNumber,
-  Modal,
   PlayCircleOutlined,
   PlusOutlined,
   Tooltip,
@@ -27,18 +26,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  CheckCircle2,
-  Clock,
-  FileText,
-  Loader2,
-  Server,
-  XCircle,
-} from "lucide-react";
-
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { proxyApi } from "@/generated/rust-api";
+import SourceDebugModal from "./SourceDebugModal";
 
 interface Props {
   value?: SubscribeItem[];
@@ -85,15 +75,6 @@ const emptyItem = (): SubscribeItem => ({
   fetchUa: undefined,
 });
 
-interface TestResult {
-  status: number;
-  ua: string;
-  nodeCount: number;
-  nodes: { name: string; proxyType: string }[];
-  elapsedMs: number;
-  bodyBytes: number;
-}
-
 /** 单个订阅源卡片（可排序） */
 const SortableCard = ({
   item,
@@ -107,31 +88,7 @@ const SortableCard = ({
   onRemove: () => void;
 }) => {
   const { t } = useTranslation();
-  const [testLoading, setTestLoading] = useState(false);
-  const [testResult, setTestResult] = useState<TestResult | null>(null);
-  const [testError, setTestError] = useState<string | null>(null);
   const [showTestModal, setShowTestModal] = useState(false);
-  const testMutation = proxyApi.testSource.useMutation();
-
-  const handleTest = useCallback(async () => {
-    if (!item.url?.trim()) return;
-    setTestLoading(true);
-    setTestError(null);
-    setTestResult(null);
-    try {
-      const res = await testMutation.mutateAsync({
-        url: item.url,
-        ua: item.fetchUa || "",
-      });
-      setTestResult(res);
-      setShowTestModal(true);
-    } catch (e) {
-      setTestError(e instanceof Error ? e.message : String(e));
-      setShowTestModal(true);
-    } finally {
-      setTestLoading(false);
-    }
-  }, [item.url, item.fetchUa, testMutation]);
 
   const {
     attributes,
@@ -147,16 +104,6 @@ const SortableCard = ({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  // Group nodes by type for the test result summary
-  const typeGroups = useMemo(() => {
-    if (!testResult?.nodes) return [];
-    const map = new Map<string, number>();
-    for (const n of testResult.nodes) {
-      map.set(n.proxyType, (map.get(n.proxyType) || 0) + 1);
-    }
-    return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [testResult]);
 
   return (
     <>
@@ -283,15 +230,9 @@ const SortableCard = ({
                   <Button
                     size="small"
                     variant="text"
-                    icon={
-                      testLoading ? (
-                        <Loader2 className="animate-spin" size="1em" />
-                      ) : (
-                        <PlayCircleOutlined />
-                      )
-                    }
-                    onClick={handleTest}
-                    disabled={!item.url?.trim() || testLoading}
+                    icon={<PlayCircleOutlined />}
+                    onClick={() => setShowTestModal(true)}
+                    disabled={!item.url?.trim()}
                     className="cursor-pointer shrink-0"
                   />
                 </Tooltip>
@@ -301,117 +242,11 @@ const SortableCard = ({
         </div>
       </div>
 
-      {/* Test result modal */}
-      <Modal
+      <SourceDebugModal
         open={showTestModal}
-        onCancel={() => setShowTestModal(false)}
-        title={t("proxy.form.testSourceTitle")}
-        size="large"
-        footer={
-          <Button onClick={() => setShowTestModal(false)}>
-            {t("proxy.form.close")}
-          </Button>
-        }
-      >
-        {testError ? (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <XCircle className="text-red-500" size={40} />
-            <p className="text-red-500 text-sm text-center">{testError}</p>
-          </div>
-        ) : testResult ? (
-          <div className="space-y-4">
-            {/* Summary header */}
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-[#111]">
-              {testResult.nodeCount > 0 ? (
-                <CheckCircle2 className="text-green-500 shrink-0" size={24} />
-              ) : (
-                <XCircle className="text-red-500 shrink-0" size={24} />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">
-                  {testResult.nodeCount > 0
-                    ? t("proxy.form.testSourceSuccess", {
-                        count: testResult.nodeCount,
-                      })
-                    : t("proxy.form.testSourceFail")}
-                </p>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <Server size={12} />
-                    HTTP {testResult.status}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={12} />
-                    {testResult.elapsedMs}ms
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FileText size={12} />
-                    {(testResult.bodyBytes / 1024).toFixed(1)} KB
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* UA used */}
-            <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
-              UA:{" "}
-              <code className="text-gray-700 dark:text-gray-300">
-                {testResult.ua}
-              </code>
-            </div>
-
-            {/* Type distribution */}
-            {typeGroups.length > 0 && (
-              <div className="flex flex-wrap gap-2 px-1">
-                {typeGroups.map(([type, count]) => (
-                  <span
-                    key={type}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  >
-                    {type}
-                    <span className="font-mono font-medium">{count}</span>
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Node list */}
-            {testResult.nodes.length > 0 && (
-              <div className="max-h-[300px] overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-gray-50 dark:bg-[#111]">
-                    <tr>
-                      <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400">
-                        {t("proxy.form.testNodeName")}
-                      </th>
-                      <th className="text-left px-3 py-1.5 font-medium text-gray-500 dark:text-gray-400 w-24">
-                        {t("proxy.form.testNodeType")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {testResult.nodes.map((node) => (
-                      <tr
-                        key={`${node.proxyType}:${node.name}`}
-                        className="border-t border-gray-100 dark:border-gray-800"
-                      >
-                        <td className="px-3 py-1 text-gray-700 dark:text-gray-300 break-all">
-                          {node.name}
-                        </td>
-                        <td className="px-3 py-1">
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            {node.proxyType}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        ) : null}
-      </Modal>
+        item={item}
+        onClose={() => setShowTestModal(false)}
+      />
     </>
   );
 };

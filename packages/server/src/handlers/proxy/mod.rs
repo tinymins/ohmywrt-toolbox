@@ -747,6 +747,35 @@ pub struct DebugProxyInput {
     format: String,
 }
 
+pub async fn debug_source(_auth_user: AuthUser, Json(body): Json<DebugSourceInput>) -> Response {
+    let ua = engine::resolve_ua(body.ua.as_deref());
+    debug::debug_source_stream(
+        body.url,
+        ua,
+        body.prefix.unwrap_or_default(),
+        body.cache_ttl_minutes.unwrap_or(60),
+        matches!(body.mode, DebugSourceMode::Production),
+    )
+    .into_response()
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DebugSourceInput {
+    url: String,
+    ua: Option<String>,
+    prefix: Option<String>,
+    cache_ttl_minutes: Option<i32>,
+    mode: DebugSourceMode,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "kebab-case")]
+enum DebugSourceMode {
+    BypassCache,
+    Production,
+}
+
 // ─── Public handlers (no auth) ───
 
 pub async fn clear_cache(_auth_user: AuthUser) -> Response {

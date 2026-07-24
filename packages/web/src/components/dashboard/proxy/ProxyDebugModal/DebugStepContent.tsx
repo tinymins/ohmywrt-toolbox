@@ -36,7 +36,7 @@ const CodeBlock = ({
 );
 
 /** Try JSON parse → SyntaxJsonViewer, fallback to plain CodeBlock */
-const SmartCodeBlock = ({
+export const SmartCodeBlock = ({
   content,
   maxHeight,
 }: {
@@ -149,7 +149,9 @@ export const ConfigStepContent = ({
           label: (
             <div className="flex gap-2 items-center">
               <span>{t("proxy.debug.privateAccessConfig")}</span>
-              <Tag color={data.privateAccessConfig?.enabled ? "green" : "default"}>
+              <Tag
+                color={data.privateAccessConfig?.enabled ? "green" : "default"}
+              >
                 {data.privateAccessConfig?.enabled ? "enabled" : "disabled"}
               </Tag>
             </div>

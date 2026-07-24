@@ -1,6 +1,8 @@
 import type {
   ProxyNodeTraceOutput,
   ProxyPreviewNode,
+  ProxySourceDebugInput,
+  ProxySourceDebugStep,
 } from "@acme/types";
 import {
   createQuery,
@@ -182,6 +184,12 @@ export const proxyApi = {
     unknown
   >({
     path: "/api/proxy/debug",
+  }),
+  debugSource: createStreamMutation<
+    ProxySourceDebugInput,
+    ProxySourceDebugStep
+  >({
+    path: "/api/proxy/debug-source",
   }),
   clearCache: createMutation<void, { cleared: boolean }>({
     method: "POST",

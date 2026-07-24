@@ -47,17 +47,129 @@ pub fn is_base64_subscription(text: &str) -> bool {
     false
 }
 
+#[derive(Debug)]
+pub struct SubscriptionParseDetails {
+    pub format: &'static str,
+    pub decoded_text: Option<String>,
+    pub nodes: Vec<ClashProxy>,
+    pub discarded_placeholder_nodes: Vec<ClashProxy>,
+    pub diagnostics: Vec<String>,
+}
+
+/// Parse subscription text and retain diagnostics for the debugging UI.
+pub fn parse_subscription_detailed(text: &str) -> SubscriptionParseDetails {
+    let trimmed = text.trim();
+
+    if trimmed.is_empty() {
+        return SubscriptionParseDetails {
+            format: "unknown",
+            decoded_text: None,
+            nodes: Vec::new(),
+            discarded_placeholder_nodes: Vec::new(),
+            diagnostics: vec!["Response body is empty".to_string()],
+        };
+    }
+
+    let yaml_hint = trimmed.starts_with("proxies:")
+        || trimmed.starts_with("port:")
+        || trimmed.starts_with('#')
+        || trimmed.contains("\nproxies:");
+
+    let (format, decoded_text, parsed_nodes, mut diagnostics) = if is_base64_subscription(text) {
+        let Some(decoded_bytes) = lenient_base64_decode(trimmed) else {
+            return SubscriptionParseDetails {
+                format: "base64",
+                decoded_text: None,
+                nodes: Vec::new(),
+                discarded_placeholder_nodes: Vec::new(),
+                diagnostics: vec!["Unable to decode the Base64 response".to_string()],
+            };
+        };
+        let Ok(decoded) = String::from_utf8(decoded_bytes) else {
+            return SubscriptionParseDetails {
+                format: "base64",
+                decoded_text: None,
+                nodes: Vec::new(),
+                discarded_placeholder_nodes: Vec::new(),
+                diagnostics: vec!["Decoded Base64 response is not valid UTF-8".to_string()],
+            };
+        };
+
+        let mut nodes = Vec::new();
+        let mut line_errors = Vec::new();
+        for (index, line) in decoded.lines().enumerate() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            if let Some(proxy) = parse_proxy_uri(line) {
+                nodes.push(proxy);
+            } else {
+                let scheme = line.split("://").next().unwrap_or("unknown");
+                line_errors.push(format!(
+                    "Line {} uses an unsupported or invalid proxy URI ({scheme})",
+                    index + 1
+                ));
+                warn!("Failed to parse proxy URI on line {}", index + 1);
+            }
+        }
+        ("base64", Some(decoded), nodes, line_errors)
+    } else {
+        #[derive(serde::Deserialize)]
+        struct ClashConfig {
+            proxies: Option<Vec<ClashProxy>>,
+        }
+
+        match serde_yaml::from_str::<ClashConfig>(text) {
+            Ok(config) => {
+                let nodes = config.proxies.unwrap_or_default();
+                let messages = if nodes.is_empty() {
+                    vec!["YAML response contains no proxy nodes".to_string()]
+                } else {
+                    Vec::new()
+                };
+                ("yaml", None, nodes, messages)
+            }
+            Err(error) => {
+                warn!("Failed to parse YAML subscription: {}", error);
+                (
+                    if yaml_hint { "yaml" } else { "unknown" },
+                    None,
+                    Vec::new(),
+                    vec![format!("YAML parse failed: {error}")],
+                )
+            }
+        }
+    };
+
+    let mut nodes = Vec::new();
+    let mut discarded_placeholder_nodes = Vec::new();
+    for node in parsed_nodes {
+        if is_placeholder_node(&node) {
+            discarded_placeholder_nodes.push(node);
+        } else {
+            nodes.push(node);
+        }
+    }
+    if !discarded_placeholder_nodes.is_empty() {
+        diagnostics.push(format!(
+            "Discarded {} placeholder node(s) using a loopback address and port 0 or 1",
+            discarded_placeholder_nodes.len()
+        ));
+    }
+
+    SubscriptionParseDetails {
+        format,
+        decoded_text,
+        nodes,
+        discarded_placeholder_nodes,
+        diagnostics,
+    }
+}
+
 /// Parse subscription text (auto-detect Base64 or YAML).
 pub fn parse_subscription(text: &str) -> Vec<ClashProxy> {
-    let nodes = if is_base64_subscription(text) {
-        parse_base64_subscription(text)
-    } else {
-        parse_yaml_subscription(text)
-    };
-    nodes
-        .into_iter()
-        .filter(|p| !is_placeholder_node(p))
-        .collect()
+    parse_subscription_detailed(text).nodes
 }
 
 /// Detect placeholder/error nodes returned by providers when a subscription is
@@ -66,44 +178,6 @@ pub fn parse_subscription(text: &str) -> Vec<ClashProxy> {
 fn is_placeholder_node(p: &ClashProxy) -> bool {
     let loopback = p.server == "127.0.0.1" || p.server == "::1" || p.server == "localhost";
     loopback && p.port <= 1
-}
-
-fn parse_base64_subscription(text: &str) -> Vec<ClashProxy> {
-    let Some(decoded) = lenient_base64_decode(text.trim()) else {
-        return Vec::new();
-    };
-    let Ok(s) = String::from_utf8(decoded) else {
-        return Vec::new();
-    };
-
-    let mut proxies = Vec::new();
-    for line in s.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        if let Some(p) = parse_proxy_uri(line) {
-            proxies.push(p)
-        } else {
-            warn!("Failed to parse proxy URI: {}", line)
-        }
-    }
-    proxies
-}
-
-fn parse_yaml_subscription(text: &str) -> Vec<ClashProxy> {
-    #[derive(serde::Deserialize)]
-    struct ClashConfig {
-        proxies: Option<Vec<ClashProxy>>,
-    }
-
-    match serde_yaml::from_str::<ClashConfig>(text) {
-        Ok(c) => c.proxies.unwrap_or_default(),
-        Err(e) => {
-            warn!("Failed to parse YAML subscription: {}", e);
-            Vec::new()
-        }
-    }
 }
 
 fn parse_proxy_uri(uri: &str) -> Option<ClashProxy> {
@@ -651,4 +725,83 @@ pub fn parse_anytls_uri(uri: &str) -> Option<ClashProxy> {
     }
 
     Some(make_proxy(name, "anytls", server, port, extra))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detailed_yaml_parse_reports_placeholder_nodes() {
+        let text = r"
+proxies:
+  - name: usable
+    type: ss
+    server: proxy.example.com
+    port: 443
+    cipher: aes-128-gcm
+    password: secret
+  - name: subscription-expired
+    type: ss
+    server: 127.0.0.1
+    port: 1
+";
+
+        let result = parse_subscription_detailed(text);
+
+        assert_eq!(result.format, "yaml");
+        assert_eq!(result.nodes.len(), 1);
+        assert_eq!(result.discarded_placeholder_nodes.len(), 1);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|message| message.contains("placeholder"))
+        );
+    }
+
+    #[test]
+    fn detailed_base64_parse_reports_invalid_lines() {
+        let decoded = concat!(
+            "vless://00000000-0000-0000-0000-000000000000@example.com:443",
+            "?security=tls#valid\n",
+            "unsupported://value\n"
+        );
+        let encoded = general_purpose::STANDARD.encode(decoded);
+
+        let result = parse_subscription_detailed(&encoded);
+
+        assert_eq!(result.format, "base64");
+        assert_eq!(result.decoded_text.as_deref(), Some(decoded));
+        assert_eq!(result.nodes.len(), 1);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|message| message.contains("Line 2"))
+        );
+    }
+
+    #[test]
+    fn detailed_parse_preserves_yaml_error() {
+        let result = parse_subscription_detailed("proxies: [");
+
+        assert_eq!(result.format, "yaml");
+        assert!(result.nodes.is_empty());
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|message| message.starts_with("YAML parse failed:"))
+        );
+    }
+
+    #[test]
+    fn detailed_parse_reports_empty_response() {
+        let result = parse_subscription_detailed(" \n\t");
+
+        assert_eq!(result.format, "unknown");
+        assert!(result.nodes.is_empty());
+        assert_eq!(result.diagnostics, vec!["Response body is empty"]);
+    }
 }
