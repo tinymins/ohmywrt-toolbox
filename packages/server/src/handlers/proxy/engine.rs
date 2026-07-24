@@ -8,6 +8,7 @@ use crate::db::entities::proxy_subscribes;
 use super::converter::convert_clash_proxy_to_singbox;
 use super::fetch_subscription;
 use super::icons::append_icon;
+use super::source_client::SourceFetchMode;
 use super::types::ClashProxy;
 use super::{
     DEFAULT_CUSTOM_CONFIG_JSON, DEFAULT_FILTER_JSON, DEFAULT_GROUPS_JSON,
@@ -806,6 +807,8 @@ pub async fn fetch_proxies_preview(
         cache_ttl_minutes: Option<i32>,
         #[serde(default)]
         fetch_ua: Option<String>,
+        #[serde(default)]
+        fetch_mode: SourceFetchMode,
     }
 
     let items: Vec<SubItem> = if let Some(ref si) = sub.subscribe_items {
@@ -819,6 +822,7 @@ pub async fn fetch_proxies_preview(
                 enabled: Some(true),
                 cache_ttl_minutes: None,
                 fetch_ua: None,
+                fetch_mode: SourceFetchMode::Auto,
             })
             .collect()
     } else {
@@ -834,11 +838,6 @@ pub async fn fetch_proxies_preview(
     };
 
     // 4. Fetch each enabled item
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
-
     for (idx, item) in items.iter().enumerate() {
         if item.enabled == Some(false) {
             continue;
@@ -851,7 +850,8 @@ pub async fn fetch_proxies_preview(
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
         let result =
-            fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
+            fetch_subscription::fetch_and_parse(&item.url, &ua, cache_ttl, 3, item.fetch_mode)
+                .await;
         let parsed = if let Some(r) = result {
             r.proxies
         } else {
@@ -928,6 +928,8 @@ pub async fn fetch_proxies(
         cache_ttl_minutes: Option<i32>,
         #[serde(default)]
         fetch_ua: Option<String>,
+        #[serde(default)]
+        fetch_mode: SourceFetchMode,
     }
 
     let items: Vec<SubscribeItem> = if let Some(ref si) = sub.subscribe_items {
@@ -941,6 +943,7 @@ pub async fn fetch_proxies(
                 enabled: Some(true),
                 cache_ttl_minutes: None,
                 fetch_ua: None,
+                fetch_mode: SourceFetchMode::Auto,
             })
             .collect()
     } else {
@@ -962,11 +965,6 @@ pub async fn fetch_proxies(
     };
 
     // 4. Fetch each enabled item
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
-
     for item in &items {
         if item.enabled == Some(false) {
             continue;
@@ -979,7 +977,8 @@ pub async fn fetch_proxies(
         let ua = resolve_ua(item.fetch_ua.as_deref());
 
         let result =
-            fetch_subscription::fetch_and_parse(&client, &item.url, &ua, cache_ttl, 3).await;
+            fetch_subscription::fetch_and_parse(&item.url, &ua, cache_ttl, 3, item.fetch_mode)
+                .await;
         let mut parsed = if let Some(r) = result {
             r.proxies
         } else {

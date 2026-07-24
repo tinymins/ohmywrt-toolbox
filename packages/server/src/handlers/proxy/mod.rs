@@ -6,6 +6,7 @@ pub mod fetch_subscription;
 pub mod icons;
 pub mod origins;
 pub mod parser;
+pub mod source_client;
 pub mod types;
 pub mod validator;
 
@@ -755,6 +756,7 @@ pub async fn debug_source(_auth_user: AuthUser, Json(body): Json<DebugSourceInpu
         body.prefix.unwrap_or_default(),
         body.cache_ttl_minutes.unwrap_or(60),
         matches!(body.mode, DebugSourceMode::Production),
+        body.fetch_mode,
     )
     .into_response()
 }
@@ -767,6 +769,8 @@ pub struct DebugSourceInput {
     prefix: Option<String>,
     cache_ttl_minutes: Option<i32>,
     mode: DebugSourceMode,
+    #[serde(default)]
+    fetch_mode: source_client::SourceFetchMode,
 }
 
 #[derive(Deserialize)]
@@ -791,10 +795,17 @@ pub async fn clear_cache(_auth_user: AuthUser) -> Response {
 /// Test a single subscription source URL with a given UA (bypasses cache).
 pub async fn test_source(_auth_user: AuthUser, Json(body): Json<TestSourceInput>) -> Response {
     let ua = engine::resolve_ua(Some(&body.ua));
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
+    let client = match source_client::build_source_http_client(body.fetch_mode, false) {
+        Ok(source_client) => source_client.client,
+        Err(error) => {
+            return Json(ApiResponse {
+                success: false,
+                data: None::<serde_json::Value>,
+                error: Some(error),
+            })
+            .into_response();
+        }
+    };
 
     let start = std::time::Instant::now();
     let resp = match client.get(&body.url).header("User-Agent", &ua).send().await {
@@ -856,9 +867,12 @@ pub async fn test_source(_auth_user: AuthUser, Json(body): Json<TestSourceInput>
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TestSourceInput {
     url: String,
     ua: String,
+    #[serde(default)]
+    fetch_mode: source_client::SourceFetchMode,
 }
 
 // ─── Public proxy handlers (no auth) ───

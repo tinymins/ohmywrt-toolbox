@@ -87,6 +87,9 @@ export default {
     fetchUaTooltip:
       "カスタム User-Agent。異なるサブスクリプションプロバイダーは異なる UA が必要な場合があります",
     fetchUaPlaceholder: "UA 偽装（デフォルト: clash.meta）",
+    fetchModeTooltip: "このソースの取得に使用するネットワーク経路を選択",
+    fetchModeAuto: "自動",
+    fetchModeDomesticDirect: "国内直接接続",
     testSourceBtn: "このソースをテスト",
     testSourceTitle: "ソーステスト結果",
     testSourceSuccess: "{{count}} 個のノードを取得しました",
@@ -330,6 +333,18 @@ export default {
     modeValue: {
       "bypass-cache": "キャッシュを無視",
       production: "本番経路を再現",
+    },
+    fetchMode: "プロキシ経路",
+    fetchModeValue: {
+      auto: "自動",
+      "domestic-direct": "国内直接接続",
+    },
+    proxyEndpoint: "直接接続プロキシ",
+    proxyHost: "プロキシホスト",
+    connectionKind: "接続先",
+    connectionKindValue: {
+      origin: "購読ソース",
+      proxy: "直接接続プロキシ",
     },
     start: "デバッグ開始",
     restart: "再デバッグ",

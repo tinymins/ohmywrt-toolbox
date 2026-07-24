@@ -100,6 +100,10 @@ export type ProxyRuleProvidersList = z.infer<
 // 订阅源条目（结构化）
 // ============================================
 
+export const ProxySourceFetchModeSchema = z.enum(["auto", "domestic-direct"]);
+
+export type ProxySourceFetchMode = z.infer<typeof ProxySourceFetchModeSchema>;
+
 export const SubscribeItemSchema = z.object({
   /** 是否启用 */
   enabled: z.boolean(),
@@ -113,6 +117,8 @@ export const SubscribeItemSchema = z.object({
   cacheTtlMinutes: z.number().min(0).optional(),
   /** 自定义 User-Agent（留空使用默认值 clash.meta） */
   fetchUa: z.string().optional(),
+  /** 抓取链路（留空表示跟随系统境内外分流） */
+  fetchMode: ProxySourceFetchModeSchema.optional(),
 });
 
 export type SubscribeItem = z.infer<typeof SubscribeItemSchema>;
@@ -520,6 +526,7 @@ export const ProxySourceDebugInputSchema = z.object({
   prefix: z.string().optional(),
   cacheTtlMinutes: z.number().min(0).optional(),
   mode: ProxySourceDebugModeSchema,
+  fetchMode: ProxySourceFetchModeSchema.default("auto"),
 });
 
 export type ProxySourceDebugInput = z.infer<typeof ProxySourceDebugInputSchema>;
@@ -547,6 +554,8 @@ export const ProxySourceDebugConfigStepSchema = z.object({
     prefix: z.string(),
     cacheTtlMinutes: z.number(),
     mode: ProxySourceDebugModeSchema,
+    fetchMode: ProxySourceFetchModeSchema,
+    proxyEndpoint: z.string().nullable(),
     maxAttempts: z.number(),
     timeoutMs: z.number(),
   }),
@@ -572,6 +581,9 @@ export const ProxySourceDebugAttemptStartStepSchema = z.object({
 export const ProxySourceDebugNetworkStepSchema = z.object({
   type: z.literal("network"),
   data: z.object({
+    fetchMode: ProxySourceFetchModeSchema,
+    connectionKind: z.enum(["origin", "proxy"]),
+    proxyEndpoint: z.string().nullable(),
     scheme: z.string().nullable(),
     host: z.string().nullable(),
     port: z.number().nullable(),

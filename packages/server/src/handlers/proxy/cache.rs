@@ -24,20 +24,19 @@ struct CacheEntry {
 static CACHE: std::sync::LazyLock<Mutex<HashMap<String, CacheEntry>>> =
     std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// Build a cache key from URL and User-Agent.
-/// Same URL with different UAs can return different content from providers.
-fn cache_key(url: &str, ua: &str) -> String {
-    format!("{url}\0{ua}")
+/// Build a cache key from URL, User-Agent, and fetch route.
+fn cache_key(url: &str, ua: &str, fetch_mode: &str) -> String {
+    format!("{url}\0{ua}\0{fetch_mode}")
 }
 
 /// TTL-aware cache read.
 /// Returns the cached text if within TTL; `None` if expired or absent.
 /// Does NOT delete expired entries (needed for `get_fallback`).
-pub fn get(url: &str, ua: &str, ttl_minutes: i32) -> Option<String> {
+pub fn get(url: &str, ua: &str, fetch_mode: &str, ttl_minutes: i32) -> Option<String> {
     if ttl_minutes <= 0 {
         return None;
     }
-    let key = cache_key(url, ua);
+    let key = cache_key(url, ua, fetch_mode);
     let lock = CACHE.lock().ok()?;
     let entry = lock.get(&key)?;
     let elapsed = entry.cached_at.elapsed();
@@ -49,17 +48,17 @@ pub fn get(url: &str, ua: &str, ttl_minutes: i32) -> Option<String> {
 }
 
 /// Fallback read that ignores TTL (returns most recent write regardless of age).
-pub fn get_fallback(url: &str, ua: &str) -> Option<String> {
-    let key = cache_key(url, ua);
+pub fn get_fallback(url: &str, ua: &str, fetch_mode: &str) -> Option<String> {
+    let key = cache_key(url, ua, fetch_mode);
     let lock = CACHE.lock().ok()?;
     lock.get(&key).map(|e| e.text.clone())
 }
 
 /// Unconditionally write/update a cache entry (updates both TTL cache and fallback data).
-pub fn set(url: &str, ua: &str, text: String, status: u16) {
+pub fn set(url: &str, ua: &str, fetch_mode: &str, text: String, status: u16) {
     if let Ok(mut lock) = CACHE.lock() {
         lock.insert(
-            cache_key(url, ua),
+            cache_key(url, ua, fetch_mode),
             CacheEntry {
                 text,
                 status,
@@ -89,5 +88,37 @@ pub fn cleanup(max_age_minutes: i32) {
     if let Ok(mut lock) = CACHE.lock() {
         let cutoff = (max_age_minutes as u64) * 60;
         lock.retain(|_, entry| entry.cached_at.elapsed().as_secs() < cutoff);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fetch_routes_have_separate_cache_entries() {
+        clear_all();
+        set(
+            "https://example.com/sub",
+            "clash.meta",
+            "auto",
+            "auto-response".to_string(),
+            200,
+        );
+
+        assert_eq!(
+            get("https://example.com/sub", "clash.meta", "auto", 60).as_deref(),
+            Some("auto-response")
+        );
+        assert_eq!(
+            get(
+                "https://example.com/sub",
+                "clash.meta",
+                "domestic-direct",
+                60,
+            ),
+            None
+        );
+        clear_all();
     }
 }

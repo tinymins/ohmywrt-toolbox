@@ -85,6 +85,9 @@ export default {
     fetchUaTooltip:
       "自定义 User-Agent，不同订阅源可能需要不同的 UA 伪装才能正常获取节点",
     fetchUaPlaceholder: "UA 伪装（默认 clash.meta）",
+    fetchModeTooltip: "选择抓取此订阅源时使用的网络出口",
+    fetchModeAuto: "自动",
+    fetchModeDomesticDirect: "国内直连",
     testSourceBtn: "测试此订阅源",
     testSourceTitle: "订阅源测试结果",
     testSourceSuccess: "成功获取 {{count}} 个节点",
@@ -324,6 +327,18 @@ export default {
     modeValue: {
       "bypass-cache": "无视缓存",
       production: "模拟正式链路",
+    },
+    fetchMode: "代理方式",
+    fetchModeValue: {
+      auto: "自动",
+      "domestic-direct": "国内直连",
+    },
+    proxyEndpoint: "直连代理",
+    proxyHost: "代理主机",
+    connectionKind: "实际连接",
+    connectionKindValue: {
+      origin: "订阅源",
+      proxy: "直连代理",
     },
     start: "开始调试",
     restart: "重新调试",

@@ -10,6 +10,7 @@ use tracing::warn;
 
 use super::cache;
 use super::parser::parse_subscription;
+use super::source_client::{SourceFetchMode, build_source_http_client};
 use super::types::ClashProxy;
 
 pub struct FetchResult {
@@ -25,14 +26,16 @@ pub struct FetchResult {
 /// - `max_attempts`: total attempts including the first (default 3)
 /// - Returns `None` when all attempts produce 0 nodes AND no fallback exists.
 pub async fn fetch_and_parse(
-    client: &reqwest::Client,
     url: &str,
     ua: &str,
     cache_ttl_minutes: i32,
     max_attempts: u32,
+    fetch_mode: SourceFetchMode,
 ) -> Option<FetchResult> {
+    let cache_partition = fetch_mode.as_str();
+
     // 1. Try in-memory cache (TTL-aware)
-    if let Some(cached_text) = cache::get(url, ua, cache_ttl_minutes) {
+    if let Some(cached_text) = cache::get(url, ua, cache_partition, cache_ttl_minutes) {
         let proxies = parse_subscription(&cached_text);
         if !proxies.is_empty() {
             return Some(FetchResult {
@@ -46,6 +49,16 @@ pub async fn fetch_and_parse(
     }
 
     // 2. Fetch with retry
+    let client = match build_source_http_client(fetch_mode, false) {
+        Ok(source_client) => source_client.client,
+        Err(error) => {
+            warn!(
+                "[fetchSubscription] {} route {} is unavailable: {}",
+                url, cache_partition, error
+            );
+            return fallback_result(url, ua, cache_partition, max_attempts);
+        }
+    };
     for attempt in 1..=max_attempts {
         match client.get(url).header("User-Agent", ua).send().await {
             Ok(resp) => {
@@ -55,7 +68,7 @@ pub async fn fetch_and_parse(
                         let proxies = parse_subscription(&text);
                         if !proxies.is_empty() {
                             // Success → unconditionally write to cache
-                            cache::set(url, ua, text.clone(), status);
+                            cache::set(url, ua, cache_partition, text.clone(), status);
                             return Some(FetchResult {
                                 text,
                                 proxies,
@@ -93,7 +106,16 @@ pub async fn fetch_and_parse(
     }
 
     // 3. All attempts failed → fallback to cache ignoring TTL
-    if let Some(fallback_text) = cache::get_fallback(url, ua) {
+    fallback_result(url, ua, cache_partition, max_attempts)
+}
+
+fn fallback_result(
+    url: &str,
+    ua: &str,
+    cache_partition: &str,
+    max_attempts: u32,
+) -> Option<FetchResult> {
+    if let Some(fallback_text) = cache::get_fallback(url, ua, cache_partition) {
         let proxies = parse_subscription(&fallback_text);
         if !proxies.is_empty() {
             warn!(

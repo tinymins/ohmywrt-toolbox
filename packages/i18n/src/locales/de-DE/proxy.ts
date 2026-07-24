@@ -88,6 +88,9 @@ export default {
     fetchUaTooltip:
       "Benutzerdefinierter User-Agent. Verschiedene Abonnementanbieter benötigen möglicherweise unterschiedliche UA",
     fetchUaPlaceholder: "UA-Tarnung (Standard: clash.meta)",
+    fetchModeTooltip: "Netzwerkroute zum Abrufen dieser Quelle auswählen",
+    fetchModeAuto: "Automatisch",
+    fetchModeDomesticDirect: "Direkt im Inland",
     testSourceBtn: "Diese Quelle testen",
     testSourceTitle: "Quelltest-Ergebnis",
     testSourceSuccess: "{{count}} Knoten erfolgreich abgerufen",
@@ -334,6 +337,18 @@ export default {
     modeValue: {
       "bypass-cache": "Cache ignorieren",
       production: "Produktionsweg simulieren",
+    },
+    fetchMode: "Proxy-Route",
+    fetchModeValue: {
+      auto: "Automatisch",
+      "domestic-direct": "Direkt im Inland",
+    },
+    proxyEndpoint: "Direkt-Proxy",
+    proxyHost: "Proxy-Host",
+    connectionKind: "Verbindungsziel",
+    connectionKindValue: {
+      origin: "Abonnementquelle",
+      proxy: "Direkt-Proxy",
     },
     start: "Debugging starten",
     restart: "Erneut ausführen",

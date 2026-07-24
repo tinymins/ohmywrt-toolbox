@@ -8,9 +8,10 @@ import {
   InputNumber,
   PlayCircleOutlined,
   PlusOutlined,
+  Select,
   Tooltip,
 } from "@acme/components";
-import type { SubscribeItem } from "@acme/types";
+import type { ProxySourceFetchMode, SubscribeItem } from "@acme/types";
 import {
   closestCenter,
   DndContext,
@@ -73,6 +74,7 @@ const emptyItem = (): SubscribeItem => ({
   remark: "",
   cacheTtlMinutes: undefined,
   fetchUa: undefined,
+  fetchMode: "auto",
 });
 
 /** 单个订阅源卡片（可排序） */
@@ -89,6 +91,16 @@ const SortableCard = ({
 }) => {
   const { t } = useTranslation();
   const [showTestModal, setShowTestModal] = useState(false);
+  const fetchModeOptions = [
+    {
+      value: "auto",
+      label: t("proxy.form.fetchModeAuto"),
+    },
+    {
+      value: "domestic-direct",
+      label: t("proxy.form.fetchModeDomesticDirect"),
+    },
+  ];
 
   const {
     attributes,
@@ -208,6 +220,21 @@ const SortableCard = ({
               </div>
               {/* UA + test: own line on mobile, inline on PC */}
               <div className="flex items-center gap-2 md:flex-1">
+                <Tooltip title={t("proxy.form.fetchModeTooltip")}>
+                  <div className="w-[120px] shrink-0">
+                    <Select
+                      size="small"
+                      value={item.fetchMode ?? "auto"}
+                      options={fetchModeOptions}
+                      onChange={(value) =>
+                        onUpdate({
+                          fetchMode: value as ProxySourceFetchMode,
+                        })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                </Tooltip>
                 <Tooltip title={t("proxy.form.fetchUaTooltip")}>
                   <div className="flex-1">
                     <AutoComplete

@@ -19,6 +19,9 @@ use super::icons::append_icon;
 use super::origins::build_field_origins;
 use super::parser;
 use super::parser::{is_base64_subscription, parse_subscription};
+use super::source_client::{
+    SourceFetchMode, build_source_http_client, proxy_endpoint as configured_proxy_endpoint,
+};
 use super::types::ClashProxy;
 use super::validator;
 use super::{
@@ -40,6 +43,8 @@ struct SubItem {
     cache_ttl_minutes: Option<i32>,
     #[serde(default)]
     fetch_ua: Option<String>,
+    #[serde(default)]
+    fetch_mode: SourceFetchMode,
 }
 
 fn parse_subscribe_items(sub: &proxy_subscribes::Model) -> Vec<SubItem> {
@@ -54,6 +59,7 @@ fn parse_subscribe_items(sub: &proxy_subscribes::Model) -> Vec<SubItem> {
                 enabled: Some(true),
                 cache_ttl_minutes: None,
                 fetch_ua: None,
+                fetch_mode: SourceFetchMode::Auto,
             })
             .collect()
     } else {
@@ -131,14 +137,6 @@ fn make_preview_node(p: &ClashProxy, source_index: usize, source_url: &str) -> V
         "sourceUrl": source_url,
         "raw": serde_json::to_value(p).unwrap_or_default(),
     })
-}
-
-fn build_http_client() -> reqwest::Client {
-    reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .tls_info(true)
-        .build()
-        .unwrap_or_default()
 }
 
 // ─── trace_node logic ───
@@ -356,13 +354,21 @@ pub fn debug_source_stream(
     prefix: String,
     cache_ttl_minutes: i32,
     production_mode: bool,
+    fetch_mode: SourceFetchMode,
 ) -> Response {
     let (tx, rx) = mpsc::channel::<Result<Event, Infallible>>(32);
 
     tokio::spawn(async move {
-        let _ =
-            run_debug_source_stream(&url, &ua, &prefix, cache_ttl_minutes, production_mode, &tx)
-                .await;
+        let _ = run_debug_source_stream(
+            &url,
+            &ua,
+            &prefix,
+            cache_ttl_minutes,
+            production_mode,
+            fetch_mode,
+            &tx,
+        )
+        .await;
     });
 
     let stream = ReceiverStream::new(rx);
@@ -464,7 +470,7 @@ fn request_error_details(error: &reqwest::Error) -> Value {
     })
 }
 
-async fn inspect_source_network(url: &str) -> Value {
+async fn inspect_source_network(url: &str, fetch_mode: SourceFetchMode) -> Value {
     let resolver_config = std::fs::read_to_string("/etc/resolv.conf")
         .unwrap_or_default()
         .lines()
@@ -487,8 +493,37 @@ async fn inspect_source_network(url: &str) -> Value {
     .map(ToString::to_string)
     .collect::<Vec<_>>();
 
-    let Ok(parsed_url) = reqwest::Url::parse(url) else {
+    let (connection_url, connection_kind, proxy_endpoint) =
+        if fetch_mode == SourceFetchMode::DomesticDirect {
+            match configured_proxy_endpoint(fetch_mode) {
+                Ok(Some(proxy_endpoint)) => (proxy_endpoint.clone(), "proxy", Some(proxy_endpoint)),
+                Ok(None) => (url.to_string(), "origin", None),
+                Err(error) => {
+                    return json!({
+                        "fetchMode": fetch_mode.as_str(),
+                        "connectionKind": "proxy",
+                        "proxyEndpoint": null,
+                        "scheme": null,
+                        "host": null,
+                        "port": null,
+                        "resolverConfig": resolver_config,
+                        "proxyEnvironmentVariables": proxy_environment_variables,
+                        "dnsDurationMs": 0,
+                        "resolvedAddresses": [],
+                        "dnsError": error,
+                        "tcpProbes": [],
+                    });
+                }
+            }
+        } else {
+            (url.to_string(), "origin", None)
+        };
+
+    let Ok(parsed_url) = reqwest::Url::parse(&connection_url) else {
         return json!({
+            "fetchMode": fetch_mode.as_str(),
+            "connectionKind": connection_kind,
+            "proxyEndpoint": proxy_endpoint,
             "scheme": null,
             "host": null,
             "port": null,
@@ -503,6 +538,9 @@ async fn inspect_source_network(url: &str) -> Value {
     let scheme = parsed_url.scheme().to_string();
     let Some(host) = parsed_url.host_str().map(ToString::to_string) else {
         return json!({
+            "fetchMode": fetch_mode.as_str(),
+            "connectionKind": connection_kind,
+            "proxyEndpoint": proxy_endpoint,
             "scheme": scheme,
             "host": null,
             "port": null,
@@ -517,6 +555,9 @@ async fn inspect_source_network(url: &str) -> Value {
     let port = parsed_url.port_or_known_default();
     let Some(port) = port else {
         return json!({
+            "fetchMode": fetch_mode.as_str(),
+            "connectionKind": connection_kind,
+            "proxyEndpoint": proxy_endpoint,
             "scheme": scheme,
             "host": host,
             "port": null,
@@ -591,6 +632,9 @@ async fn inspect_source_network(url: &str) -> Value {
     });
 
     json!({
+        "fetchMode": fetch_mode.as_str(),
+        "connectionKind": connection_kind,
+        "proxyEndpoint": proxy_endpoint,
         "scheme": scheme,
         "host": host,
         "port": port,
@@ -610,6 +654,7 @@ async fn run_debug_source_stream(
     prefix: &str,
     cache_ttl_minutes: i32,
     production_mode: bool,
+    fetch_mode: SourceFetchMode,
     tx: &mpsc::Sender<Result<Event, Infallible>>,
 ) -> Result<(), ()> {
     const TIMEOUT_MS: u64 = 15_000;
@@ -620,6 +665,8 @@ async fn run_debug_source_stream(
     } else {
         "bypass-cache"
     };
+    let cache_partition = fetch_mode.as_str();
+    let proxy_endpoint = configured_proxy_endpoint(fetch_mode).ok().flatten();
 
     if !send_event(
         tx,
@@ -631,6 +678,8 @@ async fn run_debug_source_stream(
                 "prefix": prefix,
                 "cacheTtlMinutes": cache_ttl_minutes,
                 "mode": mode,
+                "fetchMode": fetch_mode.as_str(),
+                "proxyEndpoint": proxy_endpoint,
                 "maxAttempts": max_attempts,
                 "timeoutMs": TIMEOUT_MS,
             }
@@ -642,7 +691,7 @@ async fn run_debug_source_stream(
     }
 
     if production_mode {
-        if let Some(cached_text) = cache::get(url, ua, cache_ttl_minutes) {
+        if let Some(cached_text) = cache::get(url, ua, cache_partition, cache_ttl_minutes) {
             let (payload, node_count) = inspect_source_text(&cached_text, url, prefix);
             let status = if node_count > 0 { "hit" } else { "unusable" };
             if !send_event(
@@ -664,7 +713,7 @@ async fn run_debug_source_stream(
                 return send_source_done(tx, true, Some("cache"), node_count, start_time).await;
             }
         } else {
-            let status = if cache::get_fallback(url, ua).is_some() {
+            let status = if cache::get_fallback(url, ua, cache_partition).is_some() {
                 "expired"
             } else {
                 "miss"
@@ -701,7 +750,7 @@ async fn run_debug_source_stream(
         return Err(());
     }
 
-    let client = build_http_client();
+    let source_client = build_source_http_client(fetch_mode, true);
     for attempt in 1..=max_attempts {
         if !send_event(
             tx,
@@ -719,7 +768,17 @@ async fn run_debug_source_stream(
         }
 
         let fetch_start = Instant::now();
-        let response = client.get(url).header("User-Agent", ua).send().await;
+        let response = match &source_client {
+            Ok(source_client) => Some(
+                source_client
+                    .client
+                    .get(url)
+                    .header("User-Agent", ua)
+                    .send()
+                    .await,
+            ),
+            Err(_) => None,
+        };
         let (
             http_status,
             final_url,
@@ -731,7 +790,7 @@ async fn run_debug_source_stream(
             http_version,
             tls_peer_certificate_bytes,
         ) = match response {
-            Ok(response) => {
+            Some(Ok(response)) => {
                 let status = response.status().as_u16();
                 let final_url = response.url().to_string();
                 let remote_address = response.remote_addr().map(|value| value.to_string());
@@ -776,13 +835,24 @@ async fn run_debug_source_stream(
                     ),
                 }
             }
-            Err(error) => (
+            Some(Err(error)) => (
                 None,
                 None,
                 Map::new(),
                 String::new(),
                 Some(format!("Request failed: {error}")),
                 Some(request_error_details(&error)),
+                None,
+                None,
+                None,
+            ),
+            None => (
+                None,
+                None,
+                Map::new(),
+                String::new(),
+                source_client.as_ref().err().map(|error| (*error).clone()),
+                None,
                 None,
                 None,
                 None,
@@ -830,11 +900,15 @@ async fn run_debug_source_stream(
                 cache::set(
                     url,
                     ua,
+                    cache_partition,
                     raw_text,
                     http_status.unwrap_or(reqwest::StatusCode::OK.as_u16()),
                 );
             }
             return send_source_done(tx, true, Some("live"), node_count, start_time).await;
+        }
+        if source_client.is_err() {
+            break;
         }
     }
 
@@ -842,7 +916,7 @@ async fn run_debug_source_stream(
         tx,
         json!({
             "type": "network",
-            "data": inspect_source_network(url).await,
+            "data": inspect_source_network(url, fetch_mode).await,
         }),
     )
     .await
@@ -851,7 +925,7 @@ async fn run_debug_source_stream(
     }
 
     if production_mode {
-        if let Some(fallback_text) = cache::get_fallback(url, ua) {
+        if let Some(fallback_text) = cache::get_fallback(url, ua, cache_partition) {
             let (payload, node_count) = inspect_source_text(&fallback_text, url, prefix);
             let status = if node_count > 0 { "hit" } else { "unusable" };
             if !send_event(
@@ -1007,7 +1081,6 @@ async fn run_debug_stream(
     }
 
     // Step 3+: remote sources
-    let client = build_http_client();
     let mut total_before_filter: usize = all_proxies.len();
     let mut total_filtered: usize = 0;
 
@@ -1027,6 +1100,7 @@ async fn run_debug_stream(
                     "sourceIndex": source_index,
                     "url": item.url,
                     "ua": ua,
+                    "fetchMode": item.fetch_mode.as_str(),
                 }
             }),
         )
@@ -1041,33 +1115,47 @@ async fn run_debug_stream(
             .or(sub.cache_ttl_minutes)
             .unwrap_or(60);
 
-        let cached_text = cache::get(&item.url, &ua, cache_ttl);
+        let cache_partition = item.fetch_mode.as_str();
+        let cached_text = cache::get(&item.url, &ua, cache_partition, cache_ttl);
         let is_cached = cached_text.is_some();
 
         let (text, http_status, http_headers, fetch_error) = if let Some(cached) = cached_text {
             (cached, None, Map::new(), None)
         } else {
-            match client.get(&item.url).header("User-Agent", &ua).send().await {
-                Ok(resp) => {
-                    let status = resp.status().as_u16();
-                    let headers: Map<String, Value> = resp
-                        .headers()
-                        .iter()
-                        .filter_map(|(k, v)| {
-                            v.to_str()
-                                .ok()
-                                .map(|val| (k.to_string(), Value::String(val.to_string())))
-                        })
-                        .collect();
-                    match resp.text().await {
-                        Ok(text) => {
-                            // Cache write moved after parsing (only when >0 nodes)
-                            (text, Some(status), headers, None)
+            match build_source_http_client(item.fetch_mode, true) {
+                Ok(source_client) => {
+                    match source_client
+                        .client
+                        .get(&item.url)
+                        .header("User-Agent", &ua)
+                        .send()
+                        .await
+                    {
+                        Ok(resp) => {
+                            let status = resp.status().as_u16();
+                            let headers: Map<String, Value> = resp
+                                .headers()
+                                .iter()
+                                .filter_map(|(k, v)| {
+                                    v.to_str()
+                                        .ok()
+                                        .map(|val| (k.to_string(), Value::String(val.to_string())))
+                                })
+                                .collect();
+                            match resp.text().await {
+                                Ok(text) => (text, Some(status), headers, None),
+                                Err(error) => (
+                                    String::new(),
+                                    Some(status),
+                                    headers,
+                                    Some(error.to_string()),
+                                ),
+                            }
                         }
-                        Err(e) => (String::new(), Some(status), headers, Some(e.to_string())),
+                        Err(error) => (String::new(), None, Map::new(), Some(error.to_string())),
                     }
                 }
-                Err(e) => (String::new(), None, Map::new(), Some(e.to_string())),
+                Err(error) => (String::new(), None, Map::new(), Some(error)),
             }
         };
 
@@ -1089,7 +1177,7 @@ async fn run_debug_stream(
             && !parsed.is_empty()
             && let Some(status) = http_status
         {
-            cache::set(&item.url, &ua, text.clone(), status);
+            cache::set(&item.url, &ua, cache_partition, text.clone(), status);
         }
 
         let normalized_prefix = normalize_prefix(&item.prefix);
@@ -1805,6 +1893,7 @@ proxies:
             String::new(),
             cache_ttl_minutes,
             production_mode,
+            SourceFetchMode::Auto,
         );
         let bytes = to_bytes(response.into_body(), 2 * 1024 * 1024)
             .await
@@ -1816,7 +1905,7 @@ proxies:
     async fn bypass_mode_ignores_and_does_not_replace_cache() {
         let (url, requests, server) = start_upstream(LIVE_SUBSCRIPTION).await;
         let ua = "source-debug-bypass-test";
-        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+        cache::set(&url, ua, "auto", CACHED_SUBSCRIPTION.to_string(), 200);
 
         let output = collect_debug_stream(&url, ua, 60, false).await;
 
@@ -1824,7 +1913,7 @@ proxies:
         assert!(output.contains(r#""status":"skipped""#));
         assert!(output.contains(r#""resultSource":"live""#));
         assert_eq!(
-            cache::get_fallback(&url, ua).as_deref(),
+            cache::get_fallback(&url, ua, "auto").as_deref(),
             Some(CACHED_SUBSCRIPTION)
         );
         server.abort();
@@ -1834,7 +1923,7 @@ proxies:
     async fn production_mode_short_circuits_on_valid_cache() {
         let (url, requests, server) = start_upstream(LIVE_SUBSCRIPTION).await;
         let ua = "source-debug-cache-hit-test";
-        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+        cache::set(&url, ua, "auto", CACHED_SUBSCRIPTION.to_string(), 200);
 
         let output = collect_debug_stream(&url, ua, 60, true).await;
 
@@ -1848,7 +1937,7 @@ proxies:
     async fn production_mode_retries_then_uses_stale_cache() {
         let (url, requests, server) = start_upstream("not a subscription").await;
         let ua = "source-debug-stale-fallback-test";
-        cache::set(&url, ua, CACHED_SUBSCRIPTION.to_string(), 200);
+        cache::set(&url, ua, "auto", CACHED_SUBSCRIPTION.to_string(), 200);
 
         let output = collect_debug_stream(&url, ua, 0, true).await;
 
@@ -1871,7 +1960,7 @@ proxies:
         assert_eq!(requests.load(Ordering::SeqCst), 1);
         assert!(output.contains(r#""resultSource":"live""#));
         assert_eq!(
-            cache::get_fallback(&url, ua).as_deref(),
+            cache::get_fallback(&url, ua, "auto").as_deref(),
             Some(LIVE_SUBSCRIPTION)
         );
         server.abort();

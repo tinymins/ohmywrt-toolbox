@@ -85,6 +85,9 @@ export default {
     fetchUaTooltip:
       "自訂 User-Agent，不同訂閱源可能需要不同的 UA 偽裝才能正常取得節點",
     fetchUaPlaceholder: "UA 偽裝（預設 clash.meta）",
+    fetchModeTooltip: "選擇抓取此訂閱源時使用的網路出口",
+    fetchModeAuto: "自動",
+    fetchModeDomesticDirect: "國內直連",
     testSourceBtn: "測試此訂閱源",
     testSourceTitle: "訂閱源測試結果",
     testSourceSuccess: "成功取得 {{count}} 個節點",
@@ -324,6 +327,18 @@ export default {
     modeValue: {
       "bypass-cache": "忽略快取",
       production: "模擬正式鏈路",
+    },
+    fetchMode: "代理方式",
+    fetchModeValue: {
+      auto: "自動",
+      "domestic-direct": "國內直連",
+    },
+    proxyEndpoint: "直連代理",
+    proxyHost: "代理主機",
+    connectionKind: "實際連線",
+    connectionKindValue: {
+      origin: "訂閱源",
+      proxy: "直連代理",
     },
     start: "開始除錯",
     restart: "重新除錯",

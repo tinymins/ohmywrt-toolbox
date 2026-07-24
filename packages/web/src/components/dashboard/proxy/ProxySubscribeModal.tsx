@@ -333,7 +333,13 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
           form.setFieldsValue({
             logLevel: "info",
             subscribeItems: [
-              { enabled: true, url: "", prefix: "", remark: "" },
+              {
+                enabled: true,
+                url: "",
+                prefix: "",
+                remark: "",
+                fetchMode: "auto",
+              },
             ],
             ruleList: "",
             useSystemRuleList: true,
@@ -383,6 +389,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
                 prefix: "",
                 remark: "",
                 cacheTtlMinutes: globalCacheTtl,
+                fetchMode: "auto",
               }));
           }
         } catch {
@@ -397,6 +404,7 @@ const ProxySubscribeModal = forwardRef<ProxySubscribeModalRef, Props>(
             prefix: "",
             remark: "",
             cacheTtlMinutes: undefined,
+            fetchMode: "auto",
           },
         ];
       }

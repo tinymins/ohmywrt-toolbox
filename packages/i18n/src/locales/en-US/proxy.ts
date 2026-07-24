@@ -87,6 +87,9 @@ export default {
     fetchUaTooltip:
       "Custom User-Agent. Different subscription providers may require different UA to fetch nodes correctly",
     fetchUaPlaceholder: "UA spoof (default: clash.meta)",
+    fetchModeTooltip: "Select the network route used to fetch this source",
+    fetchModeAuto: "Automatic",
+    fetchModeDomesticDirect: "Domestic direct",
     testSourceBtn: "Test this source",
     testSourceTitle: "Source Test Result",
     testSourceSuccess: "Successfully fetched {{count}} nodes",
@@ -331,6 +334,18 @@ export default {
     modeValue: {
       "bypass-cache": "Ignore cache",
       production: "Simulate production",
+    },
+    fetchMode: "Proxy route",
+    fetchModeValue: {
+      auto: "Automatic",
+      "domestic-direct": "Domestic direct",
+    },
+    proxyEndpoint: "Direct proxy",
+    proxyHost: "Proxy host",
+    connectionKind: "Connection target",
+    connectionKindValue: {
+      origin: "Subscription source",
+      proxy: "Direct proxy",
     },
     start: "Start debug",
     restart: "Run again",

@@ -254,6 +254,7 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
           prefix: item.prefix || undefined,
           cacheTtlMinutes: item.cacheTtlMinutes,
           mode,
+          fetchMode: item.fetchMode ?? "auto",
         },
         (step) => {
           setSteps((previous) => {
@@ -386,6 +387,24 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
                   <Tag color="blue">
                     {t(`proxy.sourceDebug.modeValue.${step.data.mode}`)}
                   </Tag>
+                ),
+              },
+              {
+                label: t("proxy.sourceDebug.fetchMode"),
+                children: (
+                  <Tag color={step.data.fetchMode === "auto" ? "blue" : "gold"}>
+                    {t(
+                      `proxy.sourceDebug.fetchModeValue.${step.data.fetchMode}`,
+                    )}
+                  </Tag>
+                ),
+              },
+              {
+                label: t("proxy.sourceDebug.proxyEndpoint"),
+                children: (
+                  <span className="break-all text-xs">
+                    {step.data.proxyEndpoint ?? "-"}
+                  </span>
                 ),
               },
               {
@@ -574,12 +593,31 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
               bordered
               items={[
                 {
-                  label: t("proxy.sourceDebug.targetHost"),
+                  label: t(
+                    step.data.connectionKind === "proxy"
+                      ? "proxy.sourceDebug.proxyHost"
+                      : "proxy.sourceDebug.targetHost",
+                  ),
                   children: (
                     <span className="break-all text-xs">
                       {step.data.host
                         ? `${step.data.host}:${step.data.port ?? "-"}`
                         : "-"}
+                    </span>
+                  ),
+                  span: isMobile ? 1 : 2,
+                },
+                {
+                  label: t("proxy.sourceDebug.connectionKind"),
+                  children: t(
+                    `proxy.sourceDebug.connectionKindValue.${step.data.connectionKind}`,
+                  ),
+                },
+                {
+                  label: t("proxy.sourceDebug.proxyEndpoint"),
+                  children: (
+                    <span className="break-all text-xs">
+                      {step.data.proxyEndpoint ?? "-"}
                     </span>
                   ),
                   span: isMobile ? 1 : 2,
@@ -803,6 +841,12 @@ const SourceDebugModal = ({ open, item, onClose }: Props) => {
               {
                 label: t("proxy.sourceDebug.prefix"),
                 children: item.prefix || "-",
+              },
+              {
+                label: t("proxy.sourceDebug.fetchMode"),
+                children: t(
+                  `proxy.sourceDebug.fetchModeValue.${item.fetchMode ?? "auto"}`,
+                ),
               },
             ]}
           />
