@@ -1130,24 +1130,135 @@ pub async fn convert_rule_v13(Query(query): Query<ConvertRuleQuery>) -> Response
     handle_convert_rule(&query.url, 4).await
 }
 
+const RULE_FETCH_MAX_ATTEMPTS: u8 = 3;
+
+async fn fetch_rule_text(
+    client: &reqwest::Client,
+    url: &str,
+    route: &'static str,
+) -> Result<String, String> {
+    let mut last_error = String::new();
+
+    for attempt in 1..=RULE_FETCH_MAX_ATTEMPTS {
+        let result = match client.get(url).send().await {
+            Ok(response) if response.status().is_success() => response
+                .text()
+                .await
+                .map_err(|error| format!("failed to read response: {error}")),
+            Ok(response) => Err(format!("upstream returned HTTP {}", response.status())),
+            Err(error) => Err(format!("request failed: {error}")),
+        };
+
+        match result {
+            Ok(text) => return Ok(text),
+            Err(error) => {
+                last_error = error;
+                if attempt < RULE_FETCH_MAX_ATTEMPTS {
+                    tracing::warn!(
+                        url,
+                        route,
+                        attempt,
+                        max_attempts = RULE_FETCH_MAX_ATTEMPTS,
+                        error = %last_error,
+                        "rule fetch failed, retrying"
+                    );
+                    tokio::time::sleep(std::time::Duration::from_millis(200 * u64::from(attempt)))
+                        .await;
+                }
+            }
+        }
+    }
+
+    Err(format!(
+        "Failed to fetch rule after {RULE_FETCH_MAX_ATTEMPTS} attempts: {last_error}"
+    ))
+}
+
+async fn race_rule_fetches<Automatic, DomesticDirect>(
+    automatic: Automatic,
+    domestic_direct: DomesticDirect,
+) -> Result<String, String>
+where
+    Automatic: std::future::Future<Output = Result<String, String>>,
+    DomesticDirect: std::future::Future<Output = Result<String, String>>,
+{
+    tokio::pin!(automatic);
+    tokio::pin!(domestic_direct);
+
+    tokio::select! {
+        automatic_result = &mut automatic => match automatic_result {
+            Ok(text) => Ok(text),
+            Err(automatic_error) => match domestic_direct.await {
+                Ok(text) => Ok(text),
+                Err(direct_error) => Err(format!(
+                    "Both rule fetch routes failed; automatic: {automatic_error}; domestic-direct: {direct_error}"
+                )),
+            },
+        },
+        direct_result = &mut domestic_direct => match direct_result {
+            Ok(text) => Ok(text),
+            Err(direct_error) => match automatic.await {
+                Ok(text) => Ok(text),
+                Err(automatic_error) => Err(format!(
+                    "Both rule fetch routes failed; automatic: {automatic_error}; domestic-direct: {direct_error}"
+                )),
+            },
+        },
+    }
+}
+
+async fn fetch_rule_text_from_available_routes(url: &str) -> Result<String, String> {
+    let automatic =
+        source_client::build_source_http_client(source_client::SourceFetchMode::Auto, false)
+            .map_err(|error| format!("Failed to build rule fetch client: {error}"))?;
+
+    let domestic_direct = match source_client::build_source_http_client(
+        source_client::SourceFetchMode::DomesticDirect,
+        false,
+    ) {
+        Ok(client) => client,
+        Err(error) => {
+            if std::env::var_os("DIRECT_PROXY_URL").is_some() {
+                tracing::warn!(
+                    error,
+                    "direct proxy configuration is invalid; fetching rule through automatic route only"
+                );
+            } else {
+                tracing::debug!("direct proxy is not configured; using automatic rule fetch");
+            }
+            return fetch_rule_text(&automatic.client, url, "automatic").await;
+        }
+    };
+
+    race_rule_fetches(
+        async {
+            tracing::debug!(url, route = "automatic", "starting rule fetch");
+            fetch_rule_text(&automatic.client, url, "automatic").await
+        },
+        async {
+            tracing::debug!(
+                url,
+                route = "domestic-direct",
+                proxy_endpoint = domestic_direct
+                    .proxy_endpoint
+                    .as_deref()
+                    .unwrap_or_default(),
+                "starting rule fetch"
+            );
+            fetch_rule_text(&domestic_direct.client, url, "domestic-direct").await
+        },
+    )
+    .await
+}
+
 async fn handle_convert_rule(url: &str, rule_set_version: u8) -> Response {
     if url.is_empty() {
         return AppError::BadRequest("url is required".into()).into_response();
     }
 
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .unwrap_or_default();
-
-    let text = match client.get(url).send().await {
-        Ok(resp) => match resp.text().await {
-            Ok(t) => t,
-            Err(e) => {
-                return AppError::Internal(format!("Failed to read response: {e}")).into_response();
-            }
-        },
-        Err(e) => return AppError::Internal(format!("Failed to fetch rule: {e}")).into_response(),
+    let text = match fetch_rule_text_from_available_routes(url).await {
+        Ok(text) => text,
+        Err(error) => return AppError::Internal(error).into_response(),
     };
 
     let parsed: serde_yaml::Value = match serde_yaml::from_str(&text) {
@@ -1331,3 +1442,98 @@ pub(super) const DEFAULT_DNS_CONFIG_JSON: &str = r#"{
     "clashApiUiPath": "/etc/sb/ui"
   }
 }"#;
+
+#[cfg(test)]
+mod rule_conversion_tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use axum::Router;
+    use axum::http::StatusCode;
+    use axum::routing::get;
+
+    use super::*;
+
+    struct DropFlag(Arc<AtomicUsize>);
+
+    impl Drop for DropFlag {
+        fn drop(&mut self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[tokio::test]
+    async fn rule_fetch_retries_transient_failures() {
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let route_attempts = Arc::clone(&attempts);
+        let app = Router::new().route(
+            "/",
+            get(move || {
+                let attempts = Arc::clone(&route_attempts);
+                async move {
+                    if attempts.fetch_add(1, Ordering::SeqCst) < 2 {
+                        (StatusCode::BAD_GATEWAY, "temporary failure")
+                    } else {
+                        (StatusCode::OK, "payload:\n  - DOMAIN,example.com")
+                    }
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+
+        let text = fetch_rule_text(
+            &reqwest::Client::new(),
+            &format!("http://{address}/"),
+            "test",
+        )
+        .await
+        .unwrap();
+
+        server.abort();
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
+        assert!(text.contains("DOMAIN,example.com"));
+    }
+
+    #[tokio::test]
+    async fn rule_fetch_race_returns_first_success_and_cancels_loser() {
+        let dropped = Arc::new(AtomicUsize::new(0));
+        let slow_dropped = Arc::clone(&dropped);
+        let slow = async move {
+            let _drop_flag = DropFlag(slow_dropped);
+            std::future::pending::<Result<String, String>>().await
+        };
+        let fast = async { Ok("direct".to_string()) };
+
+        let text = race_rule_fetches(slow, fast).await.unwrap();
+
+        assert_eq!(text, "direct");
+        assert_eq!(dropped.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn rule_fetch_race_waits_for_other_route_after_failure() {
+        let failed = async { Err("automatic failed".to_string()) };
+        let successful = async {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+            Ok("direct".to_string())
+        };
+
+        let text = race_rule_fetches(failed, successful).await.unwrap();
+
+        assert_eq!(text, "direct");
+    }
+
+    #[tokio::test]
+    async fn rule_fetch_race_reports_both_failures() {
+        let automatic = async { Err("automatic failed".to_string()) };
+        let direct = async { Err("direct failed".to_string()) };
+
+        let error = race_rule_fetches(automatic, direct).await.unwrap_err();
+
+        assert!(error.contains("automatic: automatic failed"));
+        assert!(error.contains("domestic-direct: direct failed"));
+    }
+}
